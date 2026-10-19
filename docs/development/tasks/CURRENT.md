@@ -162,7 +162,7 @@ Evidence:
 
 ## NTS-007 BeatLane6
 
-Status: **ACTIVE / IMPLEMENTED / LOCAL GREEN / EXACT-COMMIT CI PENDING**
+Status: **COMPLETE / GREEN / EXACT-COMMIT CI GREEN**
 
 BeatLane6 is the current user-prioritized feature. NoteScript Markdown remains the authoritative music representation; gameplay charts are derived deterministically from the canonical timeline.
 
@@ -192,11 +192,19 @@ Evidence:
 
 - `docs/architecture/BEATLANE6.md`
 
-Remaining gate for this implementation commit:
+Exact-commit qualification:
 
-- [ ] exact-commit GitHub Actions GREEN.
+- implementation commit: `3ba3138136fe7d08c7a016e8edcf1bfb80b45463`
+- GitHub Actions run: `39314541435`
+- job: `test (24.x)`
+- result: **SUCCESS**
+- all workflow steps GREEN, including portable build, portable CLI smoke and Studio/Control API smoke.
 
-Deferred extensions, not required for the current baseline:
+Qualification report:
+
+`docs/development/reports/NOTESCRIPT-20261020-nts007-beatlane6.md`
+
+Deferred extensions, not required for the completed baseline:
 
 - slide/drag notes
 - manual chart overrides/editor

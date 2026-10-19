@@ -83,7 +83,7 @@ Evidence:
 
 `docs/development/reports/NOTESCRIPT-20261020-sound-library-expansion.md`
 
-## NTS-007 — BeatLane6 rhythm game — ACTIVE / LOCAL GREEN
+## NTS-007 — BeatLane6 rhythm game — COMPLETE / GREEN
 
 - [x] Six lanes using `A S D | J K L`.
 - [x] Generate playable chart data from the canonical timeline of a NoteScript Markdown project.
@@ -97,7 +97,11 @@ Evidence:
 - [x] Easy / Normal / Hard chart reduction without changing the authoritative Markdown song.
 - [x] Bundled six-lane Starter project.
 - [x] Portable API/Studio integration and local/browser qualification.
-- [ ] Exact-commit CI GREEN.
+- [x] Exact-commit CI GREEN: run `39314541435` for commit `3ba3138136fe7d08c7a016e8edcf1bfb80b45463`.
+
+Evidence:
+
+`docs/development/reports/NOTESCRIPT-20261020-nts007-beatlane6.md`
 
 Deferred follow-up:
 
