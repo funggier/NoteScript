@@ -236,8 +236,8 @@ Implemented:
 - SoundFont bank/preset selection through `instrument.md`.
 - NoteScript Studio with tabbed Play / Project / Compose / Tracks / Sounds / Settings workspaces.
 - Play Source selector with `SoundPiano`, `SoundPad`, and `GameBeatLane6`; future games can join the same source selector without a separate Play Mode switch.
-- Compose Track/Voice selectors backed by the installed SoundPiano/SoundPad/Instrument libraries, shared across Text/Form/Node editing.
-- Advanced Tracks expose a per-track Voice dropdown while preserving the same Markdown source of truth.
+- Compose Track + Source Type + Instrument / Sound + Volume controls backed by installed SoundPiano/SoundPad/Instrument libraries across Text/Form/Node; source and volume write back to the current Compose Markdown.
+- Tracks is an independent `.md` multi-track workspace: import Markdown, choose Source Type + `Instrument / Sound` per track, persist Volume, use live Mute, download the edited `.md`, export each Stem WAV, export a Mix WAV, or download a Track Set ZIP containing the Markdown, mix, every stem and a manifest.
 - Compose can render the current `.md` project and download a user-named WAV directly from the browser.
 - Game-style Play page with performance HUD, on-key hotkey caps and playable piano/SoundPad controls.
 - BeatLane6 rhythm-game mode using NoteScript Markdown projects as level sources.
@@ -255,8 +255,8 @@ Implemented:
 - Project create/open/save/rename/delete flow inside the portable workspace.
 - Compose Text / Form / Node modes editing the same authoritative Markdown project.
 - Node palette plus Bar/Event Node Inspector with edits written back to Markdown before Save.
-- Advanced multi-track arrangement view with synchronized per-track stems.
-- Advanced Play/Pause/Stop/Seek plus per-track Mute/Unmute that works during playback.
+- Tracks multi-track arrangement view with synchronized per-track stems.
+- Tracks Play/Pause/Stop/Seek plus per-track Volume and Mute/Unmute that work during playback.
 - Separate Sound Pack and Instrument browsers.
 - Persistent SF2/SF3 live playback through one FluidSynth process with direct WASAPI output on Windows.
 - Safe SoundFont switching, live status, sustain CC and process cleanup.
@@ -271,7 +271,7 @@ Implemented:
 
 Planned:
 
-- Richer piano-roll editing, track resizing and region manipulation in Advanced mode.
+- Richer piano-roll editing, track resizing and region manipulation in Tracks.
 - Measured/tuned end-to-end low-latency audio path, including direct live-backend output-device selection.
 - Physical MIDI-controller qualification and richer MIDI mappings.
 - Per-track stereo/pan processing in the deterministic offline renderer.
@@ -321,7 +321,7 @@ Current API surface:
 - `GET /v1/game/beatlane6/chart`
 - `GET /v1/transport/audio`
 - `GET /v1/transport/track-audio`
-- `GET /v1/render/audio` — browser WAV download source used by Compose
+- `GET /v1/render/audio` — compatibility project render endpoint
 - `POST /v1/live/select`
 - `POST /v1/live/note-on`
 - `POST /v1/live/note-off`
@@ -335,6 +335,10 @@ Current API surface:
 - `POST /v1/analyze`
 - `POST /v1/studio/settings`
 - `POST /v1/validate`
+- `POST /v1/render/audio` — render current in-memory Compose Markdown to WAV
+- `POST /v1/tracks/track-audio` — render one Track stem from the current independent Tracks Markdown
+- `POST /v1/tracks/mix-audio` — render the Tracks mix with optional muted-track exclusion
+- `POST /v1/tracks/set-zip` — export Tracks Markdown + mix WAV + all stem WAVs + manifest
 - `POST /v1/render`
 - `POST /v1/midi`
 

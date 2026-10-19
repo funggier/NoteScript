@@ -375,8 +375,16 @@
             </div>
             <div class="compose-source-toolbar">
               <label>Track<select id="composeTrackSelect" aria-label="Compose track source target"></select></label>
-              <label>Voice<select id="composeVoiceSelect" aria-label="Compose track voice"></select></label>
-              <button id="composeApplyVoice" class="action-button secondary" type="button">Apply Voice</button>
+              <label>Source Type<select id="composeSourceType" aria-label="Compose track source type"></select></label>
+              <label>Instrument / Sound<select id="composeVoiceSelect" aria-label="Compose track instrument or sound"></select></label>
+              <label class="compose-volume-control">
+                Volume
+                <span class="inline-range">
+                  <input id="composeTrackVolume" type="range" min="0" max="1" step="0.05" value="1" aria-label="Compose track volume">
+                  <output id="composeTrackVolumeValue">100%</output>
+                </span>
+              </label>
+              <button id="composeApplyVoice" class="action-button secondary" type="button">Apply Track</button>
             </div>
           </div>
 
@@ -451,14 +459,15 @@
           <div>
             <div class="eyebrow">TRACK WORKSPACE</div>
             <h2>Multi-track Arrangement</h2>
-            <p>Independent .md workspace. Load a file here, add tracks, choose each track voice, and play stems without changing other tabs.</p>
+            <p>Independent .md workspace. Edit track sound and volume, then play or export from one compact workspace.</p>
           </div>
-          <div class="tracks-file-tools">
-            <label class="action-button secondary tracks-file-button">
-              Load .md
+          <div class="tracks-file-tools compact-toolbar" aria-label="Track project actions">
+            <label class="action-button secondary tracks-file-button compact-action" title="Import NoteScript Markdown">
+              Import
               <input id="tracksFileInput" type="file" accept=".md,text/markdown,text/plain">
             </label>
-            <button id="tracksAddTrack" class="action-button secondary" type="button">Add Track</button>
+            <button id="tracksAddTrack" class="action-button secondary compact-action" type="button" title="Add Track">+ Track</button>
+            <button id="tracksDownloadMd" class="action-button secondary compact-action" type="button" title="Download current Markdown">.md</button>
           </div>
         </div>
 
@@ -468,23 +477,30 @@
               <div class="eyebrow">MIX PLAYBACK</div>
               <strong id="advancedProjectLabel">No project loaded</strong>
             </div>
-            <div class="advanced-transport-buttons">
-              <button id="advancedPlay" class="action-button" type="button">Play</button>
-              <button id="advancedPause" class="action-button secondary" type="button">Pause</button>
-              <button id="advancedStop" class="action-button secondary" type="button">Stop</button>
-              <button id="advancedReload" class="action-button secondary" type="button">Reload Stems</button>
+            <div class="advanced-transport-buttons compact-toolbar">
+              <div class="transport-button-group" aria-label="Track playback">
+                <button id="advancedPlay" class="action-button compact-action" type="button">Play</button>
+                <button id="advancedPause" class="action-button secondary compact-action" type="button">Pause</button>
+                <button id="advancedStop" class="action-button secondary compact-action" type="button">Stop</button>
+                <button id="advancedReload" class="action-button secondary compact-action" type="button" title="Reload rendered stems">Reload</button>
+              </div>
+              <div class="track-export-group" aria-label="Track export">
+                <input id="tracksOutputName" class="text-input compact-output-name" type="text" placeholder="Export name" aria-label="Tracks export name">
+                <button id="tracksDownloadMix" class="action-button secondary compact-action" type="button" title="Download mixed WAV">Mix WAV</button>
+                <button id="tracksDownloadSet" class="action-button secondary compact-action" type="button" title="Download Markdown, mix and all stems as ZIP" aria-label="Download complete Track Set ZIP">Track Set</button>
+              </div>
             </div>
           </div>
-          <input id="advancedSeek" class="transport-seek" type="range" min="0" max="1000" value="0" aria-label="Advanced multi-track position">
+          <input id="advancedSeek" class="transport-seek" type="range" min="0" max="1000" value="0" aria-label="Tracks playback position">
           <div class="transport-time">
             <span id="advancedPosition">0:00.0</span>
             <span id="advancedDuration">0:00.0</span>
           </div>
-          <div id="advancedStatus" class="meta">Load a NoteScript .md file in this tab. Track Mute and per-track Voice are independent from Project/Compose.</div>
+          <div id="advancedStatus" class="meta">Load a NoteScript .md file here. Each Track has Sound, Volume, Mute, Stem WAV and Track Set export.</div>
         </div>
 
         <div id="trackTimeline" class="track-timeline">
-          <div class="empty-state">Load a .md file above to build this independent track workspace.</div>
+          <div class="empty-state">Load a .md file above to build the independent multi-track view.</div>
         </div>
       </section>
 
@@ -511,11 +527,7 @@
         <div class="page-grid">
           <section class="panel page-panel">
             <h2>Studio</h2>
-            <label class="field-label" for="workspaceModeSetting">Default workspace level</label>
-            <select id="workspaceModeSetting">
-              <option value="basic">Basic</option>
-              <option value="advanced">Advanced</option>
-            </select>
+            <p class="meta">All Studio tabs are available together as one complete workspace.</p>
 
             <label class="field-label spaced-label" for="editorModeSetting">Default compose mode</label>
             <select id="editorModeSetting">

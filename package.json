@@ -11,7 +11,7 @@
     "check": "node scripts/check-syntax.js",
     "test": "node scripts/generate-core-sounds.js && node --test test/*.test.js",
     "validate:example": "node src/cli.js validate examples/evening-walk.md",
-    "validate:pack": "node src/cli.js validate-pack examples/sounds/piano",
+    "validate:pack": "node src/cli.js validate-pack examples/sounds/soundpiano/piano",
     "render:example": "node src/cli.js render examples/evening-walk.md -o out/evening-walk.wav",
     "midi:example": "node src/cli.js midi examples/evening-walk.md -o out/evening-walk.mid",
     "portable": "node scripts/generate-core-sounds.js && node scripts/build-portable.js",

@@ -6,13 +6,15 @@ Status: NTS-004 baseline implemented.
 
 NoteScript Studio is a portable visual/editor layer over the same Markdown-first NoteScript core.
 
-There is one authoritative project representation:
+Markdown remains the authoritative music representation everywhere.
+
+Project and Compose operate on portable project files:
 
 ```text
 projects/<name>.md
 ```
 
-Play, Project, Compose, Tracks, Sounds and Settings are views/controllers over that source. The browser does not own a separate hidden song format.
+Tracks is an independent multi-track workspace. It loads or imports its own `.md` into memory for arrangement, stem playback and export without automatically mutating Project/Compose.
 
 ## Main tabs
 
@@ -85,10 +87,12 @@ Changing Form regenerates the NoteScript fenced body in the Text editor. Save st
 A shared Compose source toolbar is visible across Text/Form/Node editing:
 
 - choose a Track;
-- choose a Voice from installed SoundPiano/SoundPad/Instrument sources appropriate to that track;
-- Apply Voice to rewrite the track's `sound:` or `instrument:` line in the authoritative Markdown.
+- choose Source Type (`SoundPiano`, `SoundPad` where valid, or `Instrument`);
+- choose the installed Instrument / Sound for that track;
+- set persistent per-track Volume;
+- Apply Track to rewrite the track's `sound:` / `instrument:` and `volume:` fields in the authoritative Markdown.
 
-Compose also owns user-facing WAV creation. The user chooses an output filename and presses **Download WAV**. The browser receives `GET /v1/render/audio?project=<project>` and downloads the rendered WAV directly. Project Transport and Advanced Tracks do not duplicate this save/download control.
+Compose owns the simplest full-project WAV workflow. The user chooses an output filename and presses **Download WAV**. The browser sends the in-memory Markdown to `POST /v1/render/audio` and downloads the returned WAV directly. Project Transport remains preview-only. Tracks uses the same current Markdown for stem, mix and Track Set exports.
 
 #### Node
 
@@ -100,68 +104,61 @@ The palette can append Track/Bar/Note/Chord/Rest/Trigger structures.
 
 Bar/Event nodes can be selected in Node Inspector. Applying the inspector rewrites the matching `bar N:` line in the same in-memory Markdown. Save persists the result.
 
-### Tracks — Advanced mode
+### Tracks
 
-A DAW-style multi-track arrangement derived from the compiled timeline.
+Tracks is an independent multi-track editing/mixing workspace.
 
-Each track lane shows:
+Tracks can:
 
-- current source;
-- a Voice dropdown backed by the installed compatible sources;
-- track volume/pan metadata;
-- timeline events;
-- Mute/Unmute;
-- Edit shortcut back to Compose/Form.
+- load a local `.md` directly into Tracks;
+- keep that Tracks Markdown separate from Project/Compose state;
+- add a new track to the Tracks Markdown;
+- choose **Source Type** and **Instrument / Sound** per track;
+- use SoundPiano or playable Instrument add-ons for pitched tracks;
+- use SoundPad sets for trigger tracks;
+- set persistent per-track Volume (0–100%);
+- Mute/Unmute tracks during playback without rewriting the persistent volume;
+- Play/Pause/Stop/Seek synchronized per-track stems;
+- Reload Stems after source/volume edits;
+- download the edited Tracks `.md`;
+- download a WAV stem for any individual track;
+- download a Mix WAV, excluding tracks currently muted in the Tracks mixer;
+- download a Track Set ZIP containing Markdown, the current mix, every individual stem and `track-set.json` metadata.
 
-Changing the Advanced Voice dropdown writes the corresponding `sound:` / `instrument:` source back to Markdown and invalidates loaded stems so the change is heard after Reload Stems / next playback.
+Instrument/Sound/Volume/Add Track edits rewrite only the in-memory Tracks Markdown. Project/Compose remain unchanged unless the user explicitly uses the downloaded `.md` there later.
 
-Advanced mode does not create a second project representation.
+## Tracks multi-track playback and export
 
-## Advanced multi-track playback
+Tracks uses per-track stems because a premixed WAV cannot provide independent Mute or Volume control during playback.
 
-Full-project transport is useful for normal preview, but it cannot mute one track independently after a premixed WAV is already playing.
+Backend stem endpoint:
 
-Advanced mode therefore uses **per-track stems**.
+`POST /v1/tracks/track-audio`
 
-Backend:
+Request payload contains:
 
-`GET /v1/transport/track-audio?project=<project>&track=<index>`
+- workspace Markdown;
+- workspace filename;
+- track index.
 
-For each track:
+The service parses that Markdown and renders only the selected track to a full-duration PCM16 WAV. The browser decodes all stems into AudioBuffers, starts them at the same Web Audio clock time, and routes every track through a separate GainNode into one master gain.
 
-1. parse the same project Markdown;
-2. render only the selected track;
-3. preserve the normalization scale of the complete mix;
-4. return a full-duration PCM16 WAV stem;
-5. cache the stem by project signature + track index.
-
-Browser:
-
-1. decode every stem into an AudioBuffer;
-2. start all BufferSourceNodes at the same AudioContext time and offset;
-3. route each stem through its own GainNode;
-4. route all track gains into one master GainNode.
-
-Mute/Unmute changes only the selected track GainNode:
+Per-track live controls:
 
 ```text
-mute   -> gain = 0
-unmute -> gain = 1
+Mute OFF + volume 75% -> gain = 0.75
+Mute ON              -> gain = 0
 ```
 
-This can happen while playback continues. No stem is re-rendered and the playhead is not reset.
+Changing persistent Volume rewrites `volume:` in the Tracks Markdown. Changing Instrument / Sound rewrites the track's `sound:` or `instrument:` line. Both invalidate loaded stems so Reload/Play renders the updated arrangement.
 
-Advanced transport provides:
+Tracks audio export uses the current independent Tracks Markdown:
 
-- Play;
-- Pause;
-- Stop;
-- Seek;
-- Reload Stems;
-- per-track Mute/Unmute.
+- `POST /v1/tracks/track-audio` -> one track stem WAV;
+- `POST /v1/tracks/mix-audio` -> current mix WAV, with Mute selections optionally excluded;
+- `POST /v1/tracks/set-zip` -> complete Track Set ZIP with Markdown + current mix + all stems + manifest.
 
-Project edits invalidate loaded Advanced stems so the next Play rebuilds them from current saved Markdown.
-
+The browser controls filenames for downloads. A stem filename is derived from workspace name + track name. Mix WAV and Track Set exports share a user-editable base name. Track Set always includes every stem even when a track is muted; the included mix and manifest record the current mute selection.
 ## Hotkey remapping
 
 Studio settings are stored under:
@@ -285,19 +282,23 @@ Behavior:
 
 Optional `.bat` convenience wrappers (Studio/Start/Stop/Status/Validate/Render) contain no runtime logic; they only call `NoteScript.cmd` with a fixed prefix command. No duplicate `.cmd` launchers are generated.
 
-## Control API additions
+## Control API surface used by Studio
 
-NTS-004 adds:
+Current Studio workflows include:
 
 - `GET /v1/project`
 - `GET /v1/studio/settings`
-- `GET /v1/transport/track-audio`
+- `GET /v1/transport/audio`
 - `POST /v1/projects/rename`
 - `POST /v1/projects/delete`
 - `POST /v1/analyze`
 - `POST /v1/studio/settings`
+- `POST /v1/render/audio` for current Compose Markdown
+- `POST /v1/tracks/track-audio` for a current-project Track stem
+- `POST /v1/tracks/mix-audio` for a current-project Tracks mix
+- `POST /v1/tracks/set-zip` for a Track Set ZIP built from the current independent Tracks Markdown
 
-Existing render, MIDI, transport, audition and live-note endpoints remain stable.
+Legacy project-based transport/stem routes remain available for compatibility.
 
 ## Boundaries
 

@@ -86,7 +86,10 @@ const ui = {
   renderOutputName: document.querySelector("#renderOutputName"),
   exportMidi: document.querySelector("#exportMidi"),
   composeTrackSelect: document.querySelector("#composeTrackSelect"),
+  composeSourceType: document.querySelector("#composeSourceType"),
   composeVoiceSelect: document.querySelector("#composeVoiceSelect"),
+  composeTrackVolume: document.querySelector("#composeTrackVolume"),
+  composeTrackVolumeValue: document.querySelector("#composeTrackVolumeValue"),
   composeApplyVoice: document.querySelector("#composeApplyVoice"),
   diagnosticBadge: document.querySelector("#diagnosticBadge"),
   diagnostics: document.querySelector("#diagnostics"),
@@ -106,6 +109,10 @@ const ui = {
   trackTimeline: document.querySelector("#trackTimeline"),
   tracksFileInput: document.querySelector("#tracksFileInput"),
   tracksAddTrack: document.querySelector("#tracksAddTrack"),
+  tracksDownloadMd: document.querySelector("#tracksDownloadMd"),
+  tracksDownloadSet: document.querySelector("#tracksDownloadSet"),
+  tracksOutputName: document.querySelector("#tracksOutputName"),
+  tracksDownloadMix: document.querySelector("#tracksDownloadMix"),
   advancedProjectLabel: document.querySelector("#advancedProjectLabel"),
   advancedPlay: document.querySelector("#advancedPlay"),
   advancedPause: document.querySelector("#advancedPause"),
@@ -118,7 +125,6 @@ const ui = {
   soundBrowser: document.querySelector("#soundBrowser"),
   instrumentBrowser: document.querySelector("#instrumentBrowser"),
 
-  workspaceModeSetting: document.querySelector("#workspaceModeSetting"),
   editorModeSetting: document.querySelector("#editorModeSetting"),
   hotkeyEditor: document.querySelector("#hotkeyEditor"),
   resetHotkeys: document.querySelector("#resetHotkeys"),
@@ -228,6 +234,7 @@ const state = {
     startedAt: 0,
     duration: 0,
     muted: new Set(),
+    volumes: new Map(),
     raf: 0,
     loadToken: 0
   },
@@ -2589,6 +2596,7 @@ function activateMainTab(name) {
   ui.tabPages.forEach((page) => {
     page.classList.toggle("active", page.dataset.page === name);
   });
+
 }
 
 function activateComposeMode(mode) {
@@ -2742,7 +2750,6 @@ async function analyzeCurrentMarkdown(updateDerivedViews = true) {
 
   if (analysis.valid) renderComposeSourceToolbar();
   if (updateDerivedViews && analysis.valid) {
-    renderTrackTimeline();
     renderNodeCanvas();
     if (state.studio.composeMode === "form") renderFormEditor();
   }
@@ -2779,7 +2786,6 @@ async function openStudioProject(name) {
   renderDiagnostics(state.studio.analysis);
   renderFormEditor();
   renderNodeCanvas();
-  renderTrackTimeline();
   renderComposeSourceToolbar();
   const defaultOutput = data.name.replace(/\.md$/i, "");
   ui.renderOutputName.value = defaultOutput;
@@ -2904,6 +2910,78 @@ function trackUsesTriggers(track) {
   ));
 }
 
+function sourceTypeForTrack(track) {
+  if (trackUsesTriggers(track)) return "soundpad";
+  if (track?.instrument) return "instrument";
+  return "soundpiano";
+}
+
+function sourceTypesForTrack(track) {
+  return trackUsesTriggers(track)
+    ? [{ value: "soundpad", label: "SoundPad" }]
+    : [
+      { value: "soundpiano", label: "SoundPiano" },
+      { value: "instrument", label: "Instrument" }
+    ];
+}
+
+function fillTrackSourceTypeSelect(select, track, selected = null) {
+  if (!select) return;
+  const choices = sourceTypesForTrack(track);
+  select.innerHTML = "";
+  for (const choice of choices) {
+    const option = document.createElement("option");
+    option.value = choice.value;
+    option.textContent = choice.label;
+    select.appendChild(option);
+  }
+  const next = selected && choices.some((choice) => choice.value === selected)
+    ? selected
+    : sourceTypeForTrack(track);
+  select.value = next;
+}
+
+function sourceItemsForType(type) {
+  if (type === "soundpad") {
+    return soundPadPacks().map((sound) => ({
+      value: "sound:" + sound.id,
+      label: sound.name,
+      disabled: false
+    }));
+  }
+  if (type === "instrument") {
+    return state.instruments.map((instrument) => ({
+      value: "instrument:" + instrument.id,
+      label: instrument.name + (instrument.playable ? "" : " (adapter unavailable)"),
+      disabled: !instrument.playable
+    }));
+  }
+  return soundPianoPacks().map((sound) => ({
+    value: "sound:" + sound.id,
+    label: sound.name,
+    disabled: false
+  }));
+}
+
+function fillSourceItemSelect(select, type, selectedValue = "") {
+  if (!select) return;
+  const choices = sourceItemsForType(type);
+  select.innerHTML = "";
+  for (const choice of choices) {
+    const option = document.createElement("option");
+    option.value = choice.value;
+    option.textContent = choice.label;
+    option.disabled = Boolean(choice.disabled);
+    select.appendChild(option);
+  }
+  if (selectedValue && choices.some((choice) => choice.value === selectedValue && !choice.disabled)) {
+    select.value = selectedValue;
+  } else {
+    const firstPlayable = choices.find((choice) => !choice.disabled);
+    if (firstPlayable) select.value = firstPlayable.value;
+  }
+}
+
 function voiceChoicesForTrack(track, includeOriginal = false) {
   const choices = [];
   if (includeOriginal) {
@@ -2942,6 +3020,26 @@ function voiceValueForTrack(track) {
     : track.instrument
       ? "instrument:" + track.instrument
       : "";
+}
+
+function sourceTypeOptionsHtml(track, selectedType = null) {
+  const choices = sourceTypesForTrack(track);
+  const selected = selectedType || sourceTypeForTrack(track);
+  return choices.map((choice) =>
+    '<option value="' + escapeHtml(choice.value) + '"' +
+    (choice.value === selected ? " selected" : "") +
+    ">" + escapeHtml(choice.label) + "</option>"
+  ).join("");
+}
+
+function sourceItemOptionsHtml(type, selectedValue = "") {
+  const choices = sourceItemsForType(type);
+  return choices.map((choice) =>
+    '<option value="' + escapeHtml(choice.value) + '"' +
+    (choice.value === selectedValue ? " selected" : "") +
+    (choice.disabled ? " disabled" : "") +
+    ">" + escapeHtml(choice.label) + "</option>"
+  ).join("");
 }
 
 function voiceOptionsHtml(track, selectedValue) {
@@ -3003,33 +3101,58 @@ function parseVoiceValue(value) {
   };
 }
 
-async function updateTrackSourceInMarkdown(trackIndex, voiceValue) {
+async function updateTrackSettingsInMarkdown(trackIndex, settings = {}) {
   const analysis = state.studio.analysis;
   const track = analysis?.song?.tracks?.[trackIndex];
-  const voice = parseVoiceValue(voiceValue);
-  if (!track || !voice) return false;
+  if (!track) return false;
+
+  const voice = settings.voiceValue === undefined
+    ? undefined
+    : parseVoiceValue(settings.voiceValue);
+  if (settings.voiceValue !== undefined && !voice) return false;
+
+  const hasVolume = settings.volume !== undefined;
+  const volume = hasVolume
+    ? Math.max(0, Math.min(1, Number(settings.volume)))
+    : null;
+  if (hasVolume && !Number.isFinite(volume)) return false;
 
   const lines = ui.markdownEditor.value.split(/\r?\n/);
   const start = Number(track.line) - 1;
   const nextTrack = analysis.song.tracks[trackIndex + 1];
   const end = nextTrack ? Number(nextTrack.line) - 1 : lines.length;
-  let sourceLine = -1;
+  const block = lines.slice(start, end);
 
-  for (let index = start + 1; index < end; index += 1) {
-    if (/^\s*(sound|instrument)\s*:/i.test(lines[index])) {
-      sourceLine = index;
-      break;
-    }
-    if (/^\s*bar\s+/i.test(lines[index])) break;
+  if (voice) {
+    const replacement = voice.type + ": " + voice.id;
+    const sourceIndex = block.findIndex((line, index) =>
+      index > 0 && /^\s*(sound|instrument)\s*:/i.test(line)
+    );
+    if (sourceIndex >= 0) block[sourceIndex] = replacement;
+    else block.splice(1, 0, replacement);
   }
 
-  const replacement = voice.type + ": " + voice.id;
-  if (sourceLine >= 0) lines[sourceLine] = replacement;
-  else lines.splice(start + 1, 0, replacement);
+  if (hasVolume) {
+    const value = Number(volume.toFixed(2));
+    const replacement = "volume: " + value;
+    const volumeIndex = block.findIndex((line, index) =>
+      index > 0 && /^\s*volume\s*:/i.test(line)
+    );
+    if (volumeIndex >= 0) {
+      block[volumeIndex] = replacement;
+    } else {
+      const sourceIndex = block.findIndex((line, index) =>
+        index > 0 && /^\s*(sound|instrument)\s*:/i.test(line)
+      );
+      block.splice(sourceIndex >= 0 ? sourceIndex + 1 : 1, 0, replacement);
+    }
+  }
 
+  lines.splice(start, end - start, ...block);
   ui.markdownEditor.value = lines.join("\n");
   state.studio.markdown = ui.markdownEditor.value;
   setDirty(true);
+
   const nextAnalysis = await analyzeCurrentMarkdown(true);
   if (nextAnalysis.valid) {
     renderComposeSourceToolbar();
@@ -3038,11 +3161,23 @@ async function updateTrackSourceInMarkdown(trackIndex, voiceValue) {
   return false;
 }
 
+async function updateTrackSourceInMarkdown(trackIndex, voiceValue) {
+  return updateTrackSettingsInMarkdown(trackIndex, { voiceValue });
+}
+
+async function updateTrackVolumeInMarkdown(trackIndex, volume) {
+  return updateTrackSettingsInMarkdown(trackIndex, { volume });
+}
+
 function renderComposeSourceToolbar() {
   const song = state.studio.analysis?.song;
   if (!song?.tracks?.length) {
     ui.composeTrackSelect.innerHTML = '<option value="">No tracks</option>';
-    ui.composeVoiceSelect.innerHTML = '<option value="">No voice</option>';
+    ui.composeSourceType.innerHTML = '<option value="">No source</option>';
+    ui.composeVoiceSelect.innerHTML = '<option value="">No instrument / sound</option>';
+    ui.composeTrackVolume.value = "1";
+    ui.composeTrackVolumeValue.textContent = "100%";
+    ui.composeTrackVolume.disabled = true;
     ui.composeApplyVoice.disabled = true;
     return;
   }
@@ -3058,7 +3193,15 @@ function renderComposeSourceToolbar() {
   const trackIndex = Math.max(0, Math.min(song.tracks.length - 1, previousTrack));
   ui.composeTrackSelect.value = String(trackIndex);
   const track = song.tracks[trackIndex];
-  fillVoiceSelect(ui.composeVoiceSelect, track, { selected: voiceValueForTrack(track) });
+  fillTrackSourceTypeSelect(ui.composeSourceType, track);
+  fillSourceItemSelect(
+    ui.composeVoiceSelect,
+    ui.composeSourceType.value,
+    voiceValueForTrack(track)
+  );
+  ui.composeTrackVolume.value = String(track.volume);
+  ui.composeTrackVolumeValue.textContent = Math.round(track.volume * 100) + "%";
+  ui.composeTrackVolume.disabled = false;
   ui.composeApplyVoice.disabled = false;
 }
 
@@ -3068,14 +3211,18 @@ function buildTrackForm(track, index) {
   wrapper.dataset.trackIndex = String(index);
 
   const sourceValue = voiceValueForTrack(track);
+  const sourceType = sourceTypeForTrack(track);
   const barsText = track.bars.map((bar) =>
     "bar " + bar.number + ": " + bar.events.map(eventText).join(" | ")
   ).join("\n");
 
   wrapper.innerHTML =
     '<label>Name<input class="text-input form-track-name" type="text" value="' + escapeHtml(track.name) + '"></label>' +
-    '<label>Voice<select class="form-track-voice">' +
-    voiceOptionsHtml(track, sourceValue) +
+    '<label>Source Type<select class="form-track-source-type">' +
+    sourceTypeOptionsHtml(track, sourceType) +
+    '</select></label>' +
+    '<label>Instrument / Sound<select class="form-track-voice">' +
+    sourceItemOptionsHtml(sourceType, sourceValue) +
     '</select></label>' +
     '<label>Volume<input class="text-input form-track-volume" type="number" min="0" max="1" step="0.05" value="' + track.volume + '"></label>' +
     '<label>Pan<input class="text-input form-track-pan" type="number" min="-1" max="1" step="0.1" value="' + track.pan + '"></label>' +
@@ -3085,9 +3232,18 @@ function buildTrackForm(track, index) {
     escapeHtml(barsText) +
     '</textarea></label>';
 
+  const sourceTypeSelect = wrapper.querySelector(".form-track-source-type");
+  const voiceSelect = wrapper.querySelector(".form-track-voice");
+  sourceTypeSelect.addEventListener("change", () => {
+    fillSourceItemSelect(voiceSelect, sourceTypeSelect.value);
+    applyFormToMarkdown();
+  });
+
   wrapper.querySelectorAll("input, select, textarea").forEach((element) => {
     element.addEventListener("input", applyFormToMarkdown);
-    element.addEventListener("change", applyFormToMarkdown);
+    if (element !== sourceTypeSelect) {
+      element.addEventListener("change", applyFormToMarkdown);
+    }
   });
   wrapper.querySelector(".form-remove-track").addEventListener("click", () => {
     wrapper.remove();
@@ -3164,8 +3320,19 @@ function formBodyLines() {
   const rows = [...ui.formTracks.querySelectorAll(".track-form-row")];
   for (const [index, row] of rows.entries()) {
     const name = row.querySelector(".form-track-name").value.trim() || ("Track " + (index + 1));
+    const sourceType = row.querySelector(".form-track-source-type").value;
     const voice = parseVoiceValue(row.querySelector(".form-track-voice").value) ||
-      { type: "sound", id: "piano" };
+      (sourceType === "instrument"
+        ? {
+          type: "instrument",
+          id: state.instruments.find((item) => item.playable)?.id || "SFZ/basic-sfz"
+        }
+        : {
+          type: "sound",
+          id: sourceType === "soundpad"
+            ? (soundPadPacks()[0]?.id || "soundpad")
+            : (soundPianoPacks()[0]?.id || "piano")
+        });
 
     lines.push("track " + name);
     lines.push(voice.type + ": " + voice.id);
@@ -3525,14 +3692,208 @@ function invalidateAdvancedTransport(message = "Project changed. Reload stems be
   if (ui.advancedStatus) ui.advancedStatus.textContent = message;
 }
 
-async function fetchAdvancedStem(project, trackIndex) {
-  const response = await fetch(
-    "/v1/transport/track-audio?project=" +
-      encodeURIComponent(project) +
-      "&track=" +
-      encodeURIComponent(String(trackIndex)),
-    { cache: "no-store" }
+async function analyzeTracksWorkspace(markdown, fileName = null) {
+  const analysis = await post("/v1/analyze", { markdown });
+  state.tracksWorkspace.markdown = String(markdown || "");
+  state.tracksWorkspace.analysis = analysis;
+  if (fileName) state.tracksWorkspace.fileName = fileName;
+
+  invalidateAdvancedTransport(
+    analysis.valid
+      ? "Tracks workspace changed. Reload stems before playback."
+      : "Loaded .md has errors. Fix the source file and load it again."
   );
+  renderTrackTimeline();
+
+  if (analysis.valid) {
+    const count = analysis.song?.tracks?.length || 0;
+    ui.advancedProjectLabel.textContent =
+      (state.tracksWorkspace.fileName || "Tracks Workspace.md") +
+      " · " + count + " track" + (count === 1 ? "" : "s");
+    ui.advancedStatus.textContent =
+      "Tracks ready. Choose each Instrument / Sound, then Play or Reload Stems.";
+  } else {
+    const first = analysis.diagnostics?.[0];
+    ui.advancedProjectLabel.textContent =
+      state.tracksWorkspace.fileName || "Invalid .md";
+    ui.advancedStatus.textContent =
+      "Track workspace error" +
+      (first?.line ? " at line " + first.line : "") +
+      ": " + (first?.message || "Invalid NoteScript Markdown.");
+  }
+
+  return analysis;
+}
+
+async function loadTracksWorkspaceFile(file) {
+  if (!file) return false;
+  const markdown = await file.text();
+  state.tracksWorkspace.fileName = file.name || "Imported Tracks.md";
+  state.tracksWorkspace.dirty = true;
+  state.advancedTransport.muted.clear();
+  state.advancedTransport.volumes.clear();
+  ui.tracksOutputName.value = String(state.tracksWorkspace.fileName)
+    .replace(/\.md$/i, "");
+  await analyzeTracksWorkspace(markdown, state.tracksWorkspace.fileName);
+  if (state.tracksWorkspace.analysis?.valid) {
+    ui.advancedStatus.textContent =
+      "Imported " + state.tracksWorkspace.fileName +
+      " into the independent Tracks workspace.";
+  }
+  return Boolean(state.tracksWorkspace.analysis?.valid);
+}
+
+function addTrackBlockToMarkdown(markdown, trackName, voiceValue) {
+  const voice = parseVoiceValue(voiceValue) ||
+    { type: "sound", id: soundPianoPacks()[0]?.id || "piano" };
+  const fence = String.fromCharCode(96).repeat(3);
+  const lines = String(markdown || "").split(/\r?\n/);
+  let start = -1;
+  let end = -1;
+
+  for (let index = 0; index < lines.length; index += 1) {
+    if (start < 0 && lines[index].trim().toLowerCase() === fence + "notescript") {
+      start = index;
+      continue;
+    }
+    if (start >= 0 && index > start && lines[index].trim() === fence) {
+      end = index;
+      break;
+    }
+  }
+
+  if (start < 0 || end < 0) {
+    throw new Error("Tracks workspace requires a fenced notescript block.");
+  }
+
+  const block = [
+    "",
+    "track " + trackName,
+    voice.type + ": " + voice.id,
+    "volume: 0.80",
+    "velocity: 96",
+    "bar 1: R w"
+  ];
+  lines.splice(end, 0, ...block);
+  return lines.join("\n");
+}
+
+async function addTrackToTracksWorkspace() {
+  const workspace = state.tracksWorkspace;
+  if (!workspace.analysis?.valid) {
+    ui.advancedStatus.textContent = "Load a valid .md file before adding a track.";
+    return;
+  }
+
+  const nextIndex = (workspace.analysis.song?.tracks?.length || 0) + 1;
+  const firstVoice = soundPianoPacks()[0]
+    ? "sound:" + soundPianoPacks()[0].id
+    : state.instruments.find((item) => item.playable)
+      ? "instrument:" + state.instruments.find((item) => item.playable).id
+      : "";
+
+  if (!firstVoice) {
+    ui.advancedStatus.textContent = "No playable SoundPiano or Instrument is available.";
+    return;
+  }
+
+  try {
+    const next = addTrackBlockToMarkdown(
+      workspace.markdown,
+      "Track " + nextIndex,
+      firstVoice
+    );
+    workspace.dirty = true;
+    await analyzeTracksWorkspace(
+      next,
+      workspace.fileName || "Tracks Workspace.md"
+    );
+    ui.advancedStatus.textContent =
+      "Added Track " + nextIndex + " to the Tracks workspace.";
+  } catch (error) {
+    ui.advancedStatus.textContent = "Add Track error: " + error.message;
+  }
+}
+
+async function updateTracksWorkspaceSettings(trackIndex, settings = {}) {
+  const workspace = state.tracksWorkspace;
+  const analysis = workspace.analysis;
+  const track = analysis?.song?.tracks?.[trackIndex];
+  if (!analysis?.valid || !track) return false;
+
+  const voice = settings.voiceValue === undefined
+    ? undefined
+    : parseVoiceValue(settings.voiceValue);
+  if (settings.voiceValue !== undefined && !voice) return false;
+
+  const hasVolume = settings.volume !== undefined;
+  const volume = hasVolume
+    ? Math.max(0, Math.min(1, Number(settings.volume)))
+    : null;
+  if (hasVolume && !Number.isFinite(volume)) return false;
+
+  const lines = workspace.markdown.split(/\r?\n/);
+  const start = Number(track.line) - 1;
+  const nextTrack = analysis.song.tracks[trackIndex + 1];
+  const end = nextTrack ? Number(nextTrack.line) - 1 : lines.length;
+  const block = lines.slice(start, end);
+
+  if (voice) {
+    const replacement = voice.type + ": " + voice.id;
+    const sourceIndex = block.findIndex((line, index) =>
+      index > 0 && /^\s*(sound|instrument)\s*:/i.test(line)
+    );
+    if (sourceIndex >= 0) block[sourceIndex] = replacement;
+    else block.splice(1, 0, replacement);
+  }
+
+  if (hasVolume) {
+    const value = Number(volume.toFixed(2));
+    const replacement = "volume: " + value;
+    const volumeIndex = block.findIndex((line, index) =>
+      index > 0 && /^\s*volume\s*:/i.test(line)
+    );
+    if (volumeIndex >= 0) {
+      block[volumeIndex] = replacement;
+    } else {
+      const sourceIndex = block.findIndex((line, index) =>
+        index > 0 && /^\s*(sound|instrument)\s*:/i.test(line)
+      );
+      block.splice(sourceIndex >= 0 ? sourceIndex + 1 : 1, 0, replacement);
+    }
+  }
+
+  lines.splice(start, end - start, ...block);
+  workspace.dirty = true;
+  await analyzeTracksWorkspace(
+    lines.join("\n"),
+    workspace.fileName || "Tracks Workspace.md"
+  );
+  return Boolean(state.tracksWorkspace.analysis?.valid);
+}
+
+async function updateTracksWorkspaceSource(trackIndex, voiceValue) {
+  return updateTracksWorkspaceSettings(trackIndex, { voiceValue });
+}
+
+async function updateTracksWorkspaceVolume(trackIndex, volume) {
+  const changed = await updateTracksWorkspaceSettings(trackIndex, { volume });
+  if (changed) state.advancedTransport.volumes.delete(Number(trackIndex));
+  return changed;
+}
+
+async function fetchAdvancedStem(trackIndex) {
+  const workspace = state.tracksWorkspace;
+  const response = await fetch("/v1/tracks/track-audio", {
+    method: "POST",
+    cache: "no-store",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      markdown: workspace.markdown,
+      fileName: workspace.fileName || "Tracks Workspace.md",
+      track: trackIndex
+    })
+  });
 
   if (!response.ok) {
     let message = response.statusText;
@@ -3548,25 +3909,15 @@ async function fetchAdvancedStem(project, trackIndex) {
 }
 
 async function loadAdvancedTransport(force = false) {
-  if (!state.studio.currentProject) {
-    ui.advancedStatus.textContent = "Open or create a project first.";
-    return false;
-  }
-
-  if (state.studio.dirty || !state.studio.projects.includes(state.studio.currentProject)) {
-    ui.advancedStatus.textContent = "Saving current valid changes before mix playback.";
-    const saved = await saveCurrentProject();
-    if (!saved) return false;
-  }
-
-  let analysis = state.studio.analysis;
-  if (!analysis?.valid) analysis = await analyzeCurrentMarkdown(true);
+  const workspace = state.tracksWorkspace;
+  const analysis = workspace.analysis;
   if (!analysis?.valid || !analysis.song?.tracks?.length) {
-    ui.advancedStatus.textContent = "A valid project with at least one track is required.";
+    ui.advancedStatus.textContent =
+      "Load a valid .md file in Tracks before mix playback.";
     return false;
   }
 
-  const project = state.studio.currentProject;
+  const project = workspace.fileName || "Tracks Workspace.md";
   const trackCount = analysis.song.tracks.length;
   const transport = state.advancedTransport;
 
@@ -3583,33 +3934,27 @@ async function loadAdvancedTransport(force = false) {
   stopAdvancedSources(true);
   stopAdvancedAnimation();
   transport.offset = 0;
-  ui.advancedStatus.textContent = "Rendering " + trackCount + " track stem(s)...";
+  ui.advancedStatus.textContent =
+    "Rendering " + trackCount + " synchronized track stem(s)...";
   ui.advancedPlay.disabled = true;
   ui.advancedReload.disabled = true;
 
   try {
-    if (force) {
-      await post("/v1/transport/cache/clear", { project });
-    }
-
     const buffers = await Promise.all(
-      Array.from({ length: trackCount }, (_, index) => fetchAdvancedStem(project, index))
+      Array.from({ length: trackCount }, (_, index) => fetchAdvancedStem(index))
     );
 
     if (token !== transport.loadToken) return false;
 
-    const previousProject = transport.project;
     transport.project = project;
     transport.buffers = buffers;
     transport.duration = buffers.reduce((max, buffer) => Math.max(max, buffer.duration), 0);
     transport.offset = 0;
 
-    if (previousProject !== project) transport.muted.clear();
-
     ui.advancedProjectLabel.textContent =
       project + " · " + trackCount + " track" + (trackCount === 1 ? "" : "s");
     ui.advancedStatus.textContent =
-      "Stems ready. Mute/Unmute any track while playback is running.";
+      "Stems ready. Mute/Unmute or change each Track Instrument / Sound independently.";
     updateAdvancedTransportDisplay(0);
     renderTrackMuteStates();
     return true;
@@ -3617,7 +3962,7 @@ async function loadAdvancedTransport(force = false) {
     transport.project = null;
     transport.buffers = [];
     transport.duration = 0;
-    ui.advancedStatus.textContent = "Advanced playback error: " + error.message;
+    ui.advancedStatus.textContent = "Tracks playback error: " + error.message;
     updateAdvancedTransportDisplay(0);
     return false;
   } finally {
@@ -3625,7 +3970,6 @@ async function loadAdvancedTransport(force = false) {
     ui.advancedReload.disabled = false;
   }
 }
-
 function createAdvancedSources() {
   const transport = state.advancedTransport;
   const context = ensureAudio();
@@ -3641,7 +3985,10 @@ function createAdvancedSources() {
     const source = context.createBufferSource();
     const gain = context.createGain();
     source.buffer = buffer;
-    gain.gain.value = transport.muted.has(index) ? 0 : 1;
+    const trackVolume = transport.volumes.has(index)
+      ? transport.volumes.get(index)
+      : 1;
+    gain.gain.value = transport.muted.has(index) ? 0 : trackVolume;
     source.connect(gain);
     gain.connect(masterGain);
     transport.sources.push(source);
@@ -3735,11 +4082,14 @@ function setAdvancedTrackMuted(trackIndex, muted) {
   if (gain) {
     const context = ensureAudio();
     gain.gain.cancelScheduledValues(context.currentTime);
-    gain.gain.setValueAtTime(muted ? 0 : 1, context.currentTime);
+    const trackVolume = transport.volumes.has(index)
+      ? transport.volumes.get(index)
+      : 1;
+    gain.gain.setValueAtTime(muted ? 0 : trackVolume, context.currentTime);
   }
 
   renderTrackMuteStates();
-  const name = state.studio.analysis?.song?.tracks?.[index]?.name || ("Track " + (index + 1));
+  const name = state.tracksWorkspace.analysis?.song?.tracks?.[index]?.name || ("Track " + (index + 1));
   ui.advancedStatus.textContent =
     (muted ? "Muted " : "Unmuted ") + name +
     (transport.playing ? " during playback." : ".");
@@ -3748,6 +4098,37 @@ function setAdvancedTrackMuted(trackIndex, muted) {
 function toggleAdvancedTrackMute(trackIndex) {
   const index = Number(trackIndex);
   setAdvancedTrackMuted(index, !state.advancedTransport.muted.has(index));
+}
+
+function setAdvancedTrackVolume(trackIndex, value) {
+  const index = Number(trackIndex);
+  const transport = state.advancedTransport;
+  const targetVolume = Math.max(0, Math.min(1, Number(value) || 0));
+  const sourceVolume =
+    state.tracksWorkspace.analysis?.song?.tracks?.[index]?.volume ?? 1;
+  const multiplier = sourceVolume > 0
+    ? targetVolume / sourceVolume
+    : targetVolume;
+  transport.volumes.set(index, multiplier);
+
+  const gain = transport.gains[index];
+  if (gain && !transport.muted.has(index)) {
+    const context = ensureAudio();
+    gain.gain.cancelScheduledValues(context.currentTime);
+    gain.gain.setValueAtTime(multiplier, context.currentTime);
+  }
+
+  const row = ui.trackTimeline.querySelector(
+    '.timeline-track[data-track-index="' + index + '"]'
+  );
+  const label = row?.querySelector(".track-volume-value");
+  if (label) label.textContent = Math.round(targetVolume * 100) + "%";
+
+  const name =
+    state.tracksWorkspace.analysis?.song?.tracks?.[index]?.name ||
+    ("Track " + (index + 1));
+  ui.advancedStatus.textContent =
+    "Track volume preview · " + name + " · " + Math.round(targetVolume * 100) + "%";
 }
 
 function renderTrackMuteStates() {
@@ -3769,11 +4150,11 @@ function qPerBar(song) {
 }
 
 function renderTrackTimeline() {
-  const analysis = state.studio.analysis;
+  const analysis = state.tracksWorkspace.analysis;
   ui.trackTimeline.innerHTML = "";
 
   if (!analysis?.valid || !analysis.timeline) {
-    ui.trackTimeline.innerHTML = '<div class="empty-state">Open a valid project to build the multi-track timeline.</div>';
+    ui.trackTimeline.innerHTML = '<div class="empty-state">Load a valid .md file to build the independent multi-track view.</div>';
     return;
   }
 
@@ -3799,52 +4180,109 @@ function renderTrackTimeline() {
     const head = document.createElement("div");
     head.className = "timeline-track-head";
 
-    const title = document.createElement("button");
-    title.type = "button";
+    const title = document.createElement("div");
     title.className = "timeline-track-title";
-    title.title = "Edit this track in Compose / Form";
     title.innerHTML =
       "<strong>" + escapeHtml(track.name) + "</strong>" +
       "<span>" + escapeHtml(sourceLabel(track)) + "</span>" +
-      "<span>vol " + track.volume + " · pan " + track.pan + "</span>";
-    title.addEventListener("click", () => {
-      activateMainTab("compose");
-      activateComposeMode("form");
-      const target = ui.formTracks.querySelectorAll(".track-form-row")[trackIndex];
-      target?.scrollIntoView({ behavior: "smooth", block: "center" });
-      target?.querySelector(".form-track-name")?.focus();
-    });
+      "<span>source vol " + track.volume + " · pan " + track.pan + "</span>";
 
     const controls = document.createElement("div");
     controls.className = "timeline-track-controls";
 
     const songTrack = analysis.song.tracks[trackIndex];
+
+    const sourceTypeWrap = document.createElement("label");
+    sourceTypeWrap.className = "track-source-type-control";
+    const sourceTypeLabel = document.createElement("span");
+    sourceTypeLabel.textContent = "SOURCE TYPE";
+    const sourceTypeSelect = document.createElement("select");
+    sourceTypeSelect.className = "track-source-type-select";
+    fillTrackSourceTypeSelect(sourceTypeSelect, songTrack);
+    sourceTypeSelect.setAttribute("aria-label", "Source type for " + track.name);
+    sourceTypeWrap.append(sourceTypeLabel, sourceTypeSelect);
+
+    const voiceWrap = document.createElement("label");
+    voiceWrap.className = "track-voice-control";
+    const voiceLabel = document.createElement("span");
+    voiceLabel.textContent = "INSTRUMENT / SOUND";
     const voice = document.createElement("select");
     voice.className = "track-voice-select";
-    fillVoiceSelect(voice, songTrack, { selected: voiceValueForTrack(songTrack) });
-    voice.setAttribute("aria-label", "Voice for " + track.name);
-    voice.addEventListener("change", async () => {
-      const changed = await updateTrackSourceInMarkdown(trackIndex, voice.value);
-      if (changed) {
-        ui.advancedStatus.textContent = "Voice changed for " + track.name + ". Reload stems to hear it.";
+    fillSourceItemSelect(
+      voice,
+      sourceTypeSelect.value,
+      voiceValueForTrack(songTrack)
+    );
+    voice.setAttribute("aria-label", "Instrument or sound for " + track.name);
+
+    sourceTypeSelect.addEventListener("change", async () => {
+      fillSourceItemSelect(voice, sourceTypeSelect.value);
+      if (voice.value) {
+        const changed = await updateTracksWorkspaceSource(trackIndex, voice.value);
+        if (changed) {
+          ui.advancedStatus.textContent =
+            "Source Type changed for " + track.name +
+            " · " + sourceTypeSelect.options[sourceTypeSelect.selectedIndex]?.text +
+            ". Track source saved in Markdown.";
+        }
       }
     });
+    voice.addEventListener("change", async () => {
+      const changed = await updateTracksWorkspaceSource(trackIndex, voice.value);
+      if (changed) {
+        ui.advancedStatus.textContent =
+          "Instrument / Sound changed for " + track.name + ". Press Reload Stems or Play.";
+      }
+    });
+    voiceWrap.append(voiceLabel, voice);
+
+    const volumeWrap = document.createElement("label");
+    volumeWrap.className = "track-volume-control";
+    const volumeLabel = document.createElement("span");
+    volumeLabel.textContent = "VOL";
+    const volume = document.createElement("input");
+    volume.type = "range";
+    volume.min = "0";
+    volume.max = "100";
+    volume.step = "1";
+    const currentVolume = songTrack?.volume ?? 1;
+    volume.value = String(Math.round(currentVolume * 100));
+    volume.setAttribute("aria-label", "Track volume for " + track.name);
+    const volumeValue = document.createElement("span");
+    volumeValue.className = "track-volume-value";
+    volumeValue.textContent = Math.round(currentVolume * 100) + "%";
+    volume.addEventListener("input", () => {
+      setAdvancedTrackVolume(trackIndex, Number(volume.value) / 100);
+    });
+    volume.addEventListener("change", async () => {
+      const changed = await updateTracksWorkspaceVolume(
+        trackIndex,
+        Number(volume.value) / 100
+      );
+      if (changed) {
+        ui.advancedStatus.textContent =
+          "Track volume saved in Markdown for " + track.name +
+          ". Press Reload Stems before final playback.";
+      }
+    });
+    volumeWrap.append(volumeLabel, volume, volumeValue);
 
     const mute = document.createElement("button");
     mute.type = "button";
     mute.className = "track-mute";
     mute.dataset.trackIndex = String(trackIndex);
     mute.setAttribute("aria-pressed", "false");
-    mute.textContent = "MUTE";
+    mute.textContent = "Mute";
     mute.addEventListener("click", () => toggleAdvancedTrackMute(trackIndex));
 
-    const edit = document.createElement("button");
-    edit.type = "button";
-    edit.className = "track-edit";
-    edit.textContent = "EDIT";
-    edit.addEventListener("click", () => title.click());
+    const downloadStem = document.createElement("button");
+    downloadStem.type = "button";
+    downloadStem.className = "track-download";
+    downloadStem.textContent = "Stem";
+    downloadStem.setAttribute("aria-label", "Download stem WAV for " + track.name);
+    downloadStem.addEventListener("click", () => downloadTracksStem(trackIndex));
 
-    controls.append(voice, mute, edit);
+    controls.append(sourceTypeWrap, voiceWrap, volumeWrap, mute, downloadStem);
     head.append(title, controls);
 
     const lane = document.createElement("div");
@@ -3873,12 +4311,11 @@ function renderTrackTimeline() {
   }
 
   ui.advancedProjectLabel.textContent =
-    (state.studio.currentProject || "Unsaved project") +
+    (state.tracksWorkspace.fileName || "Tracks Workspace.md") +
     " · " + timeline.tracks.length + " track" +
     (timeline.tracks.length === 1 ? "" : "s");
   renderTrackMuteStates();
 }
-
 function renderLibraries() {
   ui.soundBrowser.innerHTML = "";
   for (const sound of state.sounds) {
@@ -4041,7 +4478,6 @@ function assignCapturedHotkey(binding) {
 
 async function saveStudioSettings() {
   const settings = await post("/v1/studio/settings", {
-    workspaceMode: ui.workspaceModeSetting.value,
     editorMode: ui.editorModeSetting.value,
     hotkeys: hotkeys(),
     soundPadHotkeys: state.studio.settings?.soundPadHotkeys || {},
@@ -4095,22 +4531,198 @@ function normalizedDownloadName(value, fallback = "NoteScript") {
   return stem.toLowerCase().endsWith(".wav") ? stem : stem + ".wav";
 }
 
+function normalizedFileName(value, fallback, extension) {
+  const clean = String(value || "")
+    .trim()
+    .replace(/[\\/:*?"<>|]+/g, "-")
+    .replace(/[. ]+$/g, "");
+  const stem = clean || fallback;
+  return stem.toLowerCase().endsWith(extension.toLowerCase())
+    ? stem
+    : stem + extension;
+}
+
+function triggerBlobDownload(blob, filename) {
+  const href = URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+  anchor.href = href;
+  anchor.download = filename;
+  document.body.appendChild(anchor);
+  anchor.click();
+  anchor.remove();
+  window.setTimeout(() => URL.revokeObjectURL(href), 2000);
+}
+
+async function tracksAudioBlob(pathname, body) {
+  const response = await fetch(pathname, {
+    method: "POST",
+    cache: "no-store",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body)
+  });
+  if (!response.ok) {
+    let message = response.statusText;
+    try {
+      const data = await response.json();
+      message = data.message || data.error || message;
+    } catch {}
+    throw new Error(message);
+  }
+  return response.blob();
+}
+
+function tracksBaseName() {
+  return String(state.tracksWorkspace.fileName || "Tracks Workspace")
+    .replace(/\.md$/i, "")
+    .trim() || "Tracks Workspace";
+}
+
+function tracksExportBaseName() {
+  return String(ui.tracksOutputName.value || "")
+    .trim()
+    .replace(/\.(wav|zip)$/i, "")
+    .trim() || tracksBaseName();
+}
+
+function downloadTracksMarkdown() {
+  const workspace = state.tracksWorkspace;
+  if (!workspace.analysis?.valid || !workspace.markdown) {
+    ui.advancedStatus.textContent = "Load a valid .md file before downloading.";
+    return;
+  }
+  const filename = normalizedFileName(
+    workspace.fileName,
+    "Tracks Workspace",
+    ".md"
+  );
+  triggerBlobDownload(
+    new Blob([workspace.markdown], { type: "text/markdown;charset=utf-8" }),
+    filename
+  );
+  ui.advancedStatus.textContent = "Downloaded Tracks Markdown: " + filename;
+}
+
+async function downloadTracksStem(trackIndex) {
+  const workspace = state.tracksWorkspace;
+  const track = workspace.analysis?.song?.tracks?.[trackIndex];
+  if (!workspace.analysis?.valid || !track) {
+    ui.advancedStatus.textContent = "Load a valid Tracks workspace before exporting a stem.";
+    return;
+  }
+
+  const filename = normalizedDownloadName(
+    tracksExportBaseName() + " - " + track.name,
+    "Track " + (trackIndex + 1)
+  );
+  ui.advancedStatus.textContent = "Rendering stem: " + track.name + "...";
+
+  try {
+    const blob = await tracksAudioBlob("/v1/tracks/track-audio", {
+      markdown: workspace.markdown,
+      fileName: workspace.fileName || "Tracks Workspace.md",
+      track: trackIndex
+    });
+    triggerBlobDownload(blob, filename);
+    ui.advancedStatus.textContent = "Downloaded stem WAV: " + filename;
+  } catch (error) {
+    ui.advancedStatus.textContent = "Stem WAV error: " + error.message;
+  }
+}
+
+async function downloadTracksMix() {
+  const workspace = state.tracksWorkspace;
+  if (!workspace.analysis?.valid || !workspace.markdown) {
+    ui.advancedStatus.textContent = "Load a valid .md file before downloading the mix.";
+    return;
+  }
+
+  const filename = normalizedDownloadName(
+    tracksExportBaseName(),
+    tracksBaseName()
+  );
+  ui.tracksDownloadMix.disabled = true;
+  ui.advancedStatus.textContent = "Rendering Tracks mix...";
+
+  try {
+    const blob = await tracksAudioBlob("/v1/tracks/mix-audio", {
+      markdown: workspace.markdown,
+      fileName: workspace.fileName || "Tracks Mix.md",
+      mutedTracks: [...state.advancedTransport.muted]
+    });
+    triggerBlobDownload(blob, filename);
+    ui.tracksOutputName.value = filename.replace(/\.wav$/i, "");
+    ui.advancedStatus.textContent =
+      "Downloaded mix WAV: " + filename +
+      (state.advancedTransport.muted.size
+        ? " · muted tracks excluded"
+        : "");
+  } catch (error) {
+    ui.advancedStatus.textContent = "Mix WAV error: " + error.message;
+  } finally {
+    ui.tracksDownloadMix.disabled = false;
+  }
+}
+
+async function downloadTracksSet() {
+  const workspace = state.tracksWorkspace;
+  if (!workspace.analysis?.valid || !workspace.markdown) {
+    ui.advancedStatus.textContent = "Load a valid .md file before downloading the Track Set.";
+    return;
+  }
+
+  const base = tracksExportBaseName();
+  const filename = normalizedFileName(
+    base + " Track Set",
+    tracksBaseName() + " Track Set",
+    ".zip"
+  );
+  ui.tracksDownloadSet.disabled = true;
+  ui.advancedStatus.textContent = "Rendering mix and all Track stems...";
+
+  try {
+    const blob = await tracksAudioBlob("/v1/tracks/set-zip", {
+      markdown: workspace.markdown,
+      fileName: normalizedFileName(base, tracksBaseName(), ".md"),
+      mutedTracks: [...state.advancedTransport.muted]
+    });
+    triggerBlobDownload(blob, filename);
+    ui.tracksOutputName.value = base;
+    ui.advancedStatus.textContent =
+      "Downloaded Track Set: " + filename +
+      " · Markdown + mix + " +
+      (workspace.analysis.song?.tracks?.length || 0) +
+      " stem WAV(s).";
+  } catch (error) {
+    ui.advancedStatus.textContent = "Track Set error: " + error.message;
+  } finally {
+    ui.tracksDownloadSet.disabled = false;
+  }
+}
+
 async function renderCurrentProjectToWav() {
-  const saved = await saveCurrentProject();
-  if (!saved) return;
+  const analysis = await analyzeCurrentMarkdown(false);
+  if (!analysis.valid) {
+    ui.projectFileMeta.textContent = "Fix validation errors before downloading WAV.";
+    return;
+  }
 
   const filename = normalizedDownloadName(
     ui.renderOutputName.value,
-    state.studio.currentProject?.replace(/\.md$/i, "") || "NoteScript"
+    state.studio.currentProject?.replace(/\.md$/i, "") || analysis.song?.title || "NoteScript"
   );
   ui.renderProject.disabled = true;
-  ui.projectFileMeta.textContent = "Rendering WAV for download...";
+  ui.projectFileMeta.textContent = "Rendering current Compose state for download...";
 
   try {
-    const response = await fetch(
-      "/v1/render/audio?project=" + encodeURIComponent(state.studio.currentProject),
-      { cache: "no-store" }
-    );
+    const response = await fetch("/v1/render/audio", {
+      method: "POST",
+      cache: "no-store",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        markdown: ui.markdownEditor.value,
+        fileName: state.studio.currentProject || (analysis.song?.title || "Studio Render") + ".md"
+      })
+    });
     if (!response.ok) {
       let message = response.statusText;
       try {
@@ -4141,12 +4753,15 @@ async function renderCurrentProjectToWav() {
 async function applyComposeVoice() {
   const trackIndex = Number(ui.composeTrackSelect.value);
   if (!Number.isInteger(trackIndex)) return;
-  const changed = await updateTrackSourceInMarkdown(trackIndex, ui.composeVoiceSelect.value);
+  const changed = await updateTrackSettingsInMarkdown(trackIndex, {
+    voiceValue: ui.composeVoiceSelect.value,
+    volume: ui.composeTrackVolume.value
+  });
   if (changed) {
     const track = state.studio.analysis?.song?.tracks?.[trackIndex];
     ui.projectFileMeta.textContent =
-      "Voice updated for " + (track?.name || ("Track " + (trackIndex + 1))) +
-      ". Save or Download WAV when ready.";
+      "Track updated: " + (track?.name || ("Track " + (trackIndex + 1))) +
+      " · " + Math.round((track?.volume ?? 1) * 100) + "% volume. Save or Download WAV when ready.";
   }
 }
 
@@ -4180,8 +4795,22 @@ function wireStudioUi() {
   ui.composeTrackSelect.addEventListener("change", () => {
     const track = state.studio.analysis?.song?.tracks?.[Number(ui.composeTrackSelect.value)];
     if (track) {
-      fillVoiceSelect(ui.composeVoiceSelect, track, { selected: voiceValueForTrack(track) });
+      fillTrackSourceTypeSelect(ui.composeSourceType, track);
+      fillSourceItemSelect(
+        ui.composeVoiceSelect,
+        ui.composeSourceType.value,
+        voiceValueForTrack(track)
+      );
+      ui.composeTrackVolume.value = String(track.volume);
+      ui.composeTrackVolumeValue.textContent = Math.round(track.volume * 100) + "%";
     }
+  });
+  ui.composeSourceType.addEventListener("change", () => {
+    fillSourceItemSelect(ui.composeVoiceSelect, ui.composeSourceType.value);
+  });
+  ui.composeTrackVolume.addEventListener("input", () => {
+    ui.composeTrackVolumeValue.textContent =
+      Math.round(Number(ui.composeTrackVolume.value) * 100) + "%";
   });
   ui.composeApplyVoice.addEventListener("click", applyComposeVoice);
   ui.formAddTrack.addEventListener("click", addFormTrack);
@@ -4198,16 +4827,6 @@ function wireStudioUi() {
     element.addEventListener("change", applyFormToMarkdown);
   }
 
-  ui.basicMode.addEventListener("click", () => {
-    ui.workspaceModeSetting.value = "basic";
-    activateMainTab("play");
-  });
-
-  ui.advancedMode.addEventListener("click", () => {
-    ui.workspaceModeSetting.value = "advanced";
-    activateMainTab("tracks");
-  });
-
   ui.saveSettings.addEventListener("click", saveStudioSettings);
   ui.resetHotkeys.addEventListener("click", resetHotkeys);
   ui.pianoHotkeyEdit.addEventListener("click", beginPianoHotkeyEdit);
@@ -4218,6 +4837,22 @@ function wireStudioUi() {
   ui.soundPadHotkeyCancel.addEventListener("click", cancelSoundPadHotkeyEdit);
   ui.soundPadMixLock.addEventListener("click", toggleSoundPadMixLock);
   ui.soundPadResetMix.addEventListener("click", resetSoundPadMix);
+
+  ui.tracksFileInput.addEventListener("change", async () => {
+    const file = ui.tracksFileInput.files?.[0] || null;
+    if (!file) return;
+    try {
+      await loadTracksWorkspaceFile(file);
+    } catch (error) {
+      ui.advancedStatus.textContent = "Tracks load error: " + error.message;
+    } finally {
+      ui.tracksFileInput.value = "";
+    }
+  });
+  ui.tracksAddTrack.addEventListener("click", addTrackToTracksWorkspace);
+  ui.tracksDownloadMd.addEventListener("click", downloadTracksMarkdown);
+  ui.tracksDownloadMix.addEventListener("click", downloadTracksMix);
+  ui.tracksDownloadSet.addEventListener("click", downloadTracksSet);
 
   ui.playSourceType.addEventListener("change", applyPlaySourceSelection);
   ui.pianoVoiceKind.addEventListener("change", applyPlaySourceSelection);
@@ -4391,7 +5026,6 @@ async function initialize() {
       ui.projectNameInput.value = state.studio.projects[0];
     }
 
-    ui.workspaceModeSetting.value = studioSettings.workspaceMode || "basic";
     ui.editorModeSetting.value = studioSettings.editorMode || "text";
     activateComposeMode(studioSettings.editorMode || "text");
     renderHotkeyEditor();

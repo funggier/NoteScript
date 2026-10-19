@@ -14,6 +14,7 @@ import { NoteScriptError } from "../error.js";
 import { LivePlaybackManager } from "../playback/manager.js";
 import { compileTimeline } from "../timeline.js";
 import { generateBeatLane6Chart } from "../game/beatlane6.js";
+import { createStoredZip } from "../archive/zip.js";
 
 function safeName(name) {
   const value = String(name || "").trim();
@@ -87,6 +88,15 @@ export function createControlService(programRoot) {
     return base.toLowerCase().endsWith(".md") ? base : base + ".md";
   }
 
+  function safeArchiveStem(value, fallback = "Track") {
+    const clean = String(value || "")
+      .trim()
+      .replace(/[\\/:*?"<>|]+/g, "-")
+      .replace(/\s+/g, " ")
+      .replace(/[. ]+$/g, "");
+    return clean || fallback;
+  }
+
   function clearProjectTransportCaches(file) {
     for (const key of [...transportCache.keys()]) {
       if (key === file || key.startsWith(file + "::")) transportCache.delete(key);
@@ -124,8 +134,7 @@ export function createControlService(programRoot) {
 
   function defaultStudioSettings() {
     return {
-      version: 3,
-      workspaceMode: "basic",
+      version: 4,
       editorMode: "text",
       soundPadHotkeys: {},
       soundPadVolumes: {},
@@ -180,11 +189,15 @@ export function createControlService(programRoot) {
         : {}
     );
 
-    const { kitHotkeys: _legacyKitHotkeys, ...rest } = parsed || {};
+    const {
+      kitHotkeys: _legacyKitHotkeys,
+      workspaceMode: _legacyWorkspaceMode,
+      ...rest
+    } = parsed || {};
     return {
       ...defaults,
       ...rest,
-      version: 3,
+      version: 4,
       hotkeys: {
         ...defaults.hotkeys,
         ...(parsed && typeof parsed.hotkeys === "object" ? parsed.hotkeys : {})
@@ -395,7 +408,6 @@ export function createControlService(programRoot) {
       const current = readStudioSettings();
       const next = {
         ...current,
-        ...(input.workspaceMode ? { workspaceMode: String(input.workspaceMode) } : {}),
         ...(input.editorMode ? { editorMode: String(input.editorMode) } : {}),
         hotkeys: {
           ...current.hotkeys,
@@ -430,9 +442,7 @@ export function createControlService(programRoot) {
         })
       };
 
-      if (!["basic", "advanced"].includes(next.workspaceMode)) {
-        throw new NoteScriptError("workspaceMode must be basic or advanced.");
-      }
+      delete next.workspaceMode;
       if (!["text", "form", "node"].includes(next.editorMode)) {
         throw new NoteScriptError("editorMode must be text, form or node.");
       }
@@ -598,6 +608,97 @@ export function createControlService(programRoot) {
       };
     },
 
+    getMarkdownTrackSetZip(markdown, fileName = "Tracks Workspace.md", mutedTracks = []) {
+      const source = String(markdown || "");
+      const song = parseSong(source);
+      const muted = new Set(
+        Array.isArray(mutedTracks)
+          ? mutedTracks
+              .map((value) => Number.parseInt(String(value), 10))
+              .filter((value) => Number.isInteger(value) && value >= 0)
+          : []
+      );
+      const mixSong = muted.size
+        ? {
+          ...song,
+          tracks: song.tracks.map((track, index) =>
+            muted.has(index) ? { ...track, volume: 0 } : track
+          )
+        }
+        : song;
+      const virtualName = safeName(fileName || "Tracks Workspace.md");
+      const virtualFile = path.join(projectsRoot, virtualName);
+      const referenceMix = renderToWavBuffer(song, virtualFile, { portableRoot: root });
+      const mix = muted.size
+        ? renderToWavBuffer(mixSong, virtualFile, { portableRoot: root })
+        : referenceMix;
+      const rootName = safeArchiveStem(
+        path.basename(virtualName, path.extname(virtualName)),
+        "NoteScript Tracks"
+      );
+
+      const entries = [
+        {
+          name: rootName + "/" + rootName + ".md",
+          data: Buffer.from(source, "utf8")
+        },
+        {
+          name: rootName + "/mix/" + rootName + " Mix.wav",
+          data: mix.buffer
+        }
+      ];
+
+      song.tracks.forEach((track, index) => {
+        const stem = renderToWavBuffer(song, virtualFile, {
+          portableRoot: root,
+          trackIndex: index,
+          normalizationPeak: referenceMix.report.peakBeforeNormalization
+        });
+        const number = String(index + 1).padStart(2, "0");
+        entries.push({
+          name:
+            rootName +
+            "/tracks/" +
+            number +
+            " - " +
+            safeArchiveStem(track.name, "Track " + (index + 1)) +
+            ".wav",
+          data: stem.buffer
+        });
+      });
+
+      const manifest = {
+        format: "NoteScript Track Set",
+        version: 1,
+        title: song.title,
+        sourceFile: virtualName,
+        trackCount: song.tracks.length,
+        mutedTracks: [...muted].sort((a, b) => a - b),
+        tracks: song.tracks.map((track, index) => ({
+          index,
+          name: track.name,
+          sound: track.sound || null,
+          instrument: track.instrument || null,
+          volume: track.volume,
+          pan: track.pan,
+          mutedInMix: muted.has(index)
+        }))
+      };
+      entries.push({
+        name: rootName + "/track-set.json",
+        data: Buffer.from(JSON.stringify(manifest, null, 2) + "\n", "utf8")
+      });
+
+      return {
+        buffer: createStoredZip(entries),
+        project: virtualName,
+        title: song.title,
+        tracks: song.tracks.length,
+        mutedTracks: [...muted].sort((a, b) => a - b),
+        rootName
+      };
+    },
+
     getTransportTrackPreview(fileOrName, trackIndex) {
       const { file, markdown } = loadProject(fileOrName);
       const song = parseSong(markdown);
@@ -718,6 +819,44 @@ export function createControlService(programRoot) {
       return {
         buffer: rendered.buffer,
         project: path.basename(file),
+        ...rendered.report
+      };
+    },
+
+    getMarkdownRenderAudio(markdown, fileName = "Studio Render.md") {
+      const safeFileName = normalizeProjectName(fileName || "Studio Render.md");
+      const virtualFile = path.join(projectsRoot, safeFileName);
+      const song = parseSong(String(markdown));
+      const rendered = renderToWavBuffer(song, virtualFile, { portableRoot: root });
+      return {
+        buffer: rendered.buffer,
+        project: safeFileName,
+        ...rendered.report
+      };
+    },
+
+    getMarkdownMixAudio(markdown, fileName = "Tracks Mix.md", mutedTracks = []) {
+      const safeFileName = normalizeProjectName(fileName || "Tracks Mix.md");
+      const virtualFile = path.join(projectsRoot, safeFileName);
+      const song = parseSong(String(markdown));
+      const muted = new Set(
+        Array.isArray(mutedTracks)
+          ? mutedTracks
+            .map((value) => Number.parseInt(String(value), 10))
+            .filter((value) => Number.isInteger(value) && value >= 0)
+          : []
+      );
+      const mixSong = {
+        ...song,
+        tracks: song.tracks.map((track, index) =>
+          muted.has(index) ? { ...track, volume: 0 } : track
+        )
+      };
+      const rendered = renderToWavBuffer(mixSong, virtualFile, { portableRoot: root });
+      return {
+        buffer: rendered.buffer,
+        project: safeFileName,
+        mutedTracks: [...muted].sort((a, b) => a - b),
         ...rendered.report
       };
     },

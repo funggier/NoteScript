@@ -431,7 +431,8 @@ test("control service supports Studio project CRUD, analysis and settings", () =
   assert.deepEqual(service.listProjects(), ["Studio Renamed.md"]);
 
   const defaults = service.getStudioSettings();
-  assert.equal(defaults.workspaceMode, "basic");
+  assert.equal("workspaceMode" in defaults, false);
+  assert.equal(defaults.version, 4);
   assert.equal(defaults.editorMode, "text");
   assert.equal(defaults.hotkeys.note0, "a");
   assert.deepEqual(defaults.soundPadMixLocks, {});
@@ -444,7 +445,8 @@ test("control service supports Studio project CRUD, analysis and settings", () =
       panic: "Escape"
     }
   });
-  assert.equal(settings.workspaceMode, "advanced");
+  assert.equal("workspaceMode" in settings, false);
+  assert.equal(settings.version, 4);
   assert.equal(settings.editorMode, "node");
   assert.equal(settings.hotkeys.note0, "q");
   assert.equal(service.getStudioSettings().hotkeys.note0, "q");
@@ -532,6 +534,26 @@ test("control service caches project transport preview audio", () => {
   const stem0 = service.getTransportTrackPreview("Evening Walk.md", 0);
   const stem0Cached = service.getTransportTrackPreview("Evening Walk.md", 0);
   const stem1 = service.getTransportTrackPreview("Evening Walk.md", 1);
+  const importedStem0 = service.getMarkdownTrackPreview(
+    sourceBeforeOverride,
+    0,
+    "Imported Tracks.md"
+  );
+  const importedMix = service.getMarkdownMixAudio(
+    sourceBeforeOverride,
+    "Imported Tracks.md",
+    []
+  );
+  const importedMixMuted = service.getMarkdownMixAudio(
+    sourceBeforeOverride,
+    "Imported Tracks.md",
+    [0]
+  );
+  const importedTrackSet = service.getMarkdownTrackSetZip(
+    sourceBeforeOverride,
+    "Imported Tracks.md",
+    [0]
+  );
 
   assert.equal(first.buffer.toString("ascii", 0, 4), "RIFF");
   assert.strictEqual(first, second);
@@ -549,6 +571,23 @@ test("control service caches project transport preview audio", () => {
   assert.equal(fs.readFileSync(projectFile, "utf8"), sourceBeforeOverride);
   assert.equal(stem0.buffer.toString("ascii", 0, 4), "RIFF");
   assert.equal(stem1.buffer.toString("ascii", 0, 4), "RIFF");
+  assert.equal(importedStem0.buffer.toString("ascii", 0, 4), "RIFF");
+  assert.equal(importedStem0.project, "Imported Tracks.md");
+  assert.equal(importedStem0.trackIndex, 0);
+  assert.equal(importedMix.buffer.toString("ascii", 0, 4), "RIFF");
+  assert.equal(importedMixMuted.buffer.toString("ascii", 0, 4), "RIFF");
+  assert.notDeepEqual(importedMix.buffer, importedMixMuted.buffer);
+  assert.deepEqual(importedMixMuted.mutedTracks, [0]);
+  assert.equal(importedTrackSet.buffer.toString("ascii", 0, 2), "PK");
+  assert.equal(importedTrackSet.tracks, 2);
+  assert.deepEqual(importedTrackSet.mutedTracks, [0]);
+  const zipText = importedTrackSet.buffer.toString("utf8");
+  assert.match(zipText, /Imported Tracks\/Imported Tracks\.md/);
+  assert.match(zipText, /Imported Tracks\/mix\/Imported Tracks Mix\.wav/);
+  assert.match(zipText, /Imported Tracks\/tracks\/01 - /);
+  assert.match(zipText, /Imported Tracks\/tracks\/02 - /);
+  assert.match(zipText, /Imported Tracks\/track-set\.json/);
+  assert.match(zipText, /"mutedInMix": true/);
   assert.strictEqual(stem0, stem0Cached);
   assert.equal(stem0.trackIndex, 0);
   assert.equal(stem1.trackIndex, 1);
@@ -640,7 +679,7 @@ test("control service exposes sound details and audition WAV", () => {
   assert.ok(instrumentAudio.buffer.length > 44);
 });
 
-test("Studio UI exposes tabbed game piano, compose modes, advanced tracks and remappable hotkeys", () => {
+test("Studio UI exposes unified tabs, independent Tracks and remappable hotkeys", () => {
   for (const file of ["index.html", "style.css", "app.js"]) {
     const full = path.join(root, "src", "control", "ui", file);
     assert.equal(fs.existsSync(full), true, full + " should exist");
@@ -664,10 +703,30 @@ test("Studio UI exposes tabbed game piano, compose modes, advanced tracks and re
   assert.match(html, /id="nodeInspectorApply"/);
   assert.match(html, /id="nodeInspectorValue"/);
   assert.match(html, /id="trackTimeline"/);
+  assert.match(html, /id="tracksFileInput"/);
+  assert.match(html, /id="tracksAddTrack"/);
+  assert.doesNotMatch(html, /id="tracksSaveProject"/);
+  assert.match(html, /id="tracksDownloadMd"/);
+  assert.match(html, /id="tracksOutputName"/);
+  assert.match(html, /id="tracksDownloadMix"/);
+  assert.match(html, /id="tracksDownloadSet"/);
+  assert.match(html, /id="tracksFileInput"/);
+  assert.doesNotMatch(app, /syncTracksFromStudio/);
+  assert.doesNotMatch(app, /syncStudioFromTracksWorkspace/);
+  assert.doesNotMatch(app, /saveTracksProject/);
+  assert.match(app, /downloadTracksStem/);
+  assert.match(app, /downloadTracksMix/);
+  assert.match(app, /downloadTracksSet/);
+  assert.match(app, /\/v1\/tracks\/track-audio/);
+  assert.match(app, /\/v1\/tracks\/mix-audio/);
+  assert.match(app, /\/v1\/tracks\/set-zip/);
   assert.match(html, /id="advancedPlay"/);
   assert.match(html, /id="advancedPause"/);
   assert.match(html, /id="advancedStop"/);
+  assert.match(app, /track-source-type-select/);
   assert.match(app, /track-voice-select/);
+  assert.match(app, /track-volume-control/);
+  assert.match(app, /setAdvancedTrackVolume/);
   assert.match(app, /track-mute/);
   assert.match(html, /id="hotkeyEditor"/);
   assert.match(html, /PERFORMANCE MODE/);
@@ -708,13 +767,27 @@ test("Studio UI exposes tabbed game piano, compose modes, advanced tracks and re
   assert.match(html, /id="outputDevice"/);
   assert.doesNotMatch(html, /id="transportSaveWav"/);
   assert.match(html, /id="composeTrackSelect"/);
+  assert.match(html, /id="composeSourceType"/);
   assert.match(html, /id="composeVoiceSelect"/);
-  assert.match(html, /id="composeApplyVoice"/);
+  assert.match(html, /id="composeTrackVolume"/);
+  assert.match(html, /id="composeTrackVolumeValue"/);
+  assert.match(html, /id="composeApplyVoice"[^>]*>Apply Track</);
   assert.match(html, /id="renderOutputName"/);
   assert.match(html, /id="renderProject"[^>]*>Download WAV</);
   assert.doesNotMatch(html, /id="advancedRender"/);
+  assert.doesNotMatch(html, /id="workspaceModeSetting"/);
+  assert.match(html, /All Studio tabs are available together as one complete workspace/);
   assert.match(app, /\/v1\/transport\/audio/);
-  assert.match(app, /\/v1\/transport\/track-audio/);
+  assert.match(app, /\/v1\/tracks\/track-audio/);
+  assert.match(app, /\/v1\/tracks\/mix-audio/);
+  assert.match(app, /downloadTracksStem/);
+  assert.match(app, /downloadTracksMix/);
+  assert.match(app, /downloadTracksMarkdown/);
+  assert.match(app, /loadTracksWorkspaceFile/);
+  assert.match(app, /addTrackToTracksWorkspace/);
+  assert.match(app, /updateTracksWorkspaceSource/);
+  assert.match(app, /updateTracksWorkspaceVolume/);
+  assert.match(app, /INSTRUMENT \/ VOICE|INSTRUMENT \/ SOUND/);
   assert.match(app, /toggleAdvancedTrackMute/);
   assert.match(app, /gain\.gain\.setValueAtTime/);
   assert.match(app, /createStereoPanner/);
@@ -727,7 +800,13 @@ test("Studio UI exposes tabbed game piano, compose modes, advanced tracks and re
   assert.match(app, /\/v1\/analyze/);
   assert.match(app, /\/v1\/render\/audio/);
   assert.match(app, /applyComposeVoice/);
+  assert.match(app, /sourceTypesForTrack/);
+  assert.match(app, /fillTrackSourceTypeSelect/);
+  assert.match(app, /fillSourceItemSelect/);
+  assert.match(app, /updateTrackSettingsInMarkdown/);
+  assert.match(app, /updateTrackVolumeInMarkdown/);
   assert.match(app, /updateTrackSourceInMarkdown/);
+  assert.doesNotMatch(app, /Edit this track in Compose/);
   assert.match(app, /Preview voice changed\. Press Reload before Play/);
   assert.match(app, /\/v1\/game\/beatlane6\/chart/);
   assert.match(app, /BEATLANE6_INPUT_KEYS/);
@@ -758,7 +837,7 @@ test("Studio UI exposes tabbed game piano, compose modes, advanced tracks and re
   assert.match(app, /renderTrackTimeline/);
   assert.match(app, /renderNodeCanvas/);
   assert.match(app, /applyNodeInspector/);
-  assert.match(app, /Node Inspector changed the project/);
+  assert.match(app, /Node updated in Markdown/);
   assert.match(css, /\.key \.note-label\s*\{[^}]*left:\s*0;[^}]*right:\s*0;/s);
   assert.match(css, /\.pad-hotkey/);
   assert.match(css, /\.pad-volume/);
@@ -771,6 +850,9 @@ test("Studio UI exposes tabbed game piano, compose modes, advanced tracks and re
   assert.match(css, /\.beatlane-note/);
   assert.match(css, /\.beatlane-hit-line/);
   assert.match(css, /\.beatlane-result/);
+  assert.match(css, /\.compose-volume-control/);
+  assert.match(css, /\.track-source-type-control/);
+  assert.match(css, /\.track-volume-control/);
 });
 
 test("parser rejects a track with both sound and instrument sources", () => {

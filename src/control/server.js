@@ -140,6 +140,24 @@ const server = http.createServer(async (req, res) => {
       );
       return binary(res, 200, "audio/wav", preview.buffer);
     }
+    if (req.method === "POST" && url.pathname === "/v1/tracks/mix-audio") {
+      const input = await body(req);
+      const mix = service.getMarkdownMixAudio(
+        input.markdown,
+        input.fileName || "Tracks Mix.md",
+        input.mutedTracks || []
+      );
+      return binary(res, 200, "audio/wav", mix.buffer);
+    }
+    if (req.method === "POST" && url.pathname === "/v1/tracks/set-zip") {
+      const input = await body(req);
+      const archive = service.getMarkdownTrackSetZip(
+        input.markdown,
+        input.fileName || "Tracks Workspace.md",
+        input.mutedTracks || []
+      );
+      return binary(res, 200, "application/zip", archive.buffer);
+    }
     if (req.method === "GET" && url.pathname === "/v1/audition/audio") {
       const pack = url.searchParams.get("pack");
       const note = url.searchParams.has("note") ? url.searchParams.get("note") : null;
@@ -206,6 +224,14 @@ const server = http.createServer(async (req, res) => {
     if (req.method === "POST" && url.pathname === "/v1/validate") {
       const input = await body(req);
       return json(res, 200, service.validateProject(input.project));
+    }
+    if (req.method === "POST" && url.pathname === "/v1/render/audio") {
+      const input = await body(req);
+      const rendered = service.getMarkdownRenderAudio(
+        input.markdown,
+        input.fileName || input.project || "Studio Render.md"
+      );
+      return binary(res, 200, "audio/wav", rendered.buffer);
     }
     if (req.method === "GET" && url.pathname === "/v1/render/audio") {
       const sourceType = url.searchParams.get("sourceType");

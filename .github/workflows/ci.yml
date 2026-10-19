@@ -147,6 +147,17 @@ jobs:
               $page.Content -notmatch 'id="transportLoad"[^>]*>Reload' -or
               $page.Content -notmatch 'id="composeTrackSelect"' -or
               $page.Content -notmatch 'id="composeVoiceSelect"' -or
+              $page.Content -notmatch 'id="composeTrackVolume"' -or
+              $page.Content -notmatch 'id="composeTrackVolumeValue"' -or
+              $page.Content -notmatch 'id="composeApplyVoice"[^>]*>Apply Track' -or
+              $page.Content -notmatch 'id="tracksFileInput"' -or
+              $page.Content -notmatch 'id="tracksAddTrack"' -or
+              $page.Content -notmatch 'id="tracksDownloadMd"' -or
+              $page.Content -notmatch 'id="tracksOutputName"' -or
+              $page.Content -match 'id="tracksSaveProject"' -or
+              $page.Content -notmatch 'id="tracksDownloadMix"' -or
+              $page.Content -notmatch 'id="tracksDownloadSet"' -or
+              $page.Content -match 'id="workspaceModeSetting"' -or
               $page.Content -notmatch 'id="renderOutputName"' -or
               $page.Content -notmatch 'id="renderProject"[^>]*>Download WAV' -or
               $page.Content -notmatch 'id="beatLaneView"' -or
@@ -190,9 +201,9 @@ jobs:
 
             $settings = Invoke-RestMethod -Uri "$baseUri/v1/studio/settings" -TimeoutSec 5
             if (
-              $settings.workspaceMode -ne "basic" -or
+              ($settings.PSObject.Properties.Name -contains "workspaceMode") -or
               $settings.editorMode -ne "text" -or
-              [int]$settings.version -lt 3 -or
+              [int]$settings.version -lt 4 -or
               $null -eq $settings.soundPadMixLocks
             ) {
               throw "Portable Studio settings smoke test failed."
@@ -260,11 +271,27 @@ jobs:
               throw "Portable transport voice override smoke test failed."
             }
 
+            $previewInstrument = Join-Path $env:RUNNER_TEMP "notescript-transport-sfz.wav"
+            Invoke-WebRequest -UseBasicParsing -Uri "$baseUri/v1/transport/audio?project=Evening%20Walk.md&sourceType=instrument&sourceId=SFZ%2Fbasic-sfz" -OutFile $previewInstrument -TimeoutSec 15
+            $instrumentBytes = [System.IO.File]::ReadAllBytes($previewInstrument)
+            if (
+              $instrumentBytes.Length -le 44 -or
+              [System.Text.Encoding]::ASCII.GetString($instrumentBytes, 0, 4) -ne "RIFF" -or
+              (Get-FileHash $previewInstrument).Hash -eq (Get-FileHash $preview).Hash
+            ) {
+              throw "Portable transport Instrument override smoke test failed."
+            }
+
             $downloadWav = Join-Path $env:RUNNER_TEMP "notescript-compose-download.wav"
-            Invoke-WebRequest -UseBasicParsing -Uri "$baseUri/v1/render/audio?project=Evening%20Walk.md" -OutFile $downloadWav -TimeoutSec 15
+            $composeMarkdown = Get-Content -Raw (Join-Path $root "projects\Evening Walk.md")
+            $composeBody = [pscustomobject]@{
+              markdown = [string]$composeMarkdown
+              fileName = "Compose CI.md"
+            } | ConvertTo-Json -Compress
+            Invoke-WebRequest -UseBasicParsing -Method Post -ContentType "application/json" -Body $composeBody -Uri "$baseUri/v1/render/audio" -OutFile $downloadWav -TimeoutSec 15
             $downloadBytes = [System.IO.File]::ReadAllBytes($downloadWav)
             if ($downloadBytes.Length -le 44 -or [System.Text.Encoding]::ASCII.GetString($downloadBytes, 0, 4) -ne "RIFF") {
-              throw "Portable Compose download WAV endpoint is not a valid WAV."
+              throw "Portable Compose current-Markdown download WAV endpoint is not a valid WAV."
             }
 
             $stem0 = Join-Path $env:RUNNER_TEMP "notescript-track-0.wav"
@@ -272,15 +299,89 @@ jobs:
             Invoke-WebRequest -UseBasicParsing -Uri "$baseUri/v1/transport/track-audio?project=Evening%20Walk.md&track=0" -OutFile $stem0 -TimeoutSec 15
             Invoke-WebRequest -UseBasicParsing -Uri "$baseUri/v1/transport/track-audio?project=Evening%20Walk.md&track=1" -OutFile $stem1 -TimeoutSec 15
 
+            $tracksUiScript = Get-Content -Raw (Join-Path $root "src\control\ui\app.js")
+            if (
+              $tracksUiScript -notmatch '/v1/tracks/track-audio' -or
+              $tracksUiScript -notmatch '/v1/tracks/mix-audio' -or
+              $tracksUiScript -notmatch '/v1/tracks/set-zip' -or
+              $tracksUiScript -notmatch 'loadTracksWorkspaceFile' -or
+              $tracksUiScript -match 'syncTracksFromStudio' -or
+              $tracksUiScript -match 'syncStudioFromTracksWorkspace' -or
+              $tracksUiScript -match 'saveTracksProject' -or
+              $tracksUiScript -notmatch 'addTrackToTracksWorkspace' -or
+              $tracksUiScript -notmatch 'updateTracksWorkspaceSource' -or
+              $tracksUiScript -notmatch 'setAdvancedTrackVolume'
+            ) {
+              throw "Portable independent Tracks workflow smoke test failed."
+            }
+
             foreach ($stem in @($stem0, $stem1)) {
               $stemBytes = [System.IO.File]::ReadAllBytes($stem)
               if ($stemBytes.Length -le 44 -or [System.Text.Encoding]::ASCII.GetString($stemBytes, 0, 4) -ne "RIFF") {
-                throw "Portable Advanced track stem is not a valid WAV."
+                throw "Portable Tracks stem is not a valid WAV."
               }
             }
 
             if ((Get-FileHash $stem0).Hash -eq (Get-FileHash $stem1).Hash) {
-              throw "Portable Advanced stems should not be byte-identical."
+              throw "Portable Tracks stems should not be byte-identical."
+            }
+
+            $tracksStemBody = [pscustomobject]@{
+              markdown = [string]$composeMarkdown
+              fileName = "CI Tracks.md"
+              track = 0
+            } | ConvertTo-Json -Compress
+            $tracksIndependentStem = Join-Path $env:RUNNER_TEMP "notescript-current-track-0.wav"
+            Invoke-WebRequest -UseBasicParsing -Method Post -ContentType "application/json" -Body $tracksStemBody -Uri "$baseUri/v1/tracks/track-audio" -OutFile $tracksIndependentStem -TimeoutSec 15
+            $tracksIndependentStemBytes = [System.IO.File]::ReadAllBytes($tracksIndependentStem)
+            if (
+              $tracksIndependentStemBytes.Length -le 44 -or
+              [System.Text.Encoding]::ASCII.GetString($tracksIndependentStemBytes, 0, 4) -ne "RIFF"
+            ) {
+              throw "Portable independent Tracks stem export is not a valid WAV."
+            }
+
+            $tracksBody = [pscustomobject]@{
+              markdown = [string]$composeMarkdown
+              fileName = "CI Tracks.md"
+              mutedTracks = @(1)
+            } | ConvertTo-Json -Compress
+
+            $tracksMix = Join-Path $env:RUNNER_TEMP "notescript-tracks-mix.wav"
+            Invoke-WebRequest -UseBasicParsing -Method Post -ContentType "application/json" -Body $tracksBody -Uri "$baseUri/v1/tracks/mix-audio" -OutFile $tracksMix -TimeoutSec 15
+            $tracksMixBytes = [System.IO.File]::ReadAllBytes($tracksMix)
+            if ($tracksMixBytes.Length -le 44 -or [System.Text.Encoding]::ASCII.GetString($tracksMixBytes, 0, 4) -ne "RIFF") {
+              throw "Portable Tracks mix export is not a valid WAV."
+            }
+
+            $tracksZip = Join-Path $env:RUNNER_TEMP "notescript-track-set.zip"
+            Invoke-WebRequest -UseBasicParsing -Method Post -ContentType "application/json" -Body $tracksBody -Uri "$baseUri/v1/tracks/set-zip" -OutFile $tracksZip -TimeoutSec 30
+            $zipBytes = [System.IO.File]::ReadAllBytes($tracksZip)
+            if ($zipBytes.Length -lt 4 -or [System.Text.Encoding]::ASCII.GetString($zipBytes, 0, 2) -ne "PK") {
+              throw "Portable Track Set export is not a ZIP."
+            }
+
+            $tracksZipExtract = Join-Path $env:RUNNER_TEMP "notescript-track-set-extracted"
+            if (Test-Path $tracksZipExtract) {
+              Remove-Item -Recurse -Force $tracksZipExtract
+            }
+            Expand-Archive -LiteralPath $tracksZip -DestinationPath $tracksZipExtract
+            $trackSetRoot = Join-Path $tracksZipExtract "CI Tracks"
+            if (
+              -not (Test-Path (Join-Path $trackSetRoot "CI Tracks.md")) -or
+              -not (Test-Path (Join-Path $trackSetRoot "mix\CI Tracks Mix.wav")) -or
+              -not (Test-Path (Join-Path $trackSetRoot "track-set.json")) -or
+              @(Get-ChildItem (Join-Path $trackSetRoot "tracks") -Filter "*.wav").Count -ne 2
+            ) {
+              throw "Portable Track Set ZIP content smoke test failed."
+            }
+            $trackSetManifest = Get-Content -Raw (Join-Path $trackSetRoot "track-set.json") | ConvertFrom-Json
+            if (
+              $trackSetManifest.trackCount -ne 2 -or
+              @($trackSetManifest.mutedTracks).Count -ne 1 -or
+              [int]$trackSetManifest.mutedTracks[0] -ne 1
+            ) {
+              throw "Portable Track Set manifest smoke test failed."
             }
 
             & $entry stop

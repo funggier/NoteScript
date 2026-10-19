@@ -70,16 +70,20 @@ Transport checkpoint:
 - [x] WAV render button.
 - [x] MIDI export button.
 
-### Advanced mode
+### Tracks workspace
 
-- [x] Timeline / piano-roll-style multi-track visualization from analyzed Markdown.
-- [x] Advanced track -> Compose/Form linkage.
+- [x] Timeline / piano-roll-style multi-track visualization from Tracks Markdown.
+- [x] Independent local `.md` loading; no automatic Project/Compose coupling.
+- [x] Add Track inside the Tracks workspace.
+- [x] Per-track Source Type + Instrument / Sound selection.
+- [x] Persistent per-track Volume plus live Mute/Unmute.
 - [x] Per-track full-duration audio stems.
-- [x] Advanced Play/Pause/Stop/Seek.
-- [x] Reload Stems.
-- [x] Per-track Mute/Unmute.
+- [x] Tracks Play/Pause/Stop/Seek and Reload Stems.
 - [x] Mute works while playback is actively running without restarting other tracks.
-- [x] Project changes invalidate stale Advanced stems.
+- [x] Tracks source/volume edits invalidate stale stems.
+- [x] Download edited Tracks `.md`.
+- [x] Download individual Stem WAV.
+- [x] Download complete Mix WAV with current muted tracks excluded.
 
 ### Libraries / portable / qualification
 
@@ -224,13 +228,22 @@ Implemented:
 - [x] SoundPiano can select a native pack or playable standard Instrument add-on.
 - [x] Project Transport is preview-only with temporary `Original Project` / SoundPiano / Instrument override.
 - [x] Project Transport changes require explicit `Reload`; Play does not silently rebuild a changed preview.
-- [x] Project Transport override does not rewrite the `.md` project.
-- [x] Compose exposes Track + Voice selection across Text/Form/Node.
-- [x] Form track source is an installed-library Voice dropdown rather than free-text source input.
-- [x] Advanced Tracks expose a per-track Voice dropdown that writes back to authoritative Markdown.
-- [x] Compose is the single user-facing WAV creation surface with custom filename + direct browser `Download WAV`.
-- [x] Project Transport and Advanced do not duplicate WAV save/download controls.
-- [x] Local syntax check and automated tests GREEN.
+- [x] Project Transport override does not rewrite the `.md` project and has no WAV save/download control.
+- [x] Compose exposes Track + Source Type + Instrument / Sound + Volume controls across Text/Form/Node.
+- [x] Form track source is an installed-library selector rather than free-text source input.
+- [x] Compose has custom filename + direct browser `Download WAV` for the current Compose Markdown.
+- [x] Tracks is an independent multi-track `.md` workspace, separate from Project/Compose state.
+- [x] Tracks loads/imports a local `.md` directly into its own in-memory workspace.
+- [x] Add Track, Instrument / Sound and persistent Volume edits update only the current Tracks Markdown.
+- [x] Each Tracks row has Source Type + Instrument / Sound selection; pitched tracks can choose SoundPiano or playable Instrument add-ons and trigger tracks use SoundPad sets.
+- [x] Each Tracks row has persistent Volume (0-100%) plus temporary live Mute for stem playback.
+- [x] Tracks stem audio is rendered directly from the current Tracks Markdown through `/v1/tracks/track-audio`.
+- [x] Tracks can download its edited `.md`, each individual Stem WAV, and a Mix WAV through `/v1/tracks/mix-audio`.
+- [x] Tracks Mix WAV excludes tracks currently muted in the mixer.
+- [x] Tracks can download a Track Set ZIP containing Markdown + current mix + every stem WAV + manifest; all stems are included even when a track is muted in the mix.
+- [x] Studio settings schema v4 removes the legacy workspace-level selector; old `workspaceMode` data is discarded on migration. There is no Basic/Advanced product mode.
+- [x] Local syntax check: 27 JavaScript files PASS.
+- [x] Automated tests: 22/22 PASS.
 - [x] Portable build/API/browser UI smoke GREEN.
 
 Remaining gate:

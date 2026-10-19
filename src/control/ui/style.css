@@ -245,6 +245,25 @@ input[type="range"] {
   cursor: not-allowed;
 }
 
+.action-button.compact-action {
+  width: auto;
+  min-width: 0;
+  min-height: 28px;
+  margin: 0;
+  padding: 5px 8px;
+  border-radius: 7px;
+  font-size: 10px;
+  line-height: 1.15;
+  white-space: nowrap;
+}
+
+.compact-toolbar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
 .transport-panel select + .action-button {
   margin-top: 9px;
 }
@@ -938,12 +957,17 @@ input[type="range"] {
 
 .project-toolbar {
   display: flex;
-  gap: 8px;
-  margin-top: 10px;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
 }
 
 .project-toolbar .action-button {
+  width: auto;
+  min-width: 72px;
   margin-top: 0;
+  padding: 6px 9px;
+  font-size: 10px;
 }
 
 .project-list,
@@ -1012,9 +1036,11 @@ input[type="range"] {
 
 .compose-toolbar {
   display: flex;
+  align-items: center;
   justify-content: space-between;
-  gap: 12px;
-  padding: 10px 14px;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  padding: 8px 12px;
   border-bottom: 1px solid #252a35;
   background: #10141c;
 }
@@ -1047,23 +1073,34 @@ input[type="range"] {
   color: #b7c0d4;
 }
 
+.compose-actions {
+  align-items: center;
+  flex-wrap: wrap;
+}
+
 .compose-actions .action-button {
   width: auto;
-  min-width: 88px;
+  min-width: 54px;
   margin: 0;
-  padding: 7px 10px;
+  padding: 5px 8px;
+  font-size: 10px;
+  line-height: 1.2;
+  white-space: nowrap;
 }
 
 .compact-output-name {
-  width: 170px;
-  min-width: 130px;
+  width: 140px;
+  min-width: 108px;
+  padding: 5px 7px;
+  font-size: 10px;
 }
 
 .compose-source-toolbar {
   display: flex;
   align-items: end;
-  gap: 8px;
-  padding: 9px 14px;
+  flex-wrap: wrap;
+  gap: 6px 8px;
+  padding: 7px 12px;
   border-bottom: 1px solid #252a35;
   background: #0d1118;
 }
@@ -1071,7 +1108,7 @@ input[type="range"] {
 .compose-source-toolbar label {
   display: grid;
   gap: 4px;
-  min-width: 180px;
+  min-width: 145px;
   color: #8994a9;
   font-size: 9px;
   letter-spacing: .07em;
@@ -1079,7 +1116,31 @@ input[type="range"] {
 }
 
 .compose-source-toolbar select {
-  min-width: 180px;
+  min-width: 145px;
+}
+
+.compose-volume-control {
+  min-width: 180px !important;
+}
+
+.inline-range {
+  display: grid;
+  grid-template-columns: minmax(120px, 1fr) 42px;
+  align-items: center;
+  gap: 8px;
+}
+
+.inline-range input[type="range"] {
+  width: 100%;
+  margin: 0;
+}
+
+.inline-range output {
+  text-align: right;
+  color: #d8e1f2;
+  font-size: 10px;
+  letter-spacing: 0;
+  text-transform: none;
 }
 
 .compose-view {
@@ -1341,7 +1402,9 @@ button.node-card.selected {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 20px 24px 12px;
+  flex-wrap: wrap;
+  gap: 10px 14px;
+  padding: 14px 18px 10px;
 }
 
 .advanced-header h2 {
@@ -1356,8 +1419,8 @@ button.node-card.selected {
 }
 
 .advanced-transport {
-  margin: 0 24px 12px;
-  padding: 12px 14px;
+  margin: 0 18px 10px;
+  padding: 10px 12px;
   border: 1px solid #2c3446;
   border-radius: 11px;
   background: linear-gradient(180deg, #111722, #0c1017);
@@ -1367,7 +1430,8 @@ button.node-card.selected {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 14px;
+  flex-wrap: wrap;
+  gap: 8px 12px;
 }
 
 .advanced-transport-main strong {
@@ -1379,18 +1443,63 @@ button.node-card.selected {
 
 .advanced-transport-buttons {
   display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
   gap: 7px;
+}
+
+.transport-button-group,
+.track-export-group {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.track-export-group {
+  padding-left: 7px;
+  border-left: 1px solid #30384a;
 }
 
 .advanced-transport-buttons .action-button {
   width: auto;
-  min-width: 72px;
+  min-width: 0;
   margin: 0;
-  padding: 7px 10px;
+  padding: 5px 7px;
+  font-size: 10px;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+.advanced-transport-buttons #advancedPlay,
+.advanced-transport-buttons #advancedPause,
+.advanced-transport-buttons #advancedStop {
+  min-width: 48px;
+}
+
+.advanced-transport-buttons #advancedReload {
+  min-width: 54px;
+}
+
+.advanced-transport-buttons #tracksDownloadMix {
+  min-width: 62px;
+}
+
+.advanced-transport-buttons #tracksDownloadSet {
+  min-width: 76px;
+}
+
+.track-export-group .compact-output-name {
+  width: 128px;
+  min-width: 112px;
+  height: 28px;
+  padding: 4px 7px;
+  font-size: 10px;
 }
 
 .track-timeline {
-  margin: 0 24px 24px;
+  margin: 0 18px 18px;
   border: 1px solid #2b3240;
   border-radius: 12px;
   overflow: auto;
@@ -1417,7 +1526,7 @@ button.node-card.selected {
 
 .timeline-track {
   display: grid;
-  grid-template-columns: 190px 1fr;
+  grid-template-columns: 270px 1fr;
   min-height: 72px;
   border-bottom: 1px solid #202632;
 }
@@ -1430,12 +1539,10 @@ button.node-card.selected {
   color: inherit;
   font: inherit;
   text-align: left;
-  cursor: pointer;
 }
 
 .timeline-track-head:hover {
-  background: #151c28;
-  box-shadow: inset 3px 0 #5969cb;
+  background: #131923;
 }
 
 .timeline-track-head strong {
@@ -1452,7 +1559,6 @@ button.node-card.selected {
   background: transparent;
   color: inherit;
   text-align: left;
-  cursor: pointer;
 }
 
 .timeline-track-controls {
@@ -1462,21 +1568,95 @@ button.node-card.selected {
   margin-top: 8px;
 }
 
+.track-source-type-control,
+.track-voice-control {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 4px;
+  width: 100%;
+  color: #778298;
+  font-size: 8px;
+  letter-spacing: .08em;
+}
+
+.track-source-type-select,
 .track-voice-select {
   width: 100%;
   min-width: 140px;
   font-size: 9px;
+  letter-spacing: 0;
+}
+
+.track-volume-control {
+  display: grid;
+  grid-template-columns: auto minmax(90px, 1fr) 38px;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  color: #8f9bb0;
+  font-size: 9px;
+  letter-spacing: .06em;
+}
+
+.track-volume-control input[type="range"] {
+  width: 100%;
+  min-width: 90px;
+  margin: 0;
+}
+
+.track-volume-value {
+  text-align: right;
+  color: #d8e1f2;
+  letter-spacing: 0;
 }
 
 .track-mute,
-.track-edit {
+.track-download {
+  min-height: 24px;
   border: 1px solid #3a4357;
   border-radius: 6px;
-  padding: 4px 7px;
+  padding: 3px 6px;
   background: #171d29;
   color: #adb7ca;
   cursor: pointer;
   font-size: 9px;
+  line-height: 1.1;
+  white-space: nowrap;
+}
+
+.track-download {
+  border-color: #455172;
+  background: #182033;
+  color: #c6d0e6;
+}
+
+.tracks-file-tools {
+  justify-content: flex-end;
+}
+
+.tracks-file-tools .action-button,
+.tracks-file-button {
+  width: auto;
+  min-width: 0;
+  margin: 0;
+  padding: 5px 7px;
+  font-size: 10px;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+.tracks-file-button {
+  position: relative;
+  overflow: hidden;
+  cursor: pointer;
+}
+
+.tracks-file-button input[type="file"] {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
 }
 
 .track-mute.active {

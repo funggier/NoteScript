@@ -48,7 +48,7 @@ Exit: source tests GREEN, example WAV renders, portable build runs from its own 
 - Game-style remappable piano hotkeys.
 - SoundPad hotkeys, per-pad volume mixing and persistent mix lock.
 - Explicit left-to-right project preview pan semantics.
-- Advanced multi-track stem playback with live track Mute/Unmute.
+- Tracks multi-track stem playback with per-track Instrument / Sound, persistent Volume and live Mute/Unmute.
 - Single portable command entry point plus thin BAT shortcuts.
 - Single-file network host/port configuration.
 
@@ -117,9 +117,14 @@ Deferred follow-up:
 - [x] Replace separate Play Mode with one Play Source selector: SoundPiano / SoundPad / GameBeatLane6.
 - [x] Let SoundPiano choose native packs or playable standard Instrument add-ons.
 - [x] Add temporary Project Transport preview-voice override with explicit Reload and no Markdown mutation.
-- [x] Add installed-library Track/Voice selection to Compose Text/Form/Node.
-- [x] Add per-track Voice selection to Advanced Tracks with Markdown write-back.
-- [x] Make Compose the single user-facing WAV creation surface with custom filename + direct download.
+- [x] Add installed-library Track + Source Type + Instrument / Sound + Volume controls to Compose Text/Form/Node.
+- [x] Keep Project Transport preview-only with explicit Reload for temporary SoundPiano/Instrument overrides.
+- [x] Keep Tracks as an independent multi-track `.md` workspace.
+- [x] Let Tracks import local Markdown into its own workspace and add tracks there.
+- [x] Add per-track Source Type + Instrument / Sound selection, persistent Volume and live Mute.
+- [x] Add edited `.md`, individual Stem WAV and Mix WAV downloads in Tracks.
+- [x] Add Track Set ZIP export with current Markdown + mix + every stem + manifest.
+- [x] Remove the legacy workspace-level selector and the Basic/Advanced product split; all Studio tabs are first-class.
 - [x] Local tests, portable API and browser UI qualification GREEN.
 - [ ] Exact-commit CI GREEN.
 
