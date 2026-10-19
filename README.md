@@ -25,6 +25,7 @@ NoteScript-portable/
 ├─ Preview-Song.cmd
 ├─ Render-Song.cmd
 ├─ Start-Control-API.cmd
+├─ NoteScript-Studio.cmd
 ├─ Audition-Keyboard.cmd
 ├─ runtime/
 ├─ app/
@@ -179,18 +180,29 @@ Implemented:
 - SFZ offline song rendering and SFZ audition-note rendering.
 - Optional FluidSynth backend for SF2/SF3 offline rendering and audition-note rendering.
 - SoundFont bank/preset selection through `instrument.md`.
-- Browser-based Audition Keyboard: mouse keys, computer keyboard, polyphony, velocity, octave shift, sustain, panic and kit pads.
+- NoteScript Studio with tabbed Play / Project / Compose / Tracks / Sounds / Settings workspaces.
+- Game-style Play page with performance HUD, on-key hotkey caps and playable piano/kit pads.
+- Browser-based live playing: mouse keys, remappable computer-keyboard controls, polyphony, velocity, octave shift, sustain and panic.
+- Direct piano hotkey edit mode: click a mapped piano key, press its new keyboard binding, then Save or Cancel; current bindings remain visible as faint keycaps beside note names.
+- Kit pads use the same game-style hotkey model: each pad shows its trigger name plus a faint current hotkey, keyboard hotkeys can trigger pads directly, and Edit Hotkeys works from the pad itself.
+- Piano note/hotkey labels are centered inside the actual white/black key bounds rather than relying on browser static-position behavior.
 - Optional Web MIDI input for note on/off, velocity, sustain and all-notes-off.
+- Project create/open/save/rename/delete flow inside the portable workspace.
+- Compose Text / Form / Node modes editing the same authoritative Markdown project.
+- Node palette plus Bar/Event Node Inspector with edits written back to Markdown before Save.
+- Advanced multi-track arrangement view with synchronized per-track stems.
+- Advanced Play/Pause/Stop/Seek plus per-track Mute/Unmute that works during playback.
+- Separate Sound Pack and Instrument browsers.
 - Persistent SF2/SF3 live playback through one FluidSynth process with direct WASAPI output on Windows.
 - Safe SoundFont switching, live status, sustain CC and process cleanup.
-- Portable `Audition-Keyboard.cmd` launcher.
+- Portable `NoteScript-Studio.cmd` launcher plus compatibility `Audition-Keyboard.cmd`.
 - Portable folder builder with bundled Node runtime.
 - Local Control API intended for GUI, MCP, and ChatGPT Plugin adapters.
 - Automated tests.
 
 Planned:
 
-- Full desktop GUI editor, piano roll and richer project browser.
+- Richer piano-roll editing, track resizing and region manipulation in Advanced mode.
 - Measured/tuned end-to-end low-latency audio path, including direct live-backend output-device selection.
 - Physical MIDI-controller qualification and richer MIDI mappings.
 - Per-track stereo/pan processing in the deterministic offline renderer.
@@ -215,10 +227,12 @@ http://127.0.0.1:19427
 
 Current API surface:
 
-- `GET /` — Audition Keyboard UI
+- `GET /` — NoteScript Studio UI
 - `GET /v1/health`
 - `GET /v1/capabilities`
 - `GET /v1/projects`
+- `GET /v1/project`
+- `GET /v1/studio/settings`
 - `GET /v1/sounds`
 - `GET /v1/sound`
 - `GET /v1/instruments`
@@ -226,6 +240,7 @@ Current API surface:
 - `GET /v1/audition/instrument`
 - `GET /v1/live/status`
 - `GET /v1/transport/audio`
+- `GET /v1/transport/track-audio`
 - `POST /v1/live/select`
 - `POST /v1/live/note-on`
 - `POST /v1/live/note-off`
@@ -234,11 +249,15 @@ Current API surface:
 - `POST /v1/live/stop`
 - `POST /v1/transport/cache/clear`
 - `POST /v1/projects` — save a validated NoteScript document into `projects/`
+- `POST /v1/projects/rename`
+- `POST /v1/projects/delete`
+- `POST /v1/analyze`
+- `POST /v1/studio/settings`
 - `POST /v1/validate`
 - `POST /v1/render`
 - `POST /v1/midi`
 
-The default server binds to loopback. The same server also hosts the current Audition Keyboard prototype. A future ChatGPT Plugin or MCP bridge should call this stable layer rather than reaching into parser/audio internals.
+The default server binds to loopback. The same server hosts NoteScript Studio. A future ChatGPT Plugin or MCP bridge should call this stable layer rather than reaching into parser/audio internals.
 
 Optional environment variables:
 

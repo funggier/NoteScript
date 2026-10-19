@@ -69,13 +69,20 @@ function renderResampled(
   }
 }
 
-function normalizeOutput(output) {
+function measurePeak(output) {
   let peak = 0;
   for (const sample of output) peak = Math.max(peak, Math.abs(sample));
-  if (peak > 0.98) {
-    const scale = 0.98 / peak;
-    for (let i = 0; i < output.length; i += 1) output[i] *= scale;
-  }
+  return peak;
+}
+
+function scaleOutput(output, scale) {
+  if (!Number.isFinite(scale) || scale === 1) return;
+  for (let i = 0; i < output.length; i += 1) output[i] *= scale;
+}
+
+function normalizeOutput(output) {
+  const peak = measurePeak(output);
+  if (peak > 0.98) scaleOutput(output, 0.98 / peak);
   return peak;
 }
 
@@ -166,7 +173,22 @@ function renderSongSamples(song, songFile, options = {}) {
   const portableRoot = options.portableRoot ? path.resolve(options.portableRoot) : null;
   const { getAudio, getPack, getInstrument } = createCaches(sampleRate, songFile, portableRoot);
 
-  for (const track of timeline.tracks) {
+  const selectedTrackIndex = options.trackIndex === undefined || options.trackIndex === null
+    ? null
+    : Number.parseInt(String(options.trackIndex), 10);
+
+  if (
+    selectedTrackIndex !== null &&
+    (!Number.isInteger(selectedTrackIndex) ||
+      selectedTrackIndex < 0 ||
+      selectedTrackIndex >= timeline.tracks.length)
+  ) {
+    throw new NoteScriptError("Track index is outside the song.");
+  }
+
+  for (const [trackIndex, track] of timeline.tracks.entries()) {
+    if (selectedTrackIndex !== null && trackIndex !== selectedTrackIndex) continue;
+
     if (track.instrument) {
       const instrument = getInstrument(track.instrument);
 
@@ -245,13 +267,22 @@ function renderSongSamples(song, songFile, options = {}) {
     }
   }
 
-  const peak = normalizeOutput(output);
+  const peak = measurePeak(output);
+  if (options.normalizationPeak !== undefined && options.normalizationPeak !== null) {
+    const mixPeak = Number(options.normalizationPeak);
+    if (Number.isFinite(mixPeak) && mixPeak > 0.98) {
+      scaleOutput(output, 0.98 / mixPeak);
+    }
+  } else if (options.normalize !== false) {
+    normalizeOutput(output);
+  }
+
   return {
     samples: output,
     sampleRate,
     durationSeconds: output.length / sampleRate,
     peakBeforeNormalization: peak,
-    tracks: timeline.tracks.length
+    tracks: selectedTrackIndex === null ? timeline.tracks.length : 1
   };
 }
 

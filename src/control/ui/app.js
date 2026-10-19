@@ -1,5 +1,8 @@
 const ui = {
   engineStatus: document.querySelector("#engineStatus"),
+  dirtyState: document.querySelector("#dirtyState"),
+  hudOctave: document.querySelector("#hudOctave"),
+  hudVelocity: document.querySelector("#hudVelocity"),
   projectSelect: document.querySelector("#projectSelect"),
   transportLoad: document.querySelector("#transportLoad"),
   transportPlay: document.querySelector("#transportPlay"),
@@ -30,6 +33,72 @@ const ui = {
   enableMidi: document.querySelector("#enableMidi"),
   midiStatus: document.querySelector("#midiStatus"),
   selectedName: document.querySelector("#selectedName"),
+  mainTabs: [...document.querySelectorAll(".main-tab")],
+  tabPages: [...document.querySelectorAll(".tab-page")],
+  composeTabs: [...document.querySelectorAll(".sub-tab")],
+  composeViews: [...document.querySelectorAll(".compose-view")],
+  newProject: document.querySelector("#newProject"),
+  openProject: document.querySelector("#openProject"),
+  projectList: document.querySelector("#projectList"),
+  projectNameInput: document.querySelector("#projectNameInput"),
+  renameProject: document.querySelector("#renameProject"),
+  deleteProject: document.querySelector("#deleteProject"),
+  projectFileMeta: document.querySelector("#projectFileMeta"),
+  markdownEditor: document.querySelector("#markdownEditor"),
+  analyzeProject: document.querySelector("#analyzeProject"),
+  saveProject: document.querySelector("#saveProject"),
+  renderProject: document.querySelector("#renderProject"),
+  exportMidi: document.querySelector("#exportMidi"),
+  diagnosticBadge: document.querySelector("#diagnosticBadge"),
+  diagnostics: document.querySelector("#diagnostics"),
+  formTitle: document.querySelector("#formTitle"),
+  formTempo: document.querySelector("#formTempo"),
+  formTime: document.querySelector("#formTime"),
+  formKey: document.querySelector("#formKey"),
+  formAddTrack: document.querySelector("#formAddTrack"),
+  formTracks: document.querySelector("#formTracks"),
+  nodeCanvas: document.querySelector("#nodeCanvas"),
+  nodeInspectorKind: document.querySelector("#nodeInspectorKind"),
+  nodeInspectorEmpty: document.querySelector("#nodeInspectorEmpty"),
+  nodeInspectorEditor: document.querySelector("#nodeInspectorEditor"),
+  nodeInspectorValue: document.querySelector("#nodeInspectorValue"),
+  nodeInspectorApply: document.querySelector("#nodeInspectorApply"),
+  nodeInspectorForm: document.querySelector("#nodeInspectorForm"),
+  trackTimeline: document.querySelector("#trackTimeline"),
+  advancedProjectLabel: document.querySelector("#advancedProjectLabel"),
+  advancedPlay: document.querySelector("#advancedPlay"),
+  advancedPause: document.querySelector("#advancedPause"),
+  advancedStop: document.querySelector("#advancedStop"),
+  advancedReload: document.querySelector("#advancedReload"),
+  advancedSeek: document.querySelector("#advancedSeek"),
+  advancedPosition: document.querySelector("#advancedPosition"),
+  advancedDuration: document.querySelector("#advancedDuration"),
+  advancedStatus: document.querySelector("#advancedStatus"),
+  soundBrowser: document.querySelector("#soundBrowser"),
+  instrumentBrowser: document.querySelector("#instrumentBrowser"),
+  basicMode: document.querySelector("#basicMode"),
+  advancedMode: document.querySelector("#advancedMode"),
+  workspaceModeSetting: document.querySelector("#workspaceModeSetting"),
+  editorModeSetting: document.querySelector("#editorModeSetting"),
+  hotkeyEditor: document.querySelector("#hotkeyEditor"),
+  resetHotkeys: document.querySelector("#resetHotkeys"),
+  saveSettings: document.querySelector("#saveSettings"),
+  settingsStatus: document.querySelector("#settingsStatus"),
+  hotkeyLegendNotes: document.querySelector("#hotkeyLegendNotes"),
+  hotkeyLegendOctave: document.querySelector("#hotkeyLegendOctave"),
+  hotkeyLegendSustain: document.querySelector("#hotkeyLegendSustain"),
+  pianoDeckMode: document.querySelector("#pianoDeckMode"),
+  pianoHotkeyEdit: document.querySelector("#pianoHotkeyEdit"),
+  pianoHotkeyPanel: document.querySelector("#pianoHotkeyPanel"),
+  pianoHotkeyStatus: document.querySelector("#pianoHotkeyStatus"),
+  pianoHotkeySave: document.querySelector("#pianoHotkeySave"),
+  pianoHotkeyCancel: document.querySelector("#pianoHotkeyCancel"),
+  kitDeckMode: document.querySelector("#kitDeckMode"),
+  kitHotkeyEdit: document.querySelector("#kitHotkeyEdit"),
+  kitHotkeyPanel: document.querySelector("#kitHotkeyPanel"),
+  kitHotkeyStatus: document.querySelector("#kitHotkeyStatus"),
+  kitHotkeySave: document.querySelector("#kitHotkeySave"),
+  kitHotkeyCancel: document.querySelector("#kitHotkeyCancel"),
   selectedDetails: document.querySelector("#selectedDetails"),
   voiceCount: document.querySelector("#voiceCount"),
   pianoView: document.querySelector("#pianoView"),
@@ -61,6 +130,34 @@ const state = {
   buffers: new Map(),
   keyHeld: new Set(),
   midiAccess: null,
+  studio: {
+    projects: [],
+    currentProject: null,
+    markdown: "",
+    analysis: null,
+    dirty: false,
+    composeMode: "text",
+    settings: null,
+    pendingHotkeyAction: null,
+    hotkeyEditMode: false,
+    hotkeyEditTarget: null,
+    hotkeyEditSnapshot: null,
+    selectedNode: null
+  },
+  advancedTransport: {
+    project: null,
+    buffers: [],
+    sources: [],
+    gains: [],
+    masterGain: null,
+    playing: false,
+    offset: 0,
+    startedAt: 0,
+    duration: 0,
+    muted: new Set(),
+    raf: 0,
+    loadToken: 0
+  },
   transport: {
     project: null,
     buffer: null,
@@ -76,11 +173,99 @@ const state = {
   }
 };
 
-const COMPUTER_KEYS = new Map([
-  ["a", 0], ["w", 1], ["s", 2], ["e", 3], ["d", 4],
-  ["f", 5], ["t", 6], ["g", 7], ["y", 8], ["h", 9],
-  ["u", 10], ["j", 11], ["k", 12]
-]);
+const DEFAULT_HOTKEYS = {
+  note0: "a",
+  note1: "w",
+  note2: "s",
+  note3: "e",
+  note4: "d",
+  note5: "f",
+  note6: "t",
+  note7: "g",
+  note8: "y",
+  note9: "h",
+  note10: "u",
+  note11: "j",
+  note12: "k",
+  octaveDown: "z",
+  octaveUp: "x",
+  sustain: "Space",
+  panic: "Escape",
+  transportPlayPause: "Enter",
+  transportStop: "Backspace"
+};
+
+const HOTKEY_LABELS = {
+  note0: "Note C",
+  note1: "Note C#",
+  note2: "Note D",
+  note3: "Note D#",
+  note4: "Note E",
+  note5: "Note F",
+  note6: "Note F#",
+  note7: "Note G",
+  note8: "Note G#",
+  note9: "Note A",
+  note10: "Note A#",
+  note11: "Note B",
+  note12: "High C",
+  octaveDown: "Octave Down",
+  octaveUp: "Octave Up",
+  sustain: "Sustain",
+  panic: "Panic",
+  transportPlayPause: "Play / Pause",
+  transportStop: "Transport Stop"
+};
+
+const KIT_DEFAULT_KEYS = [
+  "1", "2", "3", "4", "5", "6", "7", "8",
+  "9", "0", "-", "=", "[", "]", ";", "'"
+];
+
+function hotkeys() {
+  return {
+    ...DEFAULT_HOTKEYS,
+    ...(state.studio.settings?.hotkeys || {})
+  };
+}
+
+function kitHotkeys(pack = state.selected) {
+  if (!pack || pack.type !== "kit") return {};
+  const saved = state.studio.settings?.kitHotkeys?.[pack.id] || {};
+  const result = {};
+  pack.triggers.forEach((trigger, index) => {
+    result[trigger] = saved[trigger] || KIT_DEFAULT_KEYS[index] || "";
+  });
+  return result;
+}
+
+function kitComputerKeyMap(pack = state.selected) {
+  const map = new Map();
+  const bindings = kitHotkeys(pack);
+  for (const [trigger, binding] of Object.entries(bindings)) {
+    const key = String(binding || "").toLowerCase();
+    if (key) map.set(key, trigger);
+  }
+  return map;
+}
+
+function computerKeyMap() {
+  const map = new Map();
+  const current = hotkeys();
+  for (let offset = 0; offset <= 12; offset += 1) {
+    map.set(String(current["note" + offset] || "").toLowerCase(), offset);
+  }
+  return map;
+}
+
+function keyMatches(event, binding) {
+  if (!binding) return false;
+  if (binding === "Space") return event.code === "Space";
+  if (binding === "Escape") return event.key === "Escape";
+  if (binding === "Enter") return event.key === "Enter";
+  if (binding === "Backspace") return event.key === "Backspace";
+  return event.key.toLowerCase() === String(binding).toLowerCase();
+}
 
 const WHITE_CLASSES = new Set([0, 2, 4, 5, 7, 9, 11]);
 const NOTE_NAMES = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
@@ -101,7 +286,7 @@ function setVoiceCount() {
   const count = state.instrumentPlaybackMode === "live"
     ? state.liveVoices.size
     : state.voices.size;
-  ui.voiceCount.textContent = count + (count === 1 ? " voice" : " voices");
+  ui.voiceCount.textContent = String(count);
 }
 
 async function requestJson(path, options = {}) {
@@ -766,7 +951,9 @@ function buildPiano() {
     key.type = "button";
     key.className = "key white";
     key.dataset.midi = String(midi);
-    key.innerHTML = '<span class="note-label">' + noteName(midi) + "</span>";
+    key.innerHTML =
+      '<span class="hotkey-cap"></span>' +
+      '<span class="note-label">' + noteName(midi) + "</span>";
     attachPointerKey(key, midi);
     ui.keyboard.appendChild(key);
   }
@@ -780,10 +967,276 @@ function buildPiano() {
     key.dataset.midi = String(midi);
     key.style.width = blackWidth + "%";
     key.style.left = (whiteBefore * whiteWidth - blackWidth / 2) + "%";
-    key.innerHTML = '<span class="note-label">' + noteName(midi) + "</span>";
+    key.innerHTML =
+      '<span class="hotkey-cap"></span>' +
+      '<span class="note-label">' + noteName(midi) + "</span>";
     attachPointerKey(key, midi);
     ui.keyboard.appendChild(key);
   }
+
+  updatePianoHotkeyCaps();
+}
+
+function displayBinding(binding) {
+  if (!binding) return "—";
+  if (binding === "Space") return "SPACE";
+  if (binding === "Escape") return "ESC";
+  if (binding === "Backspace") return "BKSP";
+  if (binding === "Enter") return "ENTER";
+  return String(binding).toUpperCase();
+}
+
+function updatePianoHotkeyCaps() {
+  const current = hotkeys();
+  const base = baseComputerMidi();
+  const byMidi = new Map();
+
+  for (let offset = 0; offset <= 12; offset += 1) {
+    byMidi.set(base + offset, displayBinding(current["note" + offset]));
+  }
+
+  document.querySelectorAll(".key[data-midi]").forEach((element) => {
+    const midi = Number(element.dataset.midi);
+    const cap = element.querySelector(".hotkey-cap");
+    if (!cap) return;
+
+    const offset = midi - base;
+    const bindable = offset >= 0 && offset <= 12;
+    const action = bindable ? "note" + offset : "";
+    const label = byMidi.get(midi) || "";
+
+    element.classList.toggle("hotkey-bindable", bindable);
+    if (action) element.dataset.hotkeyAction = action;
+    else delete element.dataset.hotkeyAction;
+
+    cap.textContent = label;
+    cap.style.display = label ? "" : "none";
+  });
+
+  if (ui.hotkeyLegendNotes) {
+    ui.hotkeyLegendNotes.textContent = Array.from({ length: 13 }, (_, index) =>
+      displayBinding(current["note" + index])
+    ).join(" ");
+  }
+  if (ui.hotkeyLegendOctave) {
+    ui.hotkeyLegendOctave.textContent =
+      displayBinding(current.octaveDown) + " / " + displayBinding(current.octaveUp);
+  }
+  if (ui.hotkeyLegendSustain) {
+    ui.hotkeyLegendSustain.textContent = displayBinding(current.sustain);
+  }
+}
+
+
+function pianoHotkeyActionForMidi(midi) {
+  const offset = Number(midi) - baseComputerMidi();
+  if (!Number.isInteger(offset) || offset < 0 || offset > 12) return null;
+  return "note" + offset;
+}
+
+function clearPianoHotkeySelection() {
+  document.querySelectorAll(".key.hotkey-selected").forEach((element) => {
+    element.classList.remove("hotkey-selected");
+  });
+}
+
+function beginPianoHotkeyEdit() {
+  if (state.studio.hotkeyEditMode) return;
+  panicAll();
+
+  state.studio.hotkeyEditMode = true;
+  state.studio.hotkeyEditTarget = "piano";
+  state.studio.hotkeyEditSnapshot = {
+    hotkeys: { ...hotkeys() },
+    kitHotkeys: JSON.parse(JSON.stringify(state.studio.settings?.kitHotkeys || {}))
+  };
+  state.studio.pendingHotkeyAction = null;
+
+  ui.keyboard.classList.add("piano-hotkey-editing");
+  ui.pianoHotkeyPanel.classList.remove("hidden");
+  ui.pianoHotkeyEdit.classList.add("active");
+  ui.pianoHotkeyEdit.disabled = true;
+  ui.pianoDeckMode.textContent = "HOTKEY EDIT";
+  ui.pianoHotkeyStatus.textContent =
+    "Click one of the 13 mapped piano keys, then press the keyboard key you want.";
+  clearPianoHotkeySelection();
+  updatePianoHotkeyCaps();
+}
+
+function finishPianoHotkeyEdit(message) {
+  state.studio.pendingHotkeyAction = null;
+  state.studio.hotkeyEditMode = false;
+  state.studio.hotkeyEditTarget = null;
+  state.studio.hotkeyEditSnapshot = null;
+
+  ui.keyboard.classList.remove("piano-hotkey-editing");
+  ui.pianoHotkeyPanel.classList.add("hidden");
+  ui.pianoHotkeyEdit.classList.remove("active");
+  ui.pianoHotkeyEdit.disabled = false;
+  ui.pianoDeckMode.textContent = "LIVE INPUT";
+  clearPianoHotkeySelection();
+  updatePianoHotkeyCaps();
+  if (message) setMonitor(message);
+}
+
+function selectPianoHotkeyAction(midi, element) {
+  if (!state.studio.hotkeyEditMode || state.studio.hotkeyEditTarget !== "piano") return false;
+
+  const action = pianoHotkeyActionForMidi(midi);
+  if (!action) {
+    state.studio.pendingHotkeyAction = null;
+    clearPianoHotkeySelection();
+    ui.pianoHotkeyStatus.textContent =
+      noteName(midi) + " is outside the current 13-key computer mapping. Use octave controls to move the mapped range.";
+    return true;
+  }
+
+  state.studio.pendingHotkeyAction = action;
+  clearPianoHotkeySelection();
+  element.classList.add("hotkey-selected");
+
+  const current = hotkeys();
+  ui.pianoHotkeyStatus.textContent =
+    noteName(midi) +
+    " · current " +
+    displayBinding(current[action]) +
+    " · press a new keyboard key.";
+  return true;
+}
+
+async function savePianoHotkeys() {
+  try {
+    await saveStudioSettings();
+    finishPianoHotkeyEdit("Piano hotkeys saved.");
+  } catch (error) {
+    ui.pianoHotkeyStatus.textContent = "Save failed: " + error.message;
+  }
+}
+
+function cancelPianoHotkeyEdit() {
+  if (!state.studio.hotkeyEditMode) return;
+
+  if (state.studio.hotkeyEditSnapshot) {
+    state.studio.settings = {
+      ...(state.studio.settings || {}),
+      hotkeys: { ...state.studio.hotkeyEditSnapshot.hotkeys },
+      kitHotkeys: JSON.parse(JSON.stringify(state.studio.hotkeyEditSnapshot.kitHotkeys || {}))
+    };
+  }
+
+  renderHotkeyEditor();
+  updateKitHotkeyCaps();
+  finishPianoHotkeyEdit("Piano hotkey changes cancelled.");
+}
+
+function clearKitHotkeySelection() {
+  ui.pads.querySelectorAll(".pad.hotkey-selected").forEach((element) => {
+    element.classList.remove("hotkey-selected");
+  });
+}
+
+function updateKitHotkeyCaps(pack = state.selected) {
+  if (!pack || pack.type !== "kit") return;
+  const bindings = kitHotkeys(pack);
+  ui.pads.querySelectorAll(".pad[data-trigger]").forEach((button) => {
+    const trigger = button.dataset.trigger;
+    const cap = button.querySelector(".pad-hotkey");
+    if (!cap) return;
+    const binding = bindings[trigger] || "";
+    cap.textContent = displayBinding(binding);
+    button.setAttribute(
+      "aria-label",
+      trigger + (binding ? " " + displayBinding(binding) : "")
+    );
+  });
+}
+
+function beginKitHotkeyEdit() {
+  if (state.studio.hotkeyEditMode || state.selected?.type !== "kit") return;
+  panicAll();
+
+  state.studio.hotkeyEditMode = true;
+  state.studio.hotkeyEditTarget = "kit";
+  state.studio.hotkeyEditSnapshot = {
+    hotkeys: { ...hotkeys() },
+    kitHotkeys: JSON.parse(JSON.stringify(state.studio.settings?.kitHotkeys || {}))
+  };
+  state.studio.pendingHotkeyAction = null;
+
+  ui.pads.classList.add("kit-hotkey-editing");
+  ui.kitHotkeyPanel.classList.remove("hidden");
+  ui.kitHotkeyEdit.classList.add("active");
+  ui.kitHotkeyEdit.disabled = true;
+  ui.kitDeckMode.textContent = "KIT HOTKEY EDIT";
+  ui.kitHotkeyStatus.textContent =
+    "Click a pad, then press the keyboard key you want.";
+  clearKitHotkeySelection();
+  updateKitHotkeyCaps();
+}
+
+function finishKitHotkeyEdit(message) {
+  state.studio.pendingHotkeyAction = null;
+  state.studio.hotkeyEditMode = false;
+  state.studio.hotkeyEditTarget = null;
+  state.studio.hotkeyEditSnapshot = null;
+
+  ui.pads.classList.remove("kit-hotkey-editing");
+  ui.kitHotkeyPanel.classList.add("hidden");
+  ui.kitHotkeyEdit.classList.remove("active");
+  ui.kitHotkeyEdit.disabled = false;
+  ui.kitDeckMode.textContent = "KIT LIVE INPUT";
+  clearKitHotkeySelection();
+  updateKitHotkeyCaps();
+  if (message) setMonitor(message);
+}
+
+function selectKitHotkeyTrigger(trigger, element) {
+  if (!state.studio.hotkeyEditMode || state.studio.hotkeyEditTarget !== "kit") {
+    return false;
+  }
+
+  state.studio.pendingHotkeyAction = "kit:" + trigger;
+  clearKitHotkeySelection();
+  element.classList.add("hotkey-selected");
+
+  const current = kitHotkeys();
+  ui.kitHotkeyStatus.textContent =
+    trigger +
+    " · current " +
+    displayBinding(current[trigger]) +
+    " · press a new keyboard key.";
+  return true;
+}
+
+async function saveKitHotkeys() {
+  try {
+    await saveStudioSettings();
+    finishKitHotkeyEdit("Kit hotkeys saved.");
+  } catch (error) {
+    ui.kitHotkeyStatus.textContent = "Save failed: " + error.message;
+  }
+}
+
+function cancelKitHotkeyEdit() {
+  if (!state.studio.hotkeyEditMode || state.studio.hotkeyEditTarget !== "kit") return;
+
+  if (state.studio.hotkeyEditSnapshot) {
+    state.studio.settings = {
+      ...(state.studio.settings || {}),
+      hotkeys: { ...state.studio.hotkeyEditSnapshot.hotkeys },
+      kitHotkeys: JSON.parse(JSON.stringify(state.studio.hotkeyEditSnapshot.kitHotkeys || {}))
+    };
+  }
+
+  renderHotkeyEditor();
+  updateKitHotkeyCaps();
+  finishKitHotkeyEdit("Kit hotkey changes cancelled.");
+}
+
+function cancelActiveHotkeyEdit() {
+  if (!state.studio.hotkeyEditMode) return;
+  if (state.studio.hotkeyEditTarget === "kit") cancelKitHotkeyEdit();
+  else cancelPianoHotkeyEdit();
 }
 
 function attachPointerKey(element, midi) {
@@ -791,6 +1244,12 @@ function attachPointerKey(element, midi) {
 
   element.addEventListener("pointerdown", (event) => {
     event.preventDefault();
+
+    if (selectPianoHotkeyAction(midi, element)) {
+      activePointerId = null;
+      return;
+    }
+
     activePointerId = event.pointerId;
     element.setPointerCapture?.(event.pointerId);
     noteOn(midi, "pointer:" + event.pointerId + ":" + midi);
@@ -810,17 +1269,29 @@ function attachPointerKey(element, midi) {
 
 function buildPads(pack) {
   ui.pads.innerHTML = "";
+  const bindings = kitHotkeys(pack);
+
   for (const trigger of pack.triggers) {
     const button = document.createElement("button");
     button.type = "button";
     button.className = "pad";
-    button.textContent = trigger;
+    button.dataset.trigger = trigger;
+    button.innerHTML =
+      '<span class="pad-name">' + escapeHtml(trigger) + '</span>' +
+      '<span class="pad-hotkey">' + escapeHtml(displayBinding(bindings[trigger])) + '</span>';
+    button.setAttribute(
+      "aria-label",
+      trigger + (bindings[trigger] ? " " + displayBinding(bindings[trigger]) : "")
+    );
     button.addEventListener("pointerdown", (event) => {
       event.preventDefault();
+      if (selectKitHotkeyTrigger(trigger, button)) return;
       triggerPad(trigger, button);
     });
     ui.pads.appendChild(button);
   }
+
+  updateKitHotkeyCaps(pack);
 }
 
 function describePack(pack) {
@@ -845,6 +1316,7 @@ async function stopLiveEngine() {
 }
 
 async function selectSound(id) {
+  if (state.studio.hotkeyEditMode) cancelActiveHotkeyEdit();
   stopAllVoices(true);
   await stopLiveEngine();
 
@@ -877,7 +1349,7 @@ async function selectSound(id) {
     ui.pianoView.classList.add("hidden");
     ui.kitView.classList.remove("hidden");
     buildPads(pack);
-    setMonitor("Ready. Click a pad to audition a trigger.");
+    setMonitor("Ready. Click a pad or use its displayed hotkey.");
   }
 }
 
@@ -894,6 +1366,8 @@ function updateOctave() {
   state.octaveShift = Math.max(-2, Math.min(2, state.octaveShift));
   ui.octaveValue.value = state.octaveShift > 0 ? "+" + state.octaveShift : String(state.octaveShift);
   ui.octaveValue.textContent = ui.octaveValue.value;
+  if (ui.hudOctave) ui.hudOctave.textContent = ui.octaveValue.value;
+  updatePianoHotkeyCaps();
 }
 
 function populateInstruments() {
@@ -923,6 +1397,7 @@ function livePlaybackAvailableFor(item) {
 }
 
 async function selectInstrument(id) {
+  if (state.studio.hotkeyEditMode) cancelActiveHotkeyEdit();
   stopAllVoices(true);
   await stopLiveEngine();
 
@@ -1059,13 +1534,1422 @@ async function enableMidiInput() {
   }
 }
 
+
+function escapeHtml(value) {
+  return String(value ?? "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#39;");
+}
+
+function setDirty(value) {
+  state.studio.dirty = Boolean(value);
+  if (!ui.dirtyState) return;
+  ui.dirtyState.textContent = state.studio.dirty ? "Unsaved" : "Saved";
+  ui.dirtyState.classList.toggle("warn", state.studio.dirty);
+  ui.dirtyState.classList.toggle("ok", !state.studio.dirty);
+}
+
+function activateMainTab(name) {
+  if (name !== "play" && state.studio.hotkeyEditMode) {
+    cancelActiveHotkeyEdit();
+  }
+
+  ui.mainTabs.forEach((button) => {
+    button.classList.toggle("active", button.dataset.tab === name);
+  });
+  ui.tabPages.forEach((page) => {
+    page.classList.toggle("active", page.dataset.page === name);
+  });
+}
+
+function activateComposeMode(mode) {
+  state.studio.composeMode = mode;
+  ui.composeTabs.forEach((button) => {
+    button.classList.toggle("active", button.dataset.composeMode === mode);
+  });
+  ui.composeViews.forEach((view) => {
+    view.classList.toggle("active", view.dataset.composeView === mode);
+  });
+  if (mode === "form") renderFormEditor();
+  if (mode === "node") renderNodeCanvas();
+}
+
+function defaultProjectMarkdown(title = "Untitled") {
+  const fence = String.fromCharCode(96).repeat(3);
+  return [
+    "# " + title,
+    "",
+    fence + "notescript",
+    "tempo: 90",
+    "time: 4/4",
+    "key: C major",
+    "",
+    "track Piano",
+    "sound: demo-piano",
+    "volume: 0.7",
+    "pan: 0",
+    "velocity: 96",
+    "bar 1: C4 q | E4 q | G4 h",
+    "bar 2: A3 q | C4 q | E4 h",
+    fence,
+    ""
+  ].join("\n");
+}
+
+function renderProjectList() {
+  ui.projectList.innerHTML = "";
+  if (state.studio.projects.length === 0) {
+    ui.projectList.innerHTML = '<div class="empty-state">No projects yet.</div>';
+    return;
+  }
+
+  for (const project of state.studio.projects) {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "project-card";
+    if (project === state.studio.currentProject) button.classList.add("active");
+    button.innerHTML =
+      "<strong>" + escapeHtml(project) + "</strong>" +
+      "<span>NoteScript Markdown project</span>";
+    button.addEventListener("click", async () => {
+      await openStudioProject(project);
+    });
+    ui.projectList.appendChild(button);
+  }
+}
+
+function syncProjectSelects() {
+  const selected = state.studio.currentProject || ui.projectSelect.value;
+  ui.projectSelect.innerHTML = "";
+
+  if (state.studio.projects.length === 0) {
+    const option = document.createElement("option");
+    option.value = "";
+    option.textContent = "No projects found";
+    ui.projectSelect.appendChild(option);
+    ui.projectSelect.disabled = true;
+    ui.transportLoad.disabled = true;
+    ui.transportPlay.disabled = true;
+    ui.transportPause.disabled = true;
+    ui.transportStop.disabled = true;
+    return;
+  }
+
+  ui.projectSelect.disabled = false;
+  ui.transportLoad.disabled = false;
+  ui.transportPlay.disabled = false;
+  ui.transportPause.disabled = false;
+  ui.transportStop.disabled = false;
+  for (const project of state.studio.projects) {
+    const option = document.createElement("option");
+    option.value = project;
+    option.textContent = project;
+    ui.projectSelect.appendChild(option);
+  }
+
+  if (selected && state.studio.projects.includes(selected)) {
+    ui.projectSelect.value = selected;
+  }
+}
+
+async function refreshProjects() {
+  const data = await api("/v1/projects");
+  state.studio.projects = data.projects || [];
+  syncProjectSelects();
+  renderProjectList();
+}
+
+function renderDiagnostics(analysis) {
+  ui.diagnostics.innerHTML = "";
+
+  if (!analysis) {
+    ui.diagnosticBadge.textContent = "NOT ANALYZED";
+    ui.diagnosticBadge.classList.add("muted");
+    return;
+  }
+
+  if (analysis.valid) {
+    ui.diagnosticBadge.textContent = "VALID";
+    ui.diagnosticBadge.classList.remove("muted");
+    const item = document.createElement("div");
+    item.className = "diagnostic-item diagnostic-ok";
+    const tracks = analysis.song?.tracks?.length || 0;
+    item.textContent = "Valid NoteScript · " + tracks + " track" + (tracks === 1 ? "" : "s");
+    ui.diagnostics.appendChild(item);
+    return;
+  }
+
+  ui.diagnosticBadge.textContent = "ERROR";
+  ui.diagnosticBadge.classList.remove("muted");
+
+  for (const diagnostic of analysis.diagnostics || []) {
+    const item = document.createElement("div");
+    item.className = "diagnostic-item";
+    item.textContent =
+      (diagnostic.line ? "Line " + diagnostic.line + " · " : "") +
+      diagnostic.message;
+    ui.diagnostics.appendChild(item);
+  }
+}
+
+async function analyzeCurrentMarkdown(updateDerivedViews = true) {
+  const markdown = ui.markdownEditor.value;
+  const analysis = await post("/v1/analyze", { markdown });
+  state.studio.analysis = analysis;
+  renderDiagnostics(analysis);
+
+  if (updateDerivedViews && analysis.valid) {
+    renderTrackTimeline();
+    renderNodeCanvas();
+    if (state.studio.composeMode === "form") renderFormEditor();
+  }
+  return analysis;
+}
+
+async function openStudioProject(name) {
+  if (!name) return;
+  if (state.studio.dirty && state.studio.currentProject && state.studio.currentProject !== name) {
+    const proceed = window.confirm("Discard unsaved changes and open " + name + "?");
+    if (!proceed) return;
+  }
+
+  const data = await api("/v1/project?project=" + encodeURIComponent(name));
+  invalidateAdvancedTransport("Project opened. Advanced stems will load on Play.");
+  state.studio.currentProject = data.name;
+  state.studio.markdown = data.markdown;
+  state.studio.analysis = {
+    valid: data.valid,
+    diagnostics: data.diagnostics,
+    song: data.song,
+    timeline: data.timeline
+  };
+
+  ui.markdownEditor.value = data.markdown;
+  ui.projectNameInput.value = data.name;
+  ui.projectFileMeta.textContent =
+    (data.valid ? "Valid" : "Needs attention") +
+    " · " + (data.song?.tracks?.length || 0) + " track(s)";
+
+  if (state.studio.projects.includes(data.name)) ui.projectSelect.value = data.name;
+
+  setDirty(false);
+  renderProjectList();
+  renderDiagnostics(state.studio.analysis);
+  renderFormEditor();
+  renderNodeCanvas();
+  renderTrackTimeline();
+  activateMainTab("compose");
+}
+
+function createNewProject() {
+  const base = "Untitled";
+  let suffix = 1;
+  let filename = base + ".md";
+  while (state.studio.projects.includes(filename)) {
+    suffix += 1;
+    filename = base + "-" + suffix + ".md";
+  }
+
+  invalidateAdvancedTransport("New project created. Save it before Advanced playback.");
+  state.studio.currentProject = filename;
+  state.studio.markdown = defaultProjectMarkdown(filename.replace(/\.md$/i, ""));
+  state.studio.analysis = null;
+  ui.projectNameInput.value = filename;
+  ui.markdownEditor.value = state.studio.markdown;
+  ui.projectFileMeta.textContent = "New unsaved project.";
+  setDirty(true);
+  renderProjectList();
+  renderDiagnostics(null);
+  activateMainTab("compose");
+  activateComposeMode("text");
+}
+
+async function saveCurrentProject() {
+  const name = (ui.projectNameInput.value || state.studio.currentProject || "Untitled.md").trim();
+  const markdown = ui.markdownEditor.value;
+  const analysis = await analyzeCurrentMarkdown(false);
+  if (!analysis.valid) {
+    ui.projectFileMeta.textContent = "Cannot save until diagnostics are valid.";
+    return false;
+  }
+
+  const saved = await post("/v1/projects", { name, markdown });
+  invalidateAdvancedTransport("Project saved. Advanced stems will refresh on Play.");
+  state.studio.currentProject = saved.name;
+  state.studio.markdown = markdown;
+  ui.projectNameInput.value = saved.name;
+  setDirty(false);
+  await refreshProjects();
+  ui.projectSelect.value = saved.name;
+  ui.projectFileMeta.textContent =
+    "Saved · " + saved.tracks + " track(s) · title " + saved.title;
+  return true;
+}
+
+async function renameCurrentProject() {
+  if (!state.studio.currentProject || !state.studio.projects.includes(state.studio.currentProject)) {
+    return saveCurrentProject();
+  }
+
+  const next = ui.projectNameInput.value.trim();
+  if (!next) return;
+
+  const result = await post("/v1/projects/rename", {
+    project: state.studio.currentProject,
+    name: next
+  });
+  invalidateAdvancedTransport("Project renamed. Advanced stems will reload on Play.");
+  state.studio.currentProject = result.name;
+  ui.projectNameInput.value = result.name;
+  await refreshProjects();
+  ui.projectFileMeta.textContent = "Renamed to " + result.name + ".";
+}
+
+async function deleteCurrentProject() {
+  const project = state.studio.currentProject;
+  if (!project || !state.studio.projects.includes(project)) return;
+  if (!window.confirm("Delete " + project + "?")) return;
+
+  await post("/v1/projects/delete", { project });
+  invalidateAdvancedTransport("Project deleted.");
+  state.studio.currentProject = null;
+  state.studio.markdown = "";
+  state.studio.analysis = null;
+  ui.markdownEditor.value = "";
+  ui.projectNameInput.value = "Untitled.md";
+  renderDiagnostics(null);
+  setDirty(false);
+  await refreshProjects();
+
+  if (state.studio.projects.length > 0) await openStudioProject(state.studio.projects[0]);
+  else createNewProject();
+}
+
+
+function durationToken(value) {
+  const known = new Map([
+    [4, "w"],
+    [3, "h."],
+    [2, "h"],
+    [1.5, "q."],
+    [1, "q"],
+    [0.75, "e."],
+    [0.5, "e"],
+    [0.375, "s."],
+    [0.25, "s"]
+  ]);
+  for (const [duration, token] of known) {
+    if (Math.abs(Number(value) - duration) < 1e-9) return token;
+  }
+  return "q";
+}
+
+function eventText(event) {
+  const duration = durationToken(event.durationQuarterNotes);
+  const velocity = event.velocity && event.velocity !== 96 ? " @" + event.velocity : "";
+  if (event.kind === "rest") return "R " + duration + velocity;
+  if (event.kind === "trigger") return "@" + event.trigger + " " + duration + velocity;
+  if (event.kind === "chord") return "[" + event.noteNames.join(" ") + "] " + duration + velocity;
+  return event.noteNames[0] + " " + duration + velocity;
+}
+
+function sourceLabel(track) {
+  return track.sound ? "sound:" + track.sound : "instrument:" + track.instrument;
+}
+
+function buildTrackForm(track, index) {
+  const wrapper = document.createElement("div");
+  wrapper.className = "track-form-row";
+  wrapper.dataset.trackIndex = String(index);
+
+  const sourceType = track.sound ? "sound" : "instrument";
+  const sourceValue = track.sound || track.instrument || "";
+  const barsText = track.bars.map((bar) =>
+    "bar " + bar.number + ": " + bar.events.map(eventText).join(" | ")
+  ).join("\n");
+
+  wrapper.innerHTML =
+    '<label>Name<input class="text-input form-track-name" type="text" value="' + escapeHtml(track.name) + '"></label>' +
+    '<label>Source<div class="inline-source">' +
+    '<select class="form-track-source-type">' +
+    '<option value="sound"' + (sourceType === "sound" ? " selected" : "") + '>Sound</option>' +
+    '<option value="instrument"' + (sourceType === "instrument" ? " selected" : "") + '>Instrument</option>' +
+    '</select>' +
+    '<input class="text-input form-track-source" type="text" value="' + escapeHtml(sourceValue) + '">' +
+    '</div></label>' +
+    '<label>Volume<input class="text-input form-track-volume" type="number" min="0" max="1" step="0.05" value="' + track.volume + '"></label>' +
+    '<label>Pan<input class="text-input form-track-pan" type="number" min="-1" max="1" step="0.1" value="' + track.pan + '"></label>' +
+    '<label>Velocity<input class="text-input form-track-velocity" type="number" min="1" max="127" value="' + track.velocity + '"></label>' +
+    '<button class="small-button form-remove-track" type="button">Remove</button>' +
+    '<label class="track-bars-field">Bars<textarea class="markdown-editor form-track-bars" rows="4">' +
+    escapeHtml(barsText) +
+    '</textarea></label>';
+
+  wrapper.querySelectorAll("input, select, textarea").forEach((element) => {
+    element.addEventListener("input", applyFormToMarkdown);
+    element.addEventListener("change", applyFormToMarkdown);
+  });
+  wrapper.querySelector(".form-remove-track").addEventListener("click", () => {
+    wrapper.remove();
+    applyFormToMarkdown();
+  });
+  return wrapper;
+}
+
+function renderFormEditor() {
+  const analysis = state.studio.analysis;
+  if (!analysis?.valid || !analysis.song) {
+    ui.formTracks.innerHTML = '<div class="empty-state">Fix Text diagnostics before using Form mode.</div>';
+    return;
+  }
+
+  const song = analysis.song;
+  ui.formTitle.value = song.title;
+  ui.formTempo.value = song.config.tempo;
+  ui.formTime.value = song.config.timeNumerator + "/" + song.config.timeDenominator;
+  ui.formKey.value = song.config.keyTonic + " " + song.config.keyMode;
+  ui.formTracks.innerHTML = "";
+
+  song.tracks.forEach((track, index) => {
+    ui.formTracks.appendChild(buildTrackForm(track, index));
+  });
+}
+
+function replaceSongCore(markdown, title, bodyLines) {
+  const fence = String.fromCharCode(96).repeat(3);
+  const lines = String(markdown || "").split(/\r?\n/);
+  let titleDone = false;
+  let start = -1;
+  let end = -1;
+
+  for (let i = 0; i < lines.length; i += 1) {
+    if (!titleDone && /^#\s+/.test(lines[i])) {
+      lines[i] = "# " + title;
+      titleDone = true;
+    }
+    if (start < 0 && lines[i].trim().toLowerCase() === fence + "notescript") {
+      start = i;
+      continue;
+    }
+    if (start >= 0 && end < 0 && i > start && lines[i].trim() === fence) {
+      end = i;
+      break;
+    }
+  }
+
+  if (!titleDone) lines.unshift("# " + title, "");
+  if (start >= 0 && end > start) {
+    lines.splice(start + 1, end - start - 1, ...bodyLines);
+    return lines.join("\n");
+  }
+
+  return [
+    "# " + title,
+    "",
+    fence + "notescript",
+    ...bodyLines,
+    fence,
+    ""
+  ].join("\n");
+}
+
+function formBodyLines() {
+  const lines = [
+    "tempo: " + (ui.formTempo.value || "90"),
+    "time: " + (ui.formTime.value || "4/4"),
+    "key: " + (ui.formKey.value || "C major"),
+    ""
+  ];
+
+  const rows = [...ui.formTracks.querySelectorAll(".track-form-row")];
+  for (const [index, row] of rows.entries()) {
+    const name = row.querySelector(".form-track-name").value.trim() || ("Track " + (index + 1));
+    const sourceType = row.querySelector(".form-track-source-type").value;
+    const source = row.querySelector(".form-track-source").value.trim() ||
+      (sourceType === "sound" ? "demo-piano" : "SFZ/demo-sfz");
+
+    lines.push("track " + name);
+    lines.push(sourceType + ": " + source);
+    lines.push("volume: " + (row.querySelector(".form-track-volume").value || "1"));
+    lines.push("pan: " + (row.querySelector(".form-track-pan").value || "0"));
+    lines.push("velocity: " + (row.querySelector(".form-track-velocity").value || "96"));
+
+    const bars = row.querySelector(".form-track-bars").value
+      .split(/\r?\n/)
+      .map((line) => line.trim())
+      .filter(Boolean);
+    if (bars.length === 0) lines.push("bar 1: R w");
+    else lines.push(...bars);
+    lines.push("");
+  }
+
+  return lines;
+}
+
+let formAnalyzeTimer = 0;
+function applyFormToMarkdown() {
+  const title = ui.formTitle.value.trim() || "Untitled";
+  const next = replaceSongCore(ui.markdownEditor.value, title, formBodyLines());
+  ui.markdownEditor.value = next;
+  state.studio.markdown = next;
+  invalidateAdvancedTransport("Form changed the project. Advanced stems will rebuild on Play.");
+  setDirty(true);
+  clearTimeout(formAnalyzeTimer);
+  formAnalyzeTimer = setTimeout(() => analyzeCurrentMarkdown(false), 180);
+}
+
+function addFormTrack() {
+  const fallback = {
+    name: "Track " + (ui.formTracks.querySelectorAll(".track-form-row").length + 1),
+    sound: state.sounds[0]?.id || "demo-piano",
+    instrument: null,
+    volume: 0.8,
+    pan: 0,
+    velocity: 96,
+    bars: [{
+      number: 1,
+      events: [{
+        kind: "rest",
+        durationQuarterNotes: 4,
+        velocity: 96
+      }]
+    }]
+  };
+  ui.formTracks.appendChild(buildTrackForm(fallback, ui.formTracks.children.length));
+  applyFormToMarkdown();
+}
+
+
+function clearNodeInspector() {
+  state.studio.selectedNode = null;
+  ui.nodeInspectorKind.textContent = "NONE";
+  ui.nodeInspectorKind.classList.add("muted");
+  ui.nodeInspectorEmpty.classList.remove("hidden");
+  ui.nodeInspectorEditor.classList.add("hidden");
+  ui.nodeInspectorValue.value = "";
+  document.querySelectorAll(".node-card.selected").forEach((card) => {
+    card.classList.remove("selected");
+  });
+}
+
+function selectNodeForInspector(selection, card) {
+  state.studio.selectedNode = selection;
+  document.querySelectorAll(".node-card.selected").forEach((item) => {
+    item.classList.remove("selected");
+  });
+  card?.classList.add("selected");
+
+  ui.nodeInspectorKind.textContent = selection.kind.toUpperCase();
+  ui.nodeInspectorKind.classList.remove("muted");
+  ui.nodeInspectorEmpty.classList.add("hidden");
+  ui.nodeInspectorEditor.classList.remove("hidden");
+  ui.nodeInspectorValue.value = selection.value || "";
+  ui.nodeInspectorValue.disabled = selection.kind === "track";
+  ui.nodeInspectorApply.disabled = selection.kind === "track";
+}
+
+function selectedNodeBar() {
+  const selection = state.studio.selectedNode;
+  const song = state.studio.analysis?.song;
+  if (!selection || !song) return null;
+  const track = song.tracks?.[selection.trackIndex];
+  const bar = track?.bars?.[selection.barIndex];
+  return { selection, track, bar };
+}
+
+async function applyNodeInspector() {
+  const resolved = selectedNodeBar();
+  if (!resolved?.bar) return;
+
+  const { selection, bar } = resolved;
+  const lines = ui.markdownEditor.value.split(/\r?\n/);
+  const lineIndex = Number(bar.line) - 1;
+  if (lineIndex < 0 || lineIndex >= lines.length) return;
+
+  let body;
+  if (selection.kind === "bar") {
+    body = ui.nodeInspectorValue.value.trim();
+  } else if (selection.kind === "event") {
+    const events = bar.events.map(eventText);
+    events[selection.eventIndex] = ui.nodeInspectorValue.value.trim();
+    body = events.join(" | ");
+  } else {
+    return;
+  }
+
+  lines[lineIndex] = "bar " + bar.number + ": " + body;
+  ui.markdownEditor.value = lines.join("\n");
+  state.studio.markdown = ui.markdownEditor.value;
+  invalidateAdvancedTransport("Node Inspector changed the project. Advanced stems will rebuild on Play.");
+  setDirty(true);
+
+  const analysis = await analyzeCurrentMarkdown(true);
+  if (analysis.valid) {
+    ui.nodeInspectorEmpty.textContent = "Node updated in Markdown.";
+    clearNodeInspector();
+  }
+}
+
+function openSelectedNodeInForm() {
+  const selection = state.studio.selectedNode;
+  if (!selection) return;
+  activateMainTab("compose");
+  activateComposeMode("form");
+  const target = ui.formTracks.querySelectorAll(".track-form-row")[selection.trackIndex];
+  target?.scrollIntoView({ behavior: "smooth", block: "center" });
+  target?.querySelector(".form-track-name")?.focus();
+}
+
+function renderNodeCanvas() {
+  const analysis = state.studio.analysis;
+  ui.nodeCanvas.innerHTML = "";
+  clearNodeInspector();
+
+  if (!analysis?.valid || !analysis.song) {
+    ui.nodeCanvas.innerHTML = '<div class="empty-state">Fix Text diagnostics before using Node mode.</div>';
+    return;
+  }
+
+  for (const [trackIndex, track] of analysis.song.tracks.entries()) {
+    const group = document.createElement("div");
+    group.className = "node-flow-track";
+
+    const trackCard = document.createElement("button");
+    trackCard.type = "button";
+    trackCard.className = "node-card";
+    trackCard.innerHTML =
+      '<div class="node-card-header">TRACK · ' + escapeHtml(track.name) + '</div>' +
+      '<div class="node-card-body">' +
+      escapeHtml(sourceLabel(track)) +
+      '<br>volume ' + track.volume +
+      ' · pan ' + track.pan +
+      ' · velocity ' + track.velocity +
+      '</div>';
+    trackCard.addEventListener("click", () => {
+      selectNodeForInspector({
+        kind: "track",
+        trackIndex,
+        value: sourceLabel(track)
+      }, trackCard);
+    });
+    group.appendChild(trackCard);
+
+    for (const [barIndex, bar] of track.bars.entries()) {
+      const arrow = document.createElement("span");
+      arrow.className = "node-flow-arrow";
+      arrow.textContent = "→";
+      group.appendChild(arrow);
+
+      const barCard = document.createElement("button");
+      barCard.type = "button";
+      barCard.className = "node-card";
+      barCard.innerHTML =
+        '<div class="node-card-header">BAR ' + bar.number + '</div>' +
+        '<div class="node-card-body">' +
+        escapeHtml(bar.events.map(eventText).join(" | ") || "empty") +
+        '</div>';
+      barCard.addEventListener("click", () => {
+        selectNodeForInspector({
+          kind: "bar",
+          trackIndex,
+          barIndex,
+          value: bar.events.map(eventText).join(" | ")
+        }, barCard);
+      });
+      group.appendChild(barCard);
+
+      for (const [eventIndex, event] of bar.events.entries()) {
+        const eventArrow = document.createElement("span");
+        eventArrow.className = "node-flow-arrow";
+        eventArrow.textContent = "→";
+        group.appendChild(eventArrow);
+
+        const eventCard = document.createElement("button");
+        eventCard.type = "button";
+        eventCard.className = "node-card node-event-card";
+        eventCard.innerHTML =
+          '<div class="node-card-header">' + escapeHtml(event.kind.toUpperCase()) + '</div>' +
+          '<div class="node-card-body">' + escapeHtml(eventText(event)) + '</div>';
+        eventCard.addEventListener("click", () => {
+          selectNodeForInspector({
+            kind: "event",
+            trackIndex,
+            barIndex,
+            eventIndex,
+            value: eventText(event)
+          }, eventCard);
+        });
+        group.appendChild(eventCard);
+      }
+    }
+
+    ui.nodeCanvas.appendChild(group);
+  }
+}
+
+function nextBarNumberForLastTrack() {
+  const song = state.studio.analysis?.song;
+  if (!song?.tracks?.length) return 1;
+  const bars = song.tracks.at(-1).bars || [];
+  return bars.length ? Math.max(...bars.map((bar) => bar.number)) + 1 : 1;
+}
+
+function appendToNoteScriptBody(linesToAdd) {
+  const fence = String.fromCharCode(96).repeat(3);
+  const lines = ui.markdownEditor.value.split(/\r?\n/);
+  let end = -1;
+  for (let i = lines.length - 1; i >= 0; i -= 1) {
+    if (lines[i].trim() === fence) {
+      end = i;
+      break;
+    }
+  }
+  if (end < 0) return;
+  lines.splice(end, 0, ...linesToAdd);
+  ui.markdownEditor.value = lines.join("\n");
+  state.studio.markdown = ui.markdownEditor.value;
+  invalidateAdvancedTransport("Node edit changed the project. Advanced stems will rebuild on Play.");
+  setDirty(true);
+  analyzeCurrentMarkdown(true);
+}
+
+function addNodeKind(kind) {
+  const bar = nextBarNumberForLastTrack();
+
+  if (kind === "track") {
+    appendToNoteScriptBody([
+      "",
+      "track New Track",
+      "sound: " + (state.sounds[0]?.id || "demo-piano"),
+      "volume: 0.8",
+      "pan: 0",
+      "velocity: 96",
+      "bar 1: R w"
+    ]);
+    return;
+  }
+
+  if (!state.studio.analysis?.song?.tracks?.length) {
+    addNodeKind("track");
+    return;
+  }
+
+  const event = {
+    bar: "bar " + bar + ": R w",
+    note: "bar " + bar + ": C4 q",
+    chord: "bar " + bar + ": [C4 E4 G4] h",
+    rest: "bar " + bar + ": R w",
+    trigger: "bar " + bar + ": @kick q"
+  }[kind] || ("bar " + bar + ": R w");
+
+  appendToNoteScriptBody([event]);
+}
+
+
+function advancedTransportPosition() {
+  const transport = state.advancedTransport;
+  if (!transport.playing) return transport.offset;
+  const context = ensureAudio();
+  return Math.max(
+    0,
+    Math.min(
+      transport.duration,
+      transport.offset + (context.currentTime - transport.startedAt)
+    )
+  );
+}
+
+function updateAdvancedTransportDisplay(position = advancedTransportPosition()) {
+  const transport = state.advancedTransport;
+  const duration = transport.duration || 0;
+  const safe = Math.max(0, Math.min(duration || 0, Number(position) || 0));
+  ui.advancedPosition.textContent = formatTime(safe);
+  ui.advancedDuration.textContent = formatTime(duration);
+  ui.advancedSeek.value = duration > 0
+    ? String(Math.round((safe / duration) * 1000))
+    : "0";
+}
+
+function stopAdvancedAnimation() {
+  if (state.advancedTransport.raf) {
+    cancelAnimationFrame(state.advancedTransport.raf);
+  }
+  state.advancedTransport.raf = 0;
+}
+
+function advancedAnimationTick() {
+  if (!state.advancedTransport.playing) {
+    stopAdvancedAnimation();
+    updateAdvancedTransportDisplay();
+    return;
+  }
+  updateAdvancedTransportDisplay();
+  state.advancedTransport.raf = requestAnimationFrame(advancedAnimationTick);
+}
+
+function disconnectAdvancedNodes() {
+  const transport = state.advancedTransport;
+  for (const source of transport.sources) {
+    try { source.disconnect(); } catch {}
+  }
+  for (const gain of transport.gains) {
+    try { gain.disconnect(); } catch {}
+  }
+  try { transport.masterGain?.disconnect(); } catch {}
+  transport.sources = [];
+  transport.gains = [];
+  transport.masterGain = null;
+}
+
+function stopAdvancedSources(manual = true) {
+  const transport = state.advancedTransport;
+  for (const source of transport.sources) {
+    try {
+      source.__manualStop = manual;
+      source.stop();
+    } catch {}
+  }
+  disconnectAdvancedNodes();
+}
+
+function invalidateAdvancedTransport(message = "Project changed. Reload stems before playback.") {
+  const transport = state.advancedTransport;
+  if (transport.playing) {
+    transport.playing = false;
+    stopAdvancedSources(true);
+  } else {
+    stopAdvancedSources(true);
+  }
+  stopAdvancedAnimation();
+  transport.project = null;
+  transport.buffers = [];
+  transport.offset = 0;
+  transport.duration = 0;
+  updateAdvancedTransportDisplay(0);
+  if (ui.advancedStatus) ui.advancedStatus.textContent = message;
+}
+
+async function fetchAdvancedStem(project, trackIndex) {
+  const response = await fetch(
+    "/v1/transport/track-audio?project=" +
+      encodeURIComponent(project) +
+      "&track=" +
+      encodeURIComponent(String(trackIndex)),
+    { cache: "no-store" }
+  );
+
+  if (!response.ok) {
+    let message = response.statusText;
+    try {
+      const data = await response.json();
+      message = data.message || data.error || message;
+    } catch {}
+    throw new Error(message);
+  }
+
+  const bytes = await response.arrayBuffer();
+  return ensureAudio().decodeAudioData(bytes.slice(0));
+}
+
+async function loadAdvancedTransport(force = false) {
+  if (!state.studio.currentProject) {
+    ui.advancedStatus.textContent = "Open or create a project first.";
+    return false;
+  }
+
+  if (state.studio.dirty || !state.studio.projects.includes(state.studio.currentProject)) {
+    ui.advancedStatus.textContent = "Saving current valid changes before mix playback.";
+    const saved = await saveCurrentProject();
+    if (!saved) return false;
+  }
+
+  let analysis = state.studio.analysis;
+  if (!analysis?.valid) analysis = await analyzeCurrentMarkdown(true);
+  if (!analysis?.valid || !analysis.song?.tracks?.length) {
+    ui.advancedStatus.textContent = "A valid project with at least one track is required.";
+    return false;
+  }
+
+  const project = state.studio.currentProject;
+  const trackCount = analysis.song.tracks.length;
+  const transport = state.advancedTransport;
+
+  if (
+    !force &&
+    transport.project === project &&
+    transport.buffers.length === trackCount
+  ) {
+    return true;
+  }
+
+  const token = ++transport.loadToken;
+  transport.playing = false;
+  stopAdvancedSources(true);
+  stopAdvancedAnimation();
+  transport.offset = 0;
+  ui.advancedStatus.textContent = "Rendering " + trackCount + " track stem(s)...";
+  ui.advancedPlay.disabled = true;
+  ui.advancedReload.disabled = true;
+
+  try {
+    if (force) {
+      await post("/v1/transport/cache/clear", { project });
+    }
+
+    const buffers = await Promise.all(
+      Array.from({ length: trackCount }, (_, index) => fetchAdvancedStem(project, index))
+    );
+
+    if (token !== transport.loadToken) return false;
+
+    const previousProject = transport.project;
+    transport.project = project;
+    transport.buffers = buffers;
+    transport.duration = buffers.reduce((max, buffer) => Math.max(max, buffer.duration), 0);
+    transport.offset = 0;
+
+    if (previousProject !== project) transport.muted.clear();
+
+    ui.advancedProjectLabel.textContent =
+      project + " · " + trackCount + " track" + (trackCount === 1 ? "" : "s");
+    ui.advancedStatus.textContent =
+      "Stems ready. Mute/Unmute any track while playback is running.";
+    updateAdvancedTransportDisplay(0);
+    renderTrackMuteStates();
+    return true;
+  } catch (error) {
+    transport.project = null;
+    transport.buffers = [];
+    transport.duration = 0;
+    ui.advancedStatus.textContent = "Advanced playback error: " + error.message;
+    updateAdvancedTransportDisplay(0);
+    return false;
+  } finally {
+    ui.advancedPlay.disabled = false;
+    ui.advancedReload.disabled = false;
+  }
+}
+
+function createAdvancedSources() {
+  const transport = state.advancedTransport;
+  const context = ensureAudio();
+  const masterGain = context.createGain();
+  masterGain.gain.value = 0.85;
+  masterGain.connect(context.destination);
+
+  transport.sources = [];
+  transport.gains = [];
+  transport.masterGain = masterGain;
+
+  for (const [index, buffer] of transport.buffers.entries()) {
+    const source = context.createBufferSource();
+    const gain = context.createGain();
+    source.buffer = buffer;
+    gain.gain.value = transport.muted.has(index) ? 0 : 1;
+    source.connect(gain);
+    gain.connect(masterGain);
+    transport.sources.push(source);
+    transport.gains.push(gain);
+  }
+
+  const leader = transport.sources[0];
+  if (leader) {
+    leader.onended = () => {
+      if (leader.__manualStop) return;
+      if (state.advancedTransport.sources[0] !== leader) return;
+      state.advancedTransport.playing = false;
+      state.advancedTransport.offset = 0;
+      disconnectAdvancedNodes();
+      stopAdvancedAnimation();
+      updateAdvancedTransportDisplay(0);
+      ui.advancedStatus.textContent = "Mix playback ended.";
+    };
+  }
+
+  return transport.sources;
+}
+
+async function playAdvancedTransport() {
+  if (!state.advancedTransport.buffers.length) {
+    const loaded = await loadAdvancedTransport(false);
+    if (!loaded) return;
+  }
+
+  const context = ensureAudio();
+  if (context.state === "suspended") await context.resume();
+  const transport = state.advancedTransport;
+  if (transport.playing) return;
+
+  if (transport.offset >= transport.duration) transport.offset = 0;
+  const offset = Math.max(0, Math.min(transport.duration, transport.offset));
+  const sources = createAdvancedSources();
+
+  transport.startedAt = context.currentTime;
+  transport.playing = true;
+  for (const source of sources) source.start(0, offset);
+
+  ui.advancedStatus.textContent =
+    "Playing multi-track mix · " +
+    transport.muted.size +
+    " muted";
+  stopAdvancedAnimation();
+  transport.raf = requestAnimationFrame(advancedAnimationTick);
+}
+
+function pauseAdvancedTransport() {
+  const transport = state.advancedTransport;
+  if (!transport.playing) return;
+  const position = advancedTransportPosition();
+  transport.playing = false;
+  transport.offset = position;
+  stopAdvancedSources(true);
+  stopAdvancedAnimation();
+  updateAdvancedTransportDisplay(position);
+  ui.advancedStatus.textContent = "Paused at " + formatTime(position) + ".";
+}
+
+function stopAdvancedTransport() {
+  const transport = state.advancedTransport;
+  transport.playing = false;
+  stopAdvancedSources(true);
+  stopAdvancedAnimation();
+  transport.offset = 0;
+  updateAdvancedTransportDisplay(0);
+  if (transport.buffers.length) ui.advancedStatus.textContent = "Stopped.";
+}
+
+function seekAdvancedTransport(positionSeconds) {
+  const transport = state.advancedTransport;
+  if (!transport.duration) return;
+  const target = Math.max(0, Math.min(transport.duration, positionSeconds));
+  const wasPlaying = transport.playing;
+  if (wasPlaying) pauseAdvancedTransport();
+  transport.offset = target;
+  updateAdvancedTransportDisplay(target);
+  if (wasPlaying) playAdvancedTransport();
+}
+
+function setAdvancedTrackMuted(trackIndex, muted) {
+  const index = Number(trackIndex);
+  const transport = state.advancedTransport;
+  if (muted) transport.muted.add(index);
+  else transport.muted.delete(index);
+
+  const gain = transport.gains[index];
+  if (gain) {
+    const context = ensureAudio();
+    gain.gain.cancelScheduledValues(context.currentTime);
+    gain.gain.setValueAtTime(muted ? 0 : 1, context.currentTime);
+  }
+
+  renderTrackMuteStates();
+  const name = state.studio.analysis?.song?.tracks?.[index]?.name || ("Track " + (index + 1));
+  ui.advancedStatus.textContent =
+    (muted ? "Muted " : "Unmuted ") + name +
+    (transport.playing ? " during playback." : ".");
+}
+
+function toggleAdvancedTrackMute(trackIndex) {
+  const index = Number(trackIndex);
+  setAdvancedTrackMuted(index, !state.advancedTransport.muted.has(index));
+}
+
+function renderTrackMuteStates() {
+  document.querySelectorAll(".timeline-track[data-track-index]").forEach((row) => {
+    const index = Number(row.dataset.trackIndex);
+    const muted = state.advancedTransport.muted.has(index);
+    row.classList.toggle("muted", muted);
+    const button = row.querySelector(".track-mute");
+    if (button) {
+      button.classList.toggle("active", muted);
+      button.setAttribute("aria-pressed", muted ? "true" : "false");
+      button.textContent = muted ? "UNMUTE" : "MUTE";
+    }
+  });
+}
+
+function qPerBar(song) {
+  return song.config.timeNumerator * (4 / song.config.timeDenominator);
+}
+
+function renderTrackTimeline() {
+  const analysis = state.studio.analysis;
+  ui.trackTimeline.innerHTML = "";
+
+  if (!analysis?.valid || !analysis.timeline) {
+    ui.trackTimeline.innerHTML = '<div class="empty-state">Open a valid project to build the multi-track timeline.</div>';
+    return;
+  }
+
+  const timeline = analysis.timeline;
+  const perBar = qPerBar(analysis.song);
+  const barWidth = 72;
+  const maxBars = Math.max(1, Math.ceil(timeline.endQuarter / perBar));
+
+  const ruler = document.createElement("div");
+  ruler.className = "timeline-ruler";
+  for (let bar = 1; bar <= maxBars; bar += 1) {
+    const marker = document.createElement("span");
+    marker.textContent = "Bar " + bar;
+    ruler.appendChild(marker);
+  }
+  ui.trackTimeline.appendChild(ruler);
+
+  for (const [trackIndex, track] of timeline.tracks.entries()) {
+    const row = document.createElement("div");
+    row.className = "timeline-track";
+    row.dataset.trackIndex = String(trackIndex);
+
+    const head = document.createElement("div");
+    head.className = "timeline-track-head";
+
+    const title = document.createElement("button");
+    title.type = "button";
+    title.className = "timeline-track-title";
+    title.title = "Edit this track in Compose / Form";
+    title.innerHTML =
+      "<strong>" + escapeHtml(track.name) + "</strong>" +
+      "<span>" + escapeHtml(sourceLabel(track)) + "</span>" +
+      "<span>vol " + track.volume + " · pan " + track.pan + "</span>";
+    title.addEventListener("click", () => {
+      activateMainTab("compose");
+      activateComposeMode("form");
+      const target = ui.formTracks.querySelectorAll(".track-form-row")[trackIndex];
+      target?.scrollIntoView({ behavior: "smooth", block: "center" });
+      target?.querySelector(".form-track-name")?.focus();
+    });
+
+    const controls = document.createElement("div");
+    controls.className = "timeline-track-controls";
+
+    const mute = document.createElement("button");
+    mute.type = "button";
+    mute.className = "track-mute";
+    mute.dataset.trackIndex = String(trackIndex);
+    mute.setAttribute("aria-pressed", "false");
+    mute.textContent = "MUTE";
+    mute.addEventListener("click", () => toggleAdvancedTrackMute(trackIndex));
+
+    const edit = document.createElement("button");
+    edit.type = "button";
+    edit.className = "track-edit";
+    edit.textContent = "EDIT";
+    edit.addEventListener("click", () => title.click());
+
+    controls.append(mute, edit);
+    head.append(title, controls);
+
+    const lane = document.createElement("div");
+    lane.className = "timeline-lane";
+    lane.style.minWidth = Math.max(720, maxBars * barWidth) + "px";
+    lane.style.backgroundSize = barWidth + "px 100%";
+
+    for (const event of track.events) {
+      const block = document.createElement("div");
+      block.className = "timeline-event";
+      const start = (event.startQuarter / perBar) * barWidth;
+      const width = Math.max(7, (event.durationQuarter / perBar) * barWidth);
+      const top = event.kind === "note"
+        ? Math.max(4, Math.min(48, 52 - ((event.note - 48) / 36) * 44))
+        : 26;
+
+      block.style.left = start + "px";
+      block.style.width = width + "px";
+      block.style.top = top + "px";
+      block.textContent = event.kind === "note" ? event.noteName : "@" + event.trigger;
+      lane.appendChild(block);
+    }
+
+    row.append(head, lane);
+    ui.trackTimeline.appendChild(row);
+  }
+
+  ui.advancedProjectLabel.textContent =
+    (state.studio.currentProject || "Unsaved project") +
+    " · " + timeline.tracks.length + " track" +
+    (timeline.tracks.length === 1 ? "" : "s");
+  renderTrackMuteStates();
+}
+
+function renderLibraries() {
+  ui.soundBrowser.innerHTML = "";
+  for (const sound of state.sounds) {
+    const card = document.createElement("button");
+    card.type = "button";
+    card.className = "library-card";
+    card.innerHTML =
+      "<strong>" + escapeHtml(sound.name) + "</strong>" +
+      "<span>" + escapeHtml(sound.id + " · " + sound.type) + "</span>" +
+      "<span>" + escapeHtml(sound.license || "license unspecified") + "</span>";
+    card.addEventListener("click", async () => {
+      activateMainTab("play");
+      ui.soundSelect.value = sound.id;
+      await selectSound(sound.id);
+    });
+    ui.soundBrowser.appendChild(card);
+  }
+
+  ui.instrumentBrowser.innerHTML = "";
+  for (const instrument of state.instruments) {
+    const card = document.createElement("button");
+    card.type = "button";
+    card.className = "library-card";
+    card.innerHTML =
+      "<strong>" + escapeHtml(instrument.name) + "</strong>" +
+      "<span>" + escapeHtml(instrument.id + " · " + instrument.format) + "</span>" +
+      "<span>" + (instrument.playable ? "Playable" : "Adapter/backend required") + "</span>";
+    card.addEventListener("click", async () => {
+      activateMainTab("play");
+      ui.instrumentSelect.value = instrument.id;
+      await selectInstrument(instrument.id);
+    });
+    ui.instrumentBrowser.appendChild(card);
+  }
+}
+
+
+function canonicalBindingFromEvent(event) {
+  if (event.code === "Space") return "Space";
+  if (event.key === "Escape") return "Escape";
+  if (event.key === "Enter") return "Enter";
+  if (event.key === "Backspace") return "Backspace";
+  if (event.key.length === 1) return event.key.toLowerCase();
+  return event.key;
+}
+
+function renderHotkeyEditor() {
+  ui.hotkeyEditor.innerHTML = "";
+  const current = hotkeys();
+
+  for (const [action, label] of Object.entries(HOTKEY_LABELS)) {
+    const row = document.createElement("div");
+    row.className = "hotkey-row";
+
+    const title = document.createElement("span");
+    title.textContent = label;
+
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "hotkey-bind";
+    button.dataset.hotkeyAction = action;
+    button.textContent = displayBinding(current[action]);
+    button.addEventListener("click", () => {
+      ui.hotkeyEditor.querySelectorAll(".hotkey-bind").forEach((item) => {
+        item.classList.remove("capturing");
+      });
+      state.studio.pendingHotkeyAction = action;
+      button.classList.add("capturing");
+      button.textContent = "PRESS KEY";
+      ui.settingsStatus.textContent = "Press a key for " + label + ".";
+    });
+
+    row.append(title, button);
+    ui.hotkeyEditor.appendChild(row);
+  }
+
+  updatePianoHotkeyCaps();
+}
+
+function assignCapturedHotkey(binding) {
+  const action = state.studio.pendingHotkeyAction;
+  if (!action) return;
+
+  if (action.startsWith("kit:")) {
+    const trigger = action.slice(4);
+    const pack = state.selected;
+    if (!pack || pack.type !== "kit") return;
+
+    const nextKit = { ...kitHotkeys(pack) };
+    for (const key of Object.keys(nextKit)) {
+      if (
+        key !== trigger &&
+        String(nextKit[key]).toLowerCase() === String(binding).toLowerCase()
+      ) {
+        nextKit[key] = "";
+      }
+    }
+    nextKit[trigger] = binding;
+
+    state.studio.settings = {
+      ...(state.studio.settings || {}),
+      kitHotkeys: {
+        ...(state.studio.settings?.kitHotkeys || {}),
+        [pack.id]: nextKit
+      }
+    };
+    state.studio.pendingHotkeyAction = null;
+    clearKitHotkeySelection();
+    updateKitHotkeyCaps(pack);
+    ui.kitHotkeyStatus.textContent =
+      trigger +
+      " -> " +
+      displayBinding(binding) +
+      ". Click another pad or Save.";
+    return;
+  }
+
+  const pianoEditing =
+    state.studio.hotkeyEditMode && state.studio.hotkeyEditTarget === "piano";
+  const next = { ...hotkeys() };
+  for (const key of Object.keys(next)) {
+    if (
+      key !== action &&
+      String(next[key]).toLowerCase() === String(binding).toLowerCase()
+    ) {
+      next[key] = "";
+    }
+  }
+  next[action] = binding;
+
+  state.studio.settings = {
+    ...(state.studio.settings || {}),
+    hotkeys: next
+  };
+  state.studio.pendingHotkeyAction = null;
+  renderHotkeyEditor();
+
+  if (pianoEditing) {
+    clearPianoHotkeySelection();
+    const offset = Number.parseInt(action.replace("note", ""), 10);
+    const midi = baseComputerMidi() + offset;
+    ui.pianoHotkeyStatus.textContent =
+      noteName(midi) +
+      " -> " +
+      displayBinding(binding) +
+      ". Click another mapped key or Save.";
+    return;
+  }
+
+  ui.settingsStatus.textContent = "Binding changed locally. Save Settings to keep it.";
+}
+
+async function saveStudioSettings() {
+  const settings = await post("/v1/studio/settings", {
+    workspaceMode: ui.workspaceModeSetting.value,
+    editorMode: ui.editorModeSetting.value,
+    hotkeys: hotkeys(),
+    kitHotkeys: state.studio.settings?.kitHotkeys || {}
+  });
+  state.studio.settings = settings;
+  renderHotkeyEditor();
+  updatePianoHotkeyCaps();
+  updateKitHotkeyCaps();
+  ui.settingsStatus.textContent = "Settings saved.";
+}
+
+function resetHotkeys() {
+  state.studio.settings = {
+    ...(state.studio.settings || {}),
+    hotkeys: { ...DEFAULT_HOTKEYS }
+  };
+  renderHotkeyEditor();
+  ui.settingsStatus.textContent = "Default bindings restored locally. Save Settings to keep them.";
+}
+
+function wireNodePalette() {
+  document.querySelectorAll(".node-template").forEach((button) => {
+    button.addEventListener("dragstart", (event) => {
+      event.dataTransfer.setData("text/notescript-node", button.dataset.nodeKind);
+      event.dataTransfer.effectAllowed = "copy";
+    });
+    button.addEventListener("dblclick", () => addNodeKind(button.dataset.nodeKind));
+  });
+
+  ui.nodeCanvas.addEventListener("dragover", (event) => {
+    event.preventDefault();
+    event.dataTransfer.dropEffect = "copy";
+  });
+
+  ui.nodeCanvas.addEventListener("drop", (event) => {
+    event.preventDefault();
+    const kind = event.dataTransfer.getData("text/notescript-node");
+    if (kind) addNodeKind(kind);
+  });
+}
+
+async function renderCurrentProjectToWav() {
+  const saved = await saveCurrentProject();
+  if (!saved) return;
+  const result = await post("/v1/render", { project: state.studio.currentProject });
+  ui.projectFileMeta.textContent = "WAV rendered: " + result.outputFile;
+}
+
+async function exportCurrentProjectMidi() {
+  const saved = await saveCurrentProject();
+  if (!saved) return;
+  const result = await post("/v1/midi", { project: state.studio.currentProject });
+  ui.projectFileMeta.textContent = "MIDI exported: " + result.outputFile;
+}
+
+function wireStudioUi() {
+  ui.mainTabs.forEach((button) => {
+    button.addEventListener("click", () => activateMainTab(button.dataset.tab));
+  });
+
+  ui.composeTabs.forEach((button) => {
+    button.addEventListener("click", () => activateComposeMode(button.dataset.composeMode));
+  });
+
+  ui.newProject.addEventListener("click", createNewProject);
+  ui.openProject.addEventListener("click", () => {
+    const target = state.studio.currentProject || state.studio.projects[0];
+    if (target) openStudioProject(target);
+  });
+  ui.saveProject.addEventListener("click", saveCurrentProject);
+  ui.renameProject.addEventListener("click", renameCurrentProject);
+  ui.deleteProject.addEventListener("click", deleteCurrentProject);
+  ui.analyzeProject.addEventListener("click", () => analyzeCurrentMarkdown(true));
+  ui.renderProject.addEventListener("click", renderCurrentProjectToWav);
+  ui.exportMidi.addEventListener("click", exportCurrentProjectMidi);
+  ui.formAddTrack.addEventListener("click", addFormTrack);
+  ui.nodeInspectorApply.addEventListener("click", applyNodeInspector);
+  ui.nodeInspectorForm.addEventListener("click", openSelectedNodeInForm);
+
+  ui.markdownEditor.addEventListener("input", () => {
+    state.studio.markdown = ui.markdownEditor.value;
+    invalidateAdvancedTransport("Text changed. Advanced stems will rebuild on Play.");
+    setDirty(true);
+  });
+
+  for (const element of [ui.formTitle, ui.formTempo, ui.formTime, ui.formKey]) {
+    element.addEventListener("input", applyFormToMarkdown);
+    element.addEventListener("change", applyFormToMarkdown);
+  }
+
+  ui.basicMode.addEventListener("click", () => {
+    ui.workspaceModeSetting.value = "basic";
+    activateMainTab("play");
+  });
+
+  ui.advancedMode.addEventListener("click", () => {
+    ui.workspaceModeSetting.value = "advanced";
+    activateMainTab("tracks");
+  });
+
+  ui.saveSettings.addEventListener("click", saveStudioSettings);
+  ui.resetHotkeys.addEventListener("click", resetHotkeys);
+  ui.pianoHotkeyEdit.addEventListener("click", beginPianoHotkeyEdit);
+  ui.pianoHotkeySave.addEventListener("click", savePianoHotkeys);
+  ui.pianoHotkeyCancel.addEventListener("click", cancelPianoHotkeyEdit);
+  ui.kitHotkeyEdit.addEventListener("click", beginKitHotkeyEdit);
+  ui.kitHotkeySave.addEventListener("click", saveKitHotkeys);
+  ui.kitHotkeyCancel.addEventListener("click", cancelKitHotkeyEdit);
+  wireNodePalette();
+}
+
 async function initialize() {
   buildPiano();
+  wireStudioUi();
+  setDirty(false);
 
   ui.velocity.addEventListener("input", () => {
     state.velocity = Number.parseInt(ui.velocity.value, 10);
     ui.velocityValue.value = String(state.velocity);
     ui.velocityValue.textContent = String(state.velocity);
+    if (ui.hudVelocity) ui.hudVelocity.textContent = String(state.velocity);
   });
 
   ui.octaveDown.addEventListener("click", () => {
@@ -1108,6 +2992,15 @@ async function initialize() {
   ui.transportPan.addEventListener("input", updateTransportPan);
   ui.refreshOutputs.addEventListener("click", refreshOutputDevices);
   ui.outputDevice.addEventListener("change", applyOutputDevice);
+
+  ui.advancedPlay.addEventListener("click", playAdvancedTransport);
+  ui.advancedPause.addEventListener("click", pauseAdvancedTransport);
+  ui.advancedStop.addEventListener("click", stopAdvancedTransport);
+  ui.advancedReload.addEventListener("click", () => loadAdvancedTransport(true));
+  ui.advancedSeek.addEventListener("change", () => {
+    const ratio = Number(ui.advancedSeek.value) / 1000;
+    seekAdvancedTransport(state.advancedTransport.duration * ratio);
+  });
   ui.projectSelect.addEventListener("change", () => {
     if (state.transport.project !== ui.projectSelect.value) {
       ui.transportStatus.textContent = "Project changed. Load preview to refresh audio.";
@@ -1117,43 +3010,46 @@ async function initialize() {
   updateTransportGain();
   updateTransportPan();
   updateTransportDisplay(0);
+  updateAdvancedTransportDisplay(0);
   ui.outputDevice.innerHTML = '<option value="">Default browser output</option>';
 
   try {
-    const [health, capabilities, projectsData, soundsData, instrumentsData] = await Promise.all([
+    const [health, capabilities, projectsData, soundsData, instrumentsData, studioSettings] = await Promise.all([
       api("/v1/health"),
       api("/v1/capabilities"),
       api("/v1/projects"),
       api("/v1/sounds?details=1"),
-      api("/v1/instruments")
+      api("/v1/instruments"),
+      api("/v1/studio/settings")
     ]);
 
     state.capabilities = capabilities;
     state.sounds = soundsData.sounds || [];
     state.instruments = instrumentsData.instruments || [];
+    state.studio.projects = projectsData.projects || [];
+    state.studio.settings = studioSettings;
 
-    const projects = projectsData.projects || [];
-    ui.projectSelect.innerHTML = "";
-    if (projects.length === 0) {
-      const option = document.createElement("option");
-      option.value = "";
-      option.textContent = "No projects found";
-      ui.projectSelect.appendChild(option);
-      ui.projectSelect.disabled = true;
+    syncProjectSelects();
+    renderProjectList();
+
+    if (state.studio.projects.length === 0) {
       ui.transportLoad.disabled = true;
       ui.transportPlay.disabled = true;
       ui.transportPause.disabled = true;
       ui.transportStop.disabled = true;
-      ui.transportStatus.textContent = "Put NoteScript .md files in the projects folder.";
+      ui.transportStatus.textContent = "Create a NoteScript project from the Project tab.";
     } else {
-      for (const project of projects) {
-        const option = document.createElement("option");
-        option.value = project;
-        option.textContent = project;
-        ui.projectSelect.appendChild(option);
-      }
       ui.transportStatus.textContent = "Select a project and load its preview.";
+      ui.projectNameInput.value = state.studio.projects[0];
     }
+
+    ui.workspaceModeSetting.value = studioSettings.workspaceMode || "basic";
+    ui.editorModeSetting.value = studioSettings.editorMode || "text";
+    activateComposeMode(studioSettings.editorMode || "text");
+    renderHotkeyEditor();
+    renderLibraries();
+    updatePianoHotkeyCaps();
+    activateMainTab("play");
 
     ui.engineStatus.textContent = health.coreVersion + " · ready";
     ui.engineStatus.classList.add("ok");
@@ -1188,6 +3084,7 @@ async function initialize() {
     }
 
     populateInstruments();
+    renderLibraries();
 
     if (!navigator.requestMIDIAccess) {
       ui.enableMidi.disabled = true;
@@ -1202,6 +3099,22 @@ async function initialize() {
 
 window.addEventListener("keydown", (event) => {
   if (event.repeat) return;
+
+  if (state.studio.pendingHotkeyAction) {
+    event.preventDefault();
+    event.stopPropagation();
+    assignCapturedHotkey(canonicalBindingFromEvent(event));
+    return;
+  }
+
+  if (state.studio.hotkeyEditMode) {
+    event.preventDefault();
+    event.stopPropagation();
+    ui.pianoHotkeyStatus.textContent =
+      "Click a mapped piano key first, then press the keyboard key you want.";
+    return;
+  }
+
   if (
     event.target instanceof HTMLInputElement ||
     event.target instanceof HTMLSelectElement ||
@@ -1209,45 +3122,89 @@ window.addEventListener("keydown", (event) => {
     event.target instanceof HTMLTextAreaElement
   ) return;
 
-  const key = event.key.toLowerCase();
+  const current = hotkeys();
 
-  if (key === "z") {
+  if (keyMatches(event, current.panic)) {
+    event.preventDefault();
+    panicAll();
+    return;
+  }
+
+  if (keyMatches(event, current.transportStop)) {
+    event.preventDefault();
+    stopTransport();
+    return;
+  }
+
+  if (keyMatches(event, current.transportPlayPause)) {
+    event.preventDefault();
+    if (state.transport.playing) pauseTransport();
+    else playTransport();
+    return;
+  }
+
+  if (keyMatches(event, current.octaveDown)) {
     event.preventDefault();
     state.octaveShift -= 1;
     updateOctave();
     return;
   }
-  if (key === "x") {
+
+  if (keyMatches(event, current.octaveUp)) {
     event.preventDefault();
     state.octaveShift += 1;
     updateOctave();
     return;
   }
-  if (event.code === "Space") {
+
+  if (keyMatches(event, current.sustain)) {
     event.preventDefault();
     state.spaceSustain = true;
     syncSustain();
     return;
   }
 
-  if (!COMPUTER_KEYS.has(key) || state.keyHeld.has(key)) return;
+  const key = event.key.toLowerCase();
+
+  if (state.sourceMode === "sound" && state.selected?.type === "kit") {
+    const kitMap = kitComputerKeyMap();
+    if (!kitMap.has(key)) return;
+    event.preventDefault();
+    const trigger = kitMap.get(key);
+    const pad = ui.pads.querySelector('[data-trigger="' + CSS.escape(trigger) + '"]');
+    if (pad) triggerPad(trigger, pad);
+    return;
+  }
+
+  const map = computerKeyMap();
+  if (!map.has(key) || state.keyHeld.has(key)) return;
+
   event.preventDefault();
   state.keyHeld.add(key);
-  const midi = baseComputerMidi() + COMPUTER_KEYS.get(key);
+  const midi = baseComputerMidi() + map.get(key);
   noteOn(midi, "keyboard:" + key);
 });
 
 window.addEventListener("keyup", (event) => {
+  if (state.studio.hotkeyEditMode) {
+    event.preventDefault();
+    return;
+  }
+
+  const current = hotkeys();
   const key = event.key.toLowerCase();
 
-  if (event.code === "Space") {
+  if (keyMatches(event, current.sustain)) {
     event.preventDefault();
     state.spaceSustain = false;
     syncSustain();
     return;
   }
 
-  if (!COMPUTER_KEYS.has(key)) return;
+  if (state.sourceMode === "sound" && state.selected?.type === "kit") return;
+
+  const map = computerKeyMap();
+  if (!map.has(key)) return;
   event.preventDefault();
   state.keyHeld.delete(key);
   noteOff("keyboard:" + key);
@@ -1267,3 +3224,4 @@ window.addEventListener("pagehide", () => {
 });
 
 initialize();
+

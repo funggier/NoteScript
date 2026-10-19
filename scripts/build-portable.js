@@ -98,6 +98,7 @@ const audition = [
   'powershell -NoProfile -Command "Start-Sleep -Milliseconds 700"',
   'start "" "http://127.0.0.1:19427/"'
 ].join("\r\n") + "\r\n";
+fs.writeFileSync(path.join(out, "NoteScript-Studio.cmd"), audition);
 fs.writeFileSync(path.join(out, "Audition-Keyboard.cmd"), audition);
 
 console.log("Portable folder created: " + out);

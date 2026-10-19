@@ -12,6 +12,7 @@ import { encodeMonoPcm16 } from "../sound/wav.js";
 import { midiToNote } from "../music.js";
 import { NoteScriptError } from "../error.js";
 import { LivePlaybackManager } from "../playback/manager.js";
+import { compileTimeline } from "../timeline.js";
 
 function safeName(name) {
   const value = String(name || "").trim();
@@ -56,10 +57,13 @@ export function createControlService(programRoot) {
   const exportsRoot = path.join(root, "exports");
   const soundsRoot = path.join(root, "sounds");
   const instrumentsRoot = path.join(root, "instruments");
+  const configRoot = path.join(root, "config");
+  const studioSettingsFile = path.join(configRoot, "studio.json");
   const livePlayback = new LivePlaybackManager(root);
   const transportCache = new Map();
+  const transportStemCache = new Map();
 
-  for (const dir of [projectsRoot, exportsRoot, soundsRoot, instrumentsRoot]) {
+  for (const dir of [projectsRoot, exportsRoot, soundsRoot, instrumentsRoot, configRoot]) {
     fs.mkdirSync(dir, { recursive: true });
   }
 
@@ -74,6 +78,63 @@ export function createControlService(programRoot) {
     const file = resolveProject(fileOrName);
     if (!fs.existsSync(file)) throw new NoteScriptError("Project does not exist: " + file);
     return { file, markdown: fs.readFileSync(file, "utf8") };
+  }
+
+  function normalizeProjectName(name) {
+    const base = safeName(name);
+    return base.toLowerCase().endsWith(".md") ? base : base + ".md";
+  }
+
+  function defaultStudioSettings() {
+    return {
+      version: 1,
+      workspaceMode: "basic",
+      editorMode: "text",
+      kitHotkeys: {},
+      hotkeys: {
+        note0: "a",
+        note1: "w",
+        note2: "s",
+        note3: "e",
+        note4: "d",
+        note5: "f",
+        note6: "t",
+        note7: "g",
+        note8: "y",
+        note9: "h",
+        note10: "u",
+        note11: "j",
+        note12: "k",
+        octaveDown: "z",
+        octaveUp: "x",
+        sustain: "Space",
+        panic: "Escape",
+        transportPlayPause: "Enter",
+        transportStop: "Backspace"
+      }
+    };
+  }
+
+  function readStudioSettings() {
+    const defaults = defaultStudioSettings();
+    if (!fs.existsSync(studioSettingsFile)) return defaults;
+    let parsed;
+    try {
+      parsed = JSON.parse(fs.readFileSync(studioSettingsFile, "utf8"));
+    } catch {
+      return defaults;
+    }
+    return {
+      ...defaults,
+      ...parsed,
+      hotkeys: {
+        ...defaults.hotkeys,
+        ...(parsed && typeof parsed.hotkeys === "object" ? parsed.hotkeys : {})
+      },
+      kitHotkeys: parsed && typeof parsed.kitHotkeys === "object"
+        ? parsed.kitHotkeys
+        : {}
+    };
   }
 
   function resolvePortableSound(id) {
@@ -143,14 +204,112 @@ export function createControlService(programRoot) {
         .sort((a, b) => a.localeCompare(b));
     },
 
+    getProject(fileOrName) {
+      const { file, markdown } = loadProject(fileOrName);
+      const analyzed = this.analyzeMarkdown(markdown);
+      return {
+        name: path.basename(file),
+        file,
+        markdown,
+        ...analyzed
+      };
+    },
+
+    analyzeMarkdown(markdown) {
+      try {
+        const song = parseSong(String(markdown));
+        const timeline = compileTimeline(song);
+        return {
+          valid: true,
+          diagnostics: [],
+          song,
+          timeline
+        };
+      } catch (error) {
+        if (!(error instanceof NoteScriptError)) throw error;
+        return {
+          valid: false,
+          diagnostics: [{
+            severity: "error",
+            line: error.line || null,
+            message: error.message
+          }],
+          song: null,
+          timeline: null
+        };
+      }
+    },
+
     saveProject(name, markdown) {
-      const base = safeName(name);
-      const filename = base.toLowerCase().endsWith(".md") ? base : base + ".md";
+      const filename = normalizeProjectName(name);
       const file = assertInside(projectsRoot, path.join(projectsRoot, filename));
       const parsed = parseSong(String(markdown));
       fs.writeFileSync(file, String(markdown), "utf8");
       transportCache.delete(file);
-      return { file, title: parsed.title, tracks: parsed.tracks.length };
+      for (const key of [...transportStemCache.keys()]) {
+        if (key.startsWith(file + "::")) transportStemCache.delete(key);
+      }
+      return { file, name: filename, title: parsed.title, tracks: parsed.tracks.length };
+    },
+
+    renameProject(fileOrName, newName) {
+      const source = resolveProject(fileOrName);
+      if (!fs.existsSync(source)) throw new NoteScriptError("Project does not exist: " + source);
+      const filename = normalizeProjectName(newName);
+      const target = assertInside(projectsRoot, path.join(projectsRoot, filename));
+      if (source === target) return { name: filename, file: target };
+      if (fs.existsSync(target)) throw new NoteScriptError("A project with that name already exists.");
+      fs.renameSync(source, target);
+      transportCache.delete(source);
+      transportCache.delete(target);
+      for (const key of [...transportStemCache.keys()]) {
+        if (key.startsWith(source + "::") || key.startsWith(target + "::")) {
+          transportStemCache.delete(key);
+        }
+      }
+      return { name: filename, file: target };
+    },
+
+    deleteProject(fileOrName) {
+      const file = resolveProject(fileOrName);
+      if (!fs.existsSync(file)) throw new NoteScriptError("Project does not exist: " + file);
+      fs.unlinkSync(file);
+      transportCache.delete(file);
+      for (const key of [...transportStemCache.keys()]) {
+        if (key.startsWith(file + "::")) transportStemCache.delete(key);
+      }
+      return { deleted: path.basename(file) };
+    },
+
+    getStudioSettings() {
+      return readStudioSettings();
+    },
+
+    saveStudioSettings(input = {}) {
+      const current = readStudioSettings();
+      const next = {
+        ...current,
+        ...(input.workspaceMode ? { workspaceMode: String(input.workspaceMode) } : {}),
+        ...(input.editorMode ? { editorMode: String(input.editorMode) } : {}),
+        hotkeys: {
+          ...current.hotkeys,
+          ...(input.hotkeys && typeof input.hotkeys === "object" ? input.hotkeys : {})
+        },
+        kitHotkeys: {
+          ...(current.kitHotkeys && typeof current.kitHotkeys === "object" ? current.kitHotkeys : {}),
+          ...(input.kitHotkeys && typeof input.kitHotkeys === "object" ? input.kitHotkeys : {})
+        }
+      };
+
+      if (!["basic", "advanced"].includes(next.workspaceMode)) {
+        throw new NoteScriptError("workspaceMode must be basic or advanced.");
+      }
+      if (!["text", "form", "node"].includes(next.editorMode)) {
+        throw new NoteScriptError("editorMode must be text, form or node.");
+      }
+
+      fs.writeFileSync(studioSettingsFile, JSON.stringify(next, null, 2) + "\n", "utf8");
+      return next;
     },
 
     validateProject(fileOrName) {
@@ -273,13 +432,61 @@ export function createControlService(programRoot) {
       return preview;
     },
 
+    getTransportTrackPreview(fileOrName, trackIndex) {
+      const { file, markdown } = loadProject(fileOrName);
+      const song = parseSong(markdown);
+      const index = Number.parseInt(String(trackIndex), 10);
+
+      if (!Number.isInteger(index) || index < 0 || index >= song.tracks.length) {
+        throw new NoteScriptError("Track index is outside the song.");
+      }
+
+      const stat = fs.statSync(file);
+      const signature = stat.size + ":" + stat.mtimeMs;
+      const cacheKey = file + "::" + index;
+      const cached = transportStemCache.get(cacheKey);
+
+      if (cached && cached.signature === signature) {
+        return cached.preview;
+      }
+
+      const mix = this.getTransportPreview(fileOrName);
+      const rendered = renderToWavBuffer(song, file, {
+        portableRoot: root,
+        trackIndex: index,
+        normalizationPeak: mix.peakBeforeNormalization
+      });
+
+      const preview = {
+        buffer: rendered.buffer,
+        project: path.basename(file),
+        trackIndex: index,
+        trackName: song.tracks[index].name,
+        durationSeconds: rendered.report.durationSeconds,
+        sampleRate: rendered.report.sampleRate,
+        peakBeforeNormalization: rendered.report.peakBeforeNormalization
+      };
+
+      transportStemCache.set(cacheKey, { signature, preview });
+      while (transportStemCache.size > 32) {
+        const oldest = transportStemCache.keys().next().value;
+        transportStemCache.delete(oldest);
+      }
+
+      return preview;
+    },
+
     clearTransportCache(fileOrName = null) {
       if (!fileOrName) {
         transportCache.clear();
+        transportStemCache.clear();
         return { cleared: "all" };
       }
       const file = resolveProject(fileOrName);
       transportCache.delete(file);
+      for (const key of [...transportStemCache.keys()]) {
+        if (key.startsWith(file + "::")) transportStemCache.delete(key);
+      }
       return { cleared: path.basename(file) };
     },
 

@@ -243,6 +243,67 @@ test("control service saves and validates a project inside portable workspace", 
   assert.deepEqual(service.listProjects(), ["Evening Test.md"]);
 });
 
+test("control service supports Studio project CRUD, analysis and settings", () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "notescript-studio-"));
+  const service = createControlService(dir);
+  const markdown = fs.readFileSync(songFile, "utf8");
+
+  const analysis = service.analyzeMarkdown(markdown);
+  assert.equal(analysis.valid, true);
+  assert.equal(analysis.song.tracks.length, 2);
+  assert.ok(analysis.timeline.endQuarter > 0);
+
+  const invalid = service.analyzeMarkdown("# Broken");
+  assert.equal(invalid.valid, false);
+  assert.ok(invalid.diagnostics.length >= 1);
+
+  const saved = service.saveProject("Studio Test", markdown);
+  assert.equal(saved.name, "Studio Test.md");
+
+  const project = service.getProject("Studio Test.md");
+  assert.equal(project.name, "Studio Test.md");
+  assert.equal(project.valid, true);
+  assert.equal(project.markdown, markdown);
+
+  const renamed = service.renameProject("Studio Test.md", "Studio Renamed");
+  assert.equal(renamed.name, "Studio Renamed.md");
+  assert.deepEqual(service.listProjects(), ["Studio Renamed.md"]);
+
+  const defaults = service.getStudioSettings();
+  assert.equal(defaults.workspaceMode, "basic");
+  assert.equal(defaults.editorMode, "text");
+  assert.equal(defaults.hotkeys.note0, "a");
+
+  const settings = service.saveStudioSettings({
+    workspaceMode: "advanced",
+    editorMode: "node",
+    hotkeys: {
+      note0: "q",
+      panic: "Escape"
+    }
+  });
+  assert.equal(settings.workspaceMode, "advanced");
+  assert.equal(settings.editorMode, "node");
+  assert.equal(settings.hotkeys.note0, "q");
+  assert.equal(service.getStudioSettings().hotkeys.note0, "q");
+
+  const kitSettings = service.saveStudioSettings({
+    kitHotkeys: {
+      "demo-kit": {
+        kick: "1",
+        shaker: "2"
+      }
+    }
+  });
+  assert.equal(kitSettings.kitHotkeys["demo-kit"].kick, "1");
+  assert.equal(kitSettings.kitHotkeys["demo-kit"].shaker, "2");
+  assert.equal(service.getStudioSettings().kitHotkeys["demo-kit"].kick, "1");
+
+  const deleted = service.deleteProject("Studio Renamed.md");
+  assert.equal(deleted.deleted, "Studio Renamed.md");
+  assert.deepEqual(service.listProjects(), []);
+});
+
 test("control service caches project transport preview audio", () => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "notescript-transport-"));
   fs.mkdirSync(path.join(dir, "projects"), { recursive: true });
@@ -255,16 +316,34 @@ test("control service caches project transport preview audio", () => {
   const service = createControlService(dir);
   const first = service.getTransportPreview("Evening Walk.md");
   const second = service.getTransportPreview("Evening Walk.md");
+  const stem0 = service.getTransportTrackPreview("Evening Walk.md", 0);
+  const stem0Cached = service.getTransportTrackPreview("Evening Walk.md", 0);
+  const stem1 = service.getTransportTrackPreview("Evening Walk.md", 1);
 
   assert.equal(first.buffer.toString("ascii", 0, 4), "RIFF");
   assert.strictEqual(first, second);
   assert.equal(first.project, "Evening Walk.md");
   assert.ok(first.durationSeconds > 1);
+  assert.equal(stem0.buffer.toString("ascii", 0, 4), "RIFF");
+  assert.equal(stem1.buffer.toString("ascii", 0, 4), "RIFF");
+  assert.strictEqual(stem0, stem0Cached);
+  assert.equal(stem0.trackIndex, 0);
+  assert.equal(stem1.trackIndex, 1);
+  assert.equal(stem0.durationSeconds, first.durationSeconds);
+  assert.equal(stem1.durationSeconds, first.durationSeconds);
+  assert.notDeepEqual(stem0.buffer, stem1.buffer);
+  assert.throws(
+    () => service.getTransportTrackPreview("Evening Walk.md", 99),
+    /Track index is outside/
+  );
 
   service.clearTransportCache("Evening Walk.md");
   const third = service.getTransportPreview("Evening Walk.md");
+  const stem0AfterClear = service.getTransportTrackPreview("Evening Walk.md", 0);
   assert.notStrictEqual(first, third);
+  assert.notStrictEqual(stem0, stem0AfterClear);
   assert.equal(third.buffer.toString("ascii", 0, 4), "RIFF");
+  assert.equal(stem0AfterClear.buffer.toString("ascii", 0, 4), "RIFF");
 });
 
 test("control service exposes sound details and audition WAV", () => {
@@ -304,7 +383,7 @@ test("control service exposes sound details and audition WAV", () => {
   assert.ok(instrumentAudio.buffer.length > 44);
 });
 
-test("audition UI assets expose live playback and Web MIDI controls", () => {
+test("Studio UI exposes tabbed game piano, compose modes, advanced tracks and remappable hotkeys", () => {
   for (const file of ["index.html", "style.css", "app.js"]) {
     const full = path.join(root, "src", "control", "ui", file);
     assert.equal(fs.existsSync(full), true, full + " should exist");
@@ -313,18 +392,71 @@ test("audition UI assets expose live playback and Web MIDI controls", () => {
 
   const html = fs.readFileSync(path.join(root, "src", "control", "ui", "index.html"), "utf8");
   const app = fs.readFileSync(path.join(root, "src", "control", "ui", "app.js"), "utf8");
+  const css = fs.readFileSync(path.join(root, "src", "control", "ui", "style.css"), "utf8");
+  assert.match(html, /data-tab="play"/);
+  assert.match(html, /data-tab="project"/);
+  assert.match(html, /data-tab="compose"/);
+  assert.match(html, /data-tab="tracks"/);
+  assert.match(html, /data-tab="sounds"/);
+  assert.match(html, /data-tab="settings"/);
+  assert.match(html, /data-compose-mode="text"/);
+  assert.match(html, /data-compose-mode="form"/);
+  assert.match(html, /data-compose-mode="node"/);
+  assert.match(html, /id="markdownEditor"/);
+  assert.match(html, /id="nodeCanvas"/);
+  assert.match(html, /id="nodeInspectorApply"/);
+  assert.match(html, /id="nodeInspectorValue"/);
+  assert.match(html, /id="trackTimeline"/);
+  assert.match(html, /id="advancedPlay"/);
+  assert.match(html, /id="advancedPause"/);
+  assert.match(html, /id="advancedStop"/);
+  assert.match(html, /Track Mute works during playback/);
+  assert.match(html, /id="hotkeyEditor"/);
+  assert.match(html, /PERFORMANCE MODE/);
+  assert.match(html, /id="pianoHotkeyEdit"/);
+  assert.match(html, /id="pianoHotkeyPanel"/);
+  assert.match(html, /id="pianoHotkeySave"/);
+  assert.match(html, /id="pianoHotkeyCancel"/);
+  assert.match(html, /id="kitHotkeyEdit"/);
+  assert.match(html, /id="kitHotkeyPanel"/);
+  assert.match(html, /id="kitHotkeySave"/);
+  assert.match(html, /id="kitHotkeyCancel"/);
+  assert.match(html, /class="piano game-piano"/);
   assert.match(html, /id="panic"/);
   assert.match(html, /id="enableMidi"/);
   assert.match(html, /id="transportPlay"/);
   assert.match(html, /id="transportSeek"/);
   assert.match(html, /id="outputDevice"/);
   assert.match(app, /\/v1\/transport\/audio/);
+  assert.match(app, /\/v1\/transport\/track-audio/);
+  assert.match(app, /toggleAdvancedTrackMute/);
+  assert.match(app, /gain\.gain\.setValueAtTime/);
   assert.match(app, /createStereoPanner/);
   assert.match(app, /setSinkId/);
   assert.match(app, /\/v1\/live\/select/);
   assert.match(app, /\/v1\/live\/note-on/);
   assert.match(app, /\/v1\/live\/all-notes-off/);
   assert.match(app, /requestMIDIAccess/);
+  assert.match(app, /\/v1\/project\?project=/);
+  assert.match(app, /\/v1\/analyze/);
+  assert.match(app, /\/v1\/studio\/settings/);
+  assert.match(app, /updatePianoHotkeyCaps/);
+  assert.match(app, /beginPianoHotkeyEdit/);
+  assert.match(app, /selectPianoHotkeyAction/);
+  assert.match(app, /savePianoHotkeys/);
+  assert.match(app, /cancelPianoHotkeyEdit/);
+  assert.match(app, /beginKitHotkeyEdit/);
+  assert.match(app, /selectKitHotkeyTrigger/);
+  assert.match(app, /kitHotkeys/);
+  assert.match(app, /kit-hotkey-editing/);
+  assert.match(app, /hotkeyEditSnapshot/);
+  assert.match(app, /piano-hotkey-editing/);
+  assert.match(app, /renderTrackTimeline/);
+  assert.match(app, /renderNodeCanvas/);
+  assert.match(app, /applyNodeInspector/);
+  assert.match(app, /Node Inspector changed the project/);
+  assert.match(css, /\.key \.note-label\s*\{[^}]*left:\s*0;[^}]*right:\s*0;/s);
+  assert.match(css, /\.pad-hotkey/);
 });
 
 test("parser rejects a track with both sound and instrument sources", () => {

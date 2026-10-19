@@ -30,10 +30,14 @@ jobs:
           out\NoteScript-portable\NoteScript.cmd list-instruments "out\NoteScript-portable\projects\SFZ Demo.md"
           out\NoteScript-portable\Render-Song.cmd "out\NoteScript-portable\projects\Evening Walk.md"
           out\NoteScript-portable\Render-Song.cmd "out\NoteScript-portable\projects\SFZ Demo.md"
-      - name: Portable Control API transport smoke test
+      - name: Portable Studio and Control API smoke test
         shell: pwsh
         run: |
           $root = (Resolve-Path "out\NoteScript-portable").Path
+          if (-not (Test-Path (Join-Path $root "NoteScript-Studio.cmd"))) {
+            throw "NoteScript-Studio.cmd is missing from the portable build."
+          }
+
           $env:NOTESCRIPT_ROOT = $root
           $node = Join-Path $root "runtime\node.exe"
           $serverFile = Join-Path $root "app\src\control\server.js"
@@ -56,8 +60,31 @@ jobs:
             }
 
             $page = Invoke-WebRequest -UseBasicParsing -Uri "http://127.0.0.1:19427/" -TimeoutSec 5
-            if ($page.StatusCode -ne 200 -or $page.Content -notmatch "Project Transport") {
-              throw "Portable transport UI smoke test failed."
+            if (
+              $page.StatusCode -ne 200 -or
+              $page.Content -notmatch "NOTESCRIPT STUDIO" -or
+              $page.Content -notmatch 'data-tab="play"' -or
+              $page.Content -notmatch 'data-tab="tracks"' -or
+              $page.Content -notmatch 'id="advancedPlay"' -or
+              $page.Content -notmatch 'id="nodeInspectorApply"' -or
+              $page.Content -notmatch 'id="pianoHotkeyEdit"' -or
+              $page.Content -notmatch 'id="pianoHotkeySave"' -or
+              $page.Content -notmatch 'id="pianoHotkeyCancel"' -or
+              $page.Content -notmatch 'id="kitHotkeyEdit"' -or
+              $page.Content -notmatch 'id="kitHotkeySave"' -or
+              $page.Content -notmatch 'id="kitHotkeyCancel"'
+            ) {
+              throw "Portable Studio HTML smoke test failed."
+            }
+
+            $project = Invoke-RestMethod -Uri "http://127.0.0.1:19427/v1/project?project=Evening%20Walk.md" -TimeoutSec 5
+            if (-not $project.valid -or $project.song.tracks.Count -ne 2) {
+              throw "Portable project API smoke test failed."
+            }
+
+            $settings = Invoke-RestMethod -Uri "http://127.0.0.1:19427/v1/studio/settings" -TimeoutSec 5
+            if ($settings.workspaceMode -ne "basic" -or $settings.editorMode -ne "text") {
+              throw "Portable Studio settings smoke test failed."
             }
 
             $preview = Join-Path $env:RUNNER_TEMP "notescript-transport-preview.wav"
@@ -65,6 +92,22 @@ jobs:
             $bytes = [System.IO.File]::ReadAllBytes($preview)
             if ($bytes.Length -le 44 -or [System.Text.Encoding]::ASCII.GetString($bytes, 0, 4) -ne "RIFF") {
               throw "Portable transport preview is not a valid WAV."
+            }
+
+            $stem0 = Join-Path $env:RUNNER_TEMP "notescript-track-0.wav"
+            $stem1 = Join-Path $env:RUNNER_TEMP "notescript-track-1.wav"
+            Invoke-WebRequest -UseBasicParsing -Uri "http://127.0.0.1:19427/v1/transport/track-audio?project=Evening%20Walk.md&track=0" -OutFile $stem0 -TimeoutSec 15
+            Invoke-WebRequest -UseBasicParsing -Uri "http://127.0.0.1:19427/v1/transport/track-audio?project=Evening%20Walk.md&track=1" -OutFile $stem1 -TimeoutSec 15
+
+            foreach ($stem in @($stem0, $stem1)) {
+              $stemBytes = [System.IO.File]::ReadAllBytes($stem)
+              if ($stemBytes.Length -le 44 -or [System.Text.Encoding]::ASCII.GetString($stemBytes, 0, 4) -ne "RIFF") {
+                throw "Portable Advanced track stem is not a valid WAV."
+              }
+            }
+
+            if ((Get-FileHash $stem0).Hash -eq (Get-FileHash $stem1).Hash) {
+              throw "Portable Advanced stems should not be byte-identical."
             }
           } finally {
             if ($proc -and -not $proc.HasExited) {

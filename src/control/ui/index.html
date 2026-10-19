@@ -3,155 +3,423 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>NoteScript Audition Keyboard</title>
+  <title>NoteScript Studio</title>
   <link rel="stylesheet" href="/ui/style.css">
 </head>
 <body>
   <div class="app-shell">
-    <header class="topbar">
+    <header class="topbar studio-topbar">
       <div>
-        <div class="eyebrow">NOTESCRIPT</div>
-        <h1>Audition Keyboard</h1>
-        <p class="subtitle">Choose a sound add-on and play it with your mouse or computer keyboard.</p>
+        <div class="eyebrow">NOTESCRIPT STUDIO</div>
+        <h1>Play first. Compose when you want.</h1>
+        <p class="subtitle">Portable music studio built around readable NoteScript Markdown.</p>
       </div>
-      <div id="engineStatus" class="status-pill">Connecting…</div>
+      <div class="topbar-actions">
+        <span id="dirtyState" class="status-pill">Saved</span>
+        <div id="engineStatus" class="status-pill">Connecting…</div>
+      </div>
     </header>
 
-    <main class="workspace">
-      <aside class="sidebar">
-        <section class="panel transport-panel">
-          <div class="section-title">
-            <h2>Project Transport</h2>
-            <span class="badge">PREVIEW</span>
-          </div>
+    <nav class="main-tabs" aria-label="Studio sections">
+      <button class="main-tab active" data-tab="play" type="button">Play</button>
+      <button class="main-tab" data-tab="project" type="button">Project</button>
+      <button class="main-tab" data-tab="compose" type="button">Compose</button>
+      <button class="main-tab" data-tab="tracks" type="button">Tracks</button>
+      <button class="main-tab" data-tab="sounds" type="button">Sounds</button>
+      <button class="main-tab" data-tab="settings" type="button">Settings</button>
+    </nav>
 
-          <select id="projectSelect" aria-label="NoteScript project"></select>
-          <button id="transportLoad" class="action-button" type="button">Load Project Preview</button>
+    <main class="studio-main">
+      <section class="tab-page active" data-page="play">
+        <div class="workspace play-workspace">
+          <aside class="sidebar">
+            <section class="panel">
+              <div class="section-title">
+                <h2>Play Source</h2>
+                <span class="badge">LIVE</span>
+              </div>
 
-          <div class="transport-buttons">
-            <button id="transportPlay" class="action-button" type="button">Play</button>
-            <button id="transportPause" class="action-button" type="button">Pause</button>
-            <button id="transportStop" class="action-button" type="button">Stop</button>
-          </div>
+              <label class="field-label" for="soundSelect">Sound Pack</label>
+              <select id="soundSelect" aria-label="Sound pack"></select>
+              <div id="soundMeta" class="meta"></div>
 
-          <input id="transportSeek" class="transport-seek" type="range" min="0" max="1000" value="0" aria-label="Project preview position">
-          <div class="transport-time">
-            <span id="transportPosition">0:00.0</span>
-            <span id="transportDuration">0:00.0</span>
-          </div>
+              <label class="field-label spaced-label" for="instrumentSelect">Instrument</label>
+              <select id="instrumentSelect" aria-label="Instrument library"></select>
+              <div id="instrumentMeta" class="meta">
+                SFZ/SF2/SF3 libraries are discovered separately.
+              </div>
+            </section>
 
-          <label class="toggle-row">
-            <input id="transportLoop" type="checkbox">
-            <span>Loop project</span>
-          </label>
+            <section class="panel compact">
+              <div class="control-row">
+                <label for="velocity">Velocity</label>
+                <output id="velocityValue">96</output>
+              </div>
+              <input id="velocity" type="range" min="1" max="127" value="96">
 
-          <div class="control-row spaced">
-            <label for="transportVolume">Preview volume</label>
-            <output id="transportVolumeValue">80%</output>
-          </div>
-          <input id="transportVolume" type="range" min="0" max="100" value="80">
+              <div class="control-row spaced">
+                <span>Keyboard octave</span>
+                <div class="stepper">
+                  <button id="octaveDown" type="button" aria-label="Octave down">−</button>
+                  <output id="octaveValue">0</output>
+                  <button id="octaveUp" type="button" aria-label="Octave up">+</button>
+                </div>
+              </div>
 
-          <div class="control-row spaced">
-            <label for="transportPan">Preview pan</label>
-            <output id="transportPanValue">0</output>
-          </div>
-          <input id="transportPan" type="range" min="-100" max="100" value="0">
+              <label class="toggle-row">
+                <input id="sustain" type="checkbox">
+                <span>Sustain</span>
+              </label>
 
-          <div class="control-row spaced">
-            <label for="outputDevice">Browser output</label>
-          </div>
-          <select id="outputDevice" aria-label="Browser audio output"></select>
-          <button id="refreshOutputs" class="action-button secondary" type="button">Refresh Outputs</button>
+              <button id="panic" class="action-button danger" type="button">Panic · All Notes Off</button>
+            </section>
 
-          <div id="transportStatus" class="meta">Select a project and load its preview.</div>
-        </section>
+            <section class="panel compact">
+              <div class="section-title">
+                <h2>MIDI Controller</h2>
+                <span class="badge muted">OPTIONAL</span>
+              </div>
+              <button id="enableMidi" class="action-button" type="button">Enable MIDI Input</button>
+              <div id="midiStatus" class="meta">Not enabled.</div>
+            </section>
 
-        <section class="panel">
-          <div class="section-title">
-            <h2>Sound Pack</h2>
-            <span class="badge">PLAYABLE</span>
-          </div>
-          <select id="soundSelect" aria-label="Sound pack"></select>
-          <div id="soundMeta" class="meta"></div>
-        </section>
+            <section class="panel legend">
+              <h2>Keyboard Hotkeys</h2>
+              <div class="keymap">
+                <code id="hotkeyLegendNotes">A W S E D F T G Y H U J K</code>
+                <span>Chromatic keys from C upward</span>
+                <code id="hotkeyLegendOctave">Z / X</code>
+                <span>Octave down / up</span>
+                <code id="hotkeyLegendSustain">Space</code>
+                <span>Sustain</span>
+              </div>
+            </section>
+          </aside>
 
-        <section class="panel">
-          <div class="section-title">
-            <h2>Instrument Library</h2>
-            <span class="badge muted">ADAPTER</span>
-          </div>
-          <select id="instrumentSelect" aria-label="Instrument library"></select>
-          <div id="instrumentMeta" class="meta">
-            SFZ/SF2/SF3 libraries are discovered separately. Live playback becomes available as each adapter is enabled.
-          </div>
-        </section>
+          <section class="stage piano-stage game-stage">
+            <div class="game-stage-grid"></div>
 
-        <section class="panel compact">
-          <div class="control-row">
-            <label for="velocity">Velocity</label>
-            <output id="velocityValue">96</output>
-          </div>
-          <input id="velocity" type="range" min="1" max="127" value="96">
+            <div class="stage-header game-hud">
+              <div>
+                <div class="eyebrow">PERFORMANCE MODE</div>
+                <div id="selectedName" class="selected-name">No sound selected</div>
+                <div id="selectedDetails" class="selected-details">Choose a sound pack or instrument and play.</div>
+              </div>
 
-          <div class="control-row spaced">
-            <span>Keyboard octave</span>
-            <div class="stepper">
-              <button id="octaveDown" type="button" aria-label="Octave down">−</button>
-              <output id="octaveValue">0</output>
-              <button id="octaveUp" type="button" aria-label="Octave up">+</button>
+              <div class="performance-stats">
+                <div class="hud-chip">
+                  <span class="hud-label">OCT</span>
+                  <strong id="hudOctave">0</strong>
+                </div>
+                <div class="hud-chip">
+                  <span class="hud-label">VEL</span>
+                  <strong id="hudVelocity">96</strong>
+                </div>
+                <div class="hud-chip">
+                  <span class="hud-label">VOICES</span>
+                  <strong id="voiceCount">0</strong>
+                </div>
+              </div>
+            </div>
+
+            <div id="pianoView" class="instrument-view game-instrument-view">
+              <div class="piano-deck">
+                <div class="piano-deck-topline">
+                  <span id="pianoDeckMode">LIVE INPUT</span>
+                  <div class="piano-deck-actions">
+                    <button id="pianoHotkeyEdit" class="deck-button" type="button">EDIT HOTKEYS</button>
+                    <span class="deck-signal"><i></i> READY</span>
+                  </div>
+                </div>
+                <div id="pianoHotkeyPanel" class="piano-hotkey-panel hidden">
+                  <div>
+                    <strong>HOTKEY EDIT</strong>
+                    <span id="pianoHotkeyStatus">Click a mapped piano key, then press the keyboard key you want.</span>
+                  </div>
+                  <div class="piano-hotkey-actions">
+                    <button id="pianoHotkeySave" class="deck-button primary" type="button">SAVE</button>
+                    <button id="pianoHotkeyCancel" class="deck-button" type="button">CANCEL</button>
+                  </div>
+                </div>
+                <div id="keyboard" class="piano game-piano" aria-label="Piano keyboard"></div>
+              </div>
+            </div>
+
+            <div id="kitView" class="instrument-view hidden">
+              <div class="piano-deck kit-deck">
+                <div class="piano-deck-topline">
+                  <span id="kitDeckMode">KIT LIVE INPUT</span>
+                  <div class="piano-deck-actions">
+                    <button id="kitHotkeyEdit" class="deck-button" type="button">EDIT HOTKEYS</button>
+                    <span class="deck-signal"><i></i> READY</span>
+                  </div>
+                </div>
+                <div id="kitHotkeyPanel" class="piano-hotkey-panel hidden">
+                  <div>
+                    <strong>HOTKEY EDIT</strong>
+                    <span id="kitHotkeyStatus">Click a pad, then press the keyboard key you want.</span>
+                  </div>
+                  <div class="piano-hotkey-actions">
+                    <button id="kitHotkeySave" class="deck-button primary" type="button">SAVE</button>
+                    <button id="kitHotkeyCancel" class="deck-button" type="button">CANCEL</button>
+                  </div>
+                </div>
+                <div id="pads" class="pads"></div>
+              </div>
+            </div>
+
+            <div class="monitor">
+              <div class="monitor-title">Live monitor</div>
+              <div id="monitorText">Ready.</div>
+            </div>
+          </section>
+
+          <aside class="sidebar transport-sidebar">
+            <section class="panel transport-panel">
+              <div class="section-title">
+                <h2>Project Transport</h2>
+                <span class="badge">PREVIEW</span>
+              </div>
+
+              <select id="projectSelect" aria-label="NoteScript project"></select>
+              <button id="transportLoad" class="action-button" type="button">Load Project Preview</button>
+
+              <div class="transport-buttons">
+                <button id="transportPlay" class="action-button" type="button">Play</button>
+                <button id="transportPause" class="action-button" type="button">Pause</button>
+                <button id="transportStop" class="action-button" type="button">Stop</button>
+              </div>
+
+              <input id="transportSeek" class="transport-seek" type="range" min="0" max="1000" value="0" aria-label="Project preview position">
+              <div class="transport-time">
+                <span id="transportPosition">0:00.0</span>
+                <span id="transportDuration">0:00.0</span>
+              </div>
+
+              <label class="toggle-row">
+                <input id="transportLoop" type="checkbox">
+                <span>Loop project</span>
+              </label>
+
+              <div class="control-row spaced">
+                <label for="transportVolume">Preview volume</label>
+                <output id="transportVolumeValue">80%</output>
+              </div>
+              <input id="transportVolume" type="range" min="0" max="100" value="80">
+
+              <div class="control-row spaced">
+                <label for="transportPan">Preview pan</label>
+                <output id="transportPanValue">0</output>
+              </div>
+              <input id="transportPan" type="range" min="-100" max="100" value="0">
+
+              <div class="control-row spaced">
+                <label for="outputDevice">Browser output</label>
+              </div>
+              <select id="outputDevice" aria-label="Browser audio output"></select>
+              <button id="refreshOutputs" class="action-button secondary" type="button">Refresh Outputs</button>
+
+              <div id="transportStatus" class="meta">Select a project and load its preview.</div>
+            </section>
+          </aside>
+        </div>
+      </section>
+
+      <section class="tab-page" data-page="project">
+        <div class="page-grid">
+          <section class="panel page-panel">
+            <div class="section-title">
+              <h2>Projects</h2>
+              <span class="badge">MARKDOWN</span>
+            </div>
+            <div class="project-toolbar">
+              <button id="newProject" class="action-button" type="button">New Project</button>
+              <button id="openProject" class="action-button secondary" type="button">Open Selected</button>
+            </div>
+            <div id="projectList" class="project-list"></div>
+          </section>
+
+          <section class="panel page-panel">
+            <h2>Project File</h2>
+            <label class="field-label" for="projectNameInput">File name</label>
+            <input id="projectNameInput" class="text-input" type="text" value="Untitled.md">
+            <div class="project-toolbar">
+              <button id="renameProject" class="action-button secondary" type="button">Rename</button>
+              <button id="deleteProject" class="action-button danger" type="button">Delete</button>
+            </div>
+            <div id="projectFileMeta" class="meta">Markdown is the authoritative project file.</div>
+          </section>
+        </div>
+      </section>
+
+      <section class="tab-page" data-page="compose">
+        <div class="compose-shell">
+          <div class="compose-toolbar">
+            <div class="sub-tabs" aria-label="Compose modes">
+              <button class="sub-tab active" data-compose-mode="text" type="button">Text</button>
+              <button class="sub-tab" data-compose-mode="form" type="button">Form</button>
+              <button class="sub-tab" data-compose-mode="node" type="button">Node</button>
+            </div>
+            <div class="compose-actions">
+              <button id="analyzeProject" class="action-button secondary" type="button">Analyze</button>
+              <button id="saveProject" class="action-button" type="button">Save</button>
+              <button id="renderProject" class="action-button secondary" type="button">Render WAV</button>
+              <button id="exportMidi" class="action-button secondary" type="button">Export MIDI</button>
             </div>
           </div>
 
-          <label class="toggle-row">
-            <input id="sustain" type="checkbox">
-            <span>Sustain</span>
-          </label>
+          <section class="compose-view active" data-compose-view="text">
+            <div class="editor-layout">
+              <textarea id="markdownEditor" class="markdown-editor" spellcheck="false" aria-label="NoteScript Markdown editor"></textarea>
+              <aside class="diagnostics-panel">
+                <div class="section-title">
+                  <h2>Diagnostics</h2>
+                  <span id="diagnosticBadge" class="badge muted">NOT ANALYZED</span>
+                </div>
+                <div id="diagnostics" class="diagnostics"></div>
+              </aside>
+            </div>
+          </section>
 
-          <button id="panic" class="action-button danger" type="button">Panic · All Notes Off</button>
-        </section>
+          <section class="compose-view" data-compose-view="form">
+            <div class="form-editor">
+              <section class="panel">
+                <h2>Song</h2>
+                <div class="form-grid">
+                  <label>Title<input id="formTitle" class="text-input" type="text"></label>
+                  <label>Tempo<input id="formTempo" class="text-input" type="number" min="20" max="400"></label>
+                  <label>Time<input id="formTime" class="text-input" type="text" placeholder="4/4"></label>
+                  <label>Key<input id="formKey" class="text-input" type="text" placeholder="C major"></label>
+                </div>
+              </section>
+              <section class="panel">
+                <div class="section-title">
+                  <h2>Tracks</h2>
+                  <button id="formAddTrack" class="small-button" type="button">+ Track</button>
+                </div>
+                <div id="formTracks" class="form-tracks"></div>
+              </section>
+            </div>
+          </section>
 
-        <section class="panel compact">
-          <div class="section-title">
-            <h2>MIDI Controller</h2>
-            <span class="badge muted">OPTIONAL</span>
-          </div>
-          <button id="enableMidi" class="action-button" type="button">Enable MIDI Input</button>
-          <div id="midiStatus" class="meta">Not enabled.</div>
-        </section>
+          <section class="compose-view" data-compose-view="node">
+            <div class="node-workspace">
+              <aside class="node-palette">
+                <h2>Node Palette</h2>
+                <button class="node-template" draggable="true" data-node-kind="track" type="button">Track</button>
+                <button class="node-template" draggable="true" data-node-kind="bar" type="button">Bar</button>
+                <button class="node-template" draggable="true" data-node-kind="note" type="button">Note</button>
+                <button class="node-template" draggable="true" data-node-kind="chord" type="button">Chord</button>
+                <button class="node-template" draggable="true" data-node-kind="rest" type="button">Rest</button>
+                <button class="node-template" draggable="true" data-node-kind="trigger" type="button">Trigger</button>
+              </aside>
+              <div id="nodeCanvas" class="node-canvas">
+                <div class="empty-state">Drag nodes here. Node editing will stay synchronized with the same Markdown project.</div>
+              </div>
+              <aside class="node-inspector">
+                <div class="section-title">
+                  <h2>Node Inspector</h2>
+                  <span id="nodeInspectorKind" class="badge muted">NONE</span>
+                </div>
+                <div id="nodeInspectorEmpty" class="meta">Select a Bar or Event node to edit it.</div>
+                <div id="nodeInspectorEditor" class="hidden">
+                  <label class="field-label" for="nodeInspectorValue">Node value</label>
+                  <textarea id="nodeInspectorValue" class="node-inspector-value" rows="6"></textarea>
+                  <button id="nodeInspectorApply" class="action-button" type="button">Apply to Markdown</button>
+                  <button id="nodeInspectorForm" class="action-button secondary" type="button">Open Track in Form</button>
+                </div>
+              </aside>
+            </div>
+          </section>
+        </div>
+      </section>
 
-        <section class="panel legend">
-          <h2>Computer Keys</h2>
-          <div class="keymap">
-            <code>A W S E D F T G Y H U J K</code>
-            <span>Chromatic keys from C upward</span>
-            <code>Z / X</code>
-            <span>Octave down / up</span>
-            <code>Space</code>
-            <span>Sustain while held</span>
-          </div>
-        </section>
-      </aside>
-
-      <section class="stage">
-        <div class="stage-header">
+      <section class="tab-page" data-page="tracks">
+        <div class="advanced-header">
           <div>
-            <div id="selectedName" class="selected-name">No sound selected</div>
-            <div id="selectedDetails" class="selected-details">Copy sound add-ons into the portable sounds folder.</div>
+            <div class="eyebrow">ADVANCED MODE</div>
+            <h2>Multi-track Arrangement</h2>
+            <p>DAW-style overview of the same NoteScript project.</p>
           </div>
-          <div id="voiceCount" class="voice-count">0 voices</div>
+          <div class="mode-switch">
+            <button id="basicMode" class="mode-button" type="button">Basic</button>
+            <button id="advancedMode" class="mode-button active" type="button">Advanced</button>
+          </div>
         </div>
 
-        <div id="pianoView" class="instrument-view">
-          <div id="keyboard" class="piano" aria-label="Piano keyboard"></div>
+        <div class="advanced-transport">
+          <div class="advanced-transport-main">
+            <div>
+              <div class="eyebrow">MIX PLAYBACK</div>
+              <strong id="advancedProjectLabel">No project loaded</strong>
+            </div>
+            <div class="advanced-transport-buttons">
+              <button id="advancedPlay" class="action-button" type="button">Play</button>
+              <button id="advancedPause" class="action-button secondary" type="button">Pause</button>
+              <button id="advancedStop" class="action-button secondary" type="button">Stop</button>
+              <button id="advancedReload" class="action-button secondary" type="button">Reload Stems</button>
+            </div>
+          </div>
+          <input id="advancedSeek" class="transport-seek" type="range" min="0" max="1000" value="0" aria-label="Advanced multi-track position">
+          <div class="transport-time">
+            <span id="advancedPosition">0:00.0</span>
+            <span id="advancedDuration">0:00.0</span>
+          </div>
+          <div id="advancedStatus" class="meta">Open a project, then Play. Track Mute works during playback.</div>
         </div>
 
-        <div id="kitView" class="instrument-view hidden">
-          <div id="pads" class="pads"></div>
+        <div id="trackTimeline" class="track-timeline">
+          <div class="empty-state">Open a project in Compose to build the multi-track timeline.</div>
         </div>
+      </section>
 
-        <div class="monitor">
-          <div class="monitor-title">Live monitor</div>
-          <div id="monitorText">Ready.</div>
+      <section class="tab-page" data-page="sounds">
+        <div class="page-grid">
+          <section class="panel page-panel">
+            <div class="section-title">
+              <h2>Sound Packs</h2>
+              <span class="badge">sounds/</span>
+            </div>
+            <div id="soundBrowser" class="library-browser"></div>
+          </section>
+          <section class="panel page-panel">
+            <div class="section-title">
+              <h2>Instrument Add-ons</h2>
+              <span class="badge muted">SFZ · SF2 · SF3</span>
+            </div>
+            <div id="instrumentBrowser" class="library-browser"></div>
+          </section>
+        </div>
+      </section>
+
+      <section class="tab-page" data-page="settings">
+        <div class="page-grid">
+          <section class="panel page-panel">
+            <h2>Studio</h2>
+            <label class="field-label" for="workspaceModeSetting">Default workspace level</label>
+            <select id="workspaceModeSetting">
+              <option value="basic">Basic</option>
+              <option value="advanced">Advanced</option>
+            </select>
+
+            <label class="field-label spaced-label" for="editorModeSetting">Default compose mode</label>
+            <select id="editorModeSetting">
+              <option value="text">Text</option>
+              <option value="form">Form</option>
+              <option value="node">Node</option>
+            </select>
+          </section>
+
+          <section class="panel page-panel">
+            <div class="section-title">
+              <h2>Keyboard Bindings</h2>
+              <button id="resetHotkeys" class="small-button" type="button">Reset</button>
+            </div>
+            <p class="meta">Click a binding, then press the key you want — like remapping controls in a game.</p>
+            <div id="hotkeyEditor" class="hotkey-editor"></div>
+            <button id="saveSettings" class="action-button" type="button">Save Settings</button>
+            <div id="settingsStatus" class="meta"></div>
+          </section>
         </div>
       </section>
     </main>

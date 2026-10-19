@@ -1,0 +1,252 @@
+# NoteScript Studio Architecture
+
+Status: NTS-004 baseline implemented.
+
+## Principle
+
+NoteScript Studio is a portable visual/editor layer over the same Markdown-first NoteScript core.
+
+There is one authoritative project representation:
+
+```text
+projects/<name>.md
+```
+
+Play, Project, Compose, Tracks, Sounds and Settings are views/controllers over that source. The browser does not own a separate hidden song format.
+
+## Main tabs
+
+### Play
+
+The default first tab.
+
+Purpose:
+
+- game-like piano/instrument experience;
+- immediate live audition;
+- performance HUD;
+- project preview transport.
+
+Input sources:
+
+- mouse/pointer;
+- remappable computer keyboard;
+- Web MIDI when the browser provides it.
+
+The Play page retains the NTS-003 live and buffered playback paths.
+
+### Project
+
+Project file management inside portable `projects/`:
+
+- create;
+- open;
+- save;
+- rename;
+- delete.
+
+All path validation remains in the Control Service.
+
+### Compose
+
+Three editing views share the same Markdown:
+
+#### Text
+
+Direct NoteScript Markdown editor plus diagnostics.
+
+#### Form
+
+Structured fields for:
+
+- title;
+- tempo;
+- time signature;
+- key;
+- tracks;
+- sound/instrument source;
+- volume;
+- pan;
+- velocity;
+- bar/event text.
+
+Changing Form regenerates the NoteScript fenced body in the Text editor. Save still remains explicit.
+
+#### Node
+
+A visual flow:
+
+`Track -> Bar -> Event`
+
+The palette can append Track/Bar/Note/Chord/Rest/Trigger structures.
+
+Bar/Event nodes can be selected in Node Inspector. Applying the inspector rewrites the matching `bar N:` line in the same in-memory Markdown. Save persists the result.
+
+### Tracks — Advanced mode
+
+A DAW-style multi-track arrangement derived from the compiled timeline.
+
+Each track lane shows:
+
+- source;
+- track volume/pan metadata;
+- timeline events;
+- Mute/Unmute;
+- Edit shortcut back to Compose/Form.
+
+Advanced mode does not create a second project representation.
+
+## Advanced multi-track playback
+
+Full-project transport is useful for normal preview, but it cannot mute one track independently after a premixed WAV is already playing.
+
+Advanced mode therefore uses **per-track stems**.
+
+Backend:
+
+`GET /v1/transport/track-audio?project=<project>&track=<index>`
+
+For each track:
+
+1. parse the same project Markdown;
+2. render only the selected track;
+3. preserve the normalization scale of the complete mix;
+4. return a full-duration PCM16 WAV stem;
+5. cache the stem by project signature + track index.
+
+Browser:
+
+1. decode every stem into an AudioBuffer;
+2. start all BufferSourceNodes at the same AudioContext time and offset;
+3. route each stem through its own GainNode;
+4. route all track gains into one master GainNode.
+
+Mute/Unmute changes only the selected track GainNode:
+
+```text
+mute   -> gain = 0
+unmute -> gain = 1
+```
+
+This can happen while playback continues. No stem is re-rendered and the playhead is not reset.
+
+Advanced transport provides:
+
+- Play;
+- Pause;
+- Stop;
+- Seek;
+- Reload Stems;
+- per-track Mute/Unmute.
+
+Project edits invalidate loaded Advanced stems so the next Play rebuilds them from current saved Markdown.
+
+## Hotkey remapping
+
+Studio settings are stored under:
+
+`config/studio.json`
+
+The Settings tab supports game-style key capture.
+
+The Play piano also supports a faster direct workflow:
+
+1. click **EDIT HOTKEYS**;
+2. the 13 currently mapped chromatic piano keys become the editable range;
+3. click the piano key whose binding should change;
+4. press the new computer-keyboard key;
+5. repeat for additional notes;
+6. choose **SAVE** to persist through `POST /v1/studio/settings`, or **CANCEL** to restore the complete binding snapshot from before editing.
+
+While direct edit mode is active, clicking a piano key selects it instead of sounding it. Normal musical keyboard input is suppressed until the mode is saved/cancelled. Leaving the Play tab cancels unsaved direct-hotkey edits.
+
+Each mapped piano key keeps two visual labels:
+
+- the musical note name;
+- the current hotkey as a subdued keycap.
+
+Both white and black piano labels are explicitly anchored to the key's own left/right bounds. This avoids browser static-position drift that previously made note labels appear near key boundaries.
+
+Kit sound packs use the same interaction pattern. Studio derives a default trigger-key sequence for a kit (number row first), then overlays any saved per-pack mapping from:
+
+`studio.json -> kitHotkeys -> <sound-pack-id> -> <trigger>`
+
+A Kit pad shows:
+
+- trigger name;
+- current hotkey as a subdued keycap.
+
+In Kit mode the displayed hotkeys trigger pads directly from the computer keyboard. **EDIT HOTKEYS** switches pad clicks from sound triggering to binding selection; Save persists the per-pack mapping, while Cancel restores the snapshot from before editing.
+
+Duplicate bindings remain conflict-free: assigning a key already used by another action clears the old action before applying the new one.
+
+Baseline actions include:
+
+- 13 chromatic piano keys;
+- octave down/up;
+- sustain;
+- panic;
+- project preview play/pause;
+- project preview stop.
+
+The same bindings drive both keyboard behavior and the keycaps drawn on the game-style piano.
+
+## Sound and Instrument tabs
+
+Sound Packs and Instrument Add-ons remain separate systems.
+
+The browser views only call Control API data and route selection back to Play.
+
+## Diagnostics
+
+Unsaved Markdown can be sent to:
+
+`POST /v1/analyze`
+
+The service returns:
+
+- valid/invalid;
+- diagnostics;
+- parsed song;
+- compiled timeline.
+
+This allows Text/Form/Node/Tracks to share parser semantics without duplicating the language rules in the browser.
+
+## Portable launcher
+
+Portable build includes:
+
+`NoteScript-Studio.cmd`
+
+The compatibility launcher `Audition-Keyboard.cmd` remains for now and points at the same hosted Studio.
+
+## Control API additions
+
+NTS-004 adds:
+
+- `GET /v1/project`
+- `GET /v1/studio/settings`
+- `GET /v1/transport/track-audio`
+- `POST /v1/projects/rename`
+- `POST /v1/projects/delete`
+- `POST /v1/analyze`
+- `POST /v1/studio/settings`
+
+Existing render, MIDI, transport, audition and live-note endpoints remain stable.
+
+## Boundaries
+
+The NTS-004 baseline is intentionally not a full conventional DAW.
+
+Future work can add:
+
+- draggable/resizable regions;
+- richer piano-roll editing;
+- per-track mixer faders;
+- solo;
+- buses/effects;
+- automation lanes;
+- waveform views;
+- persistent native real-time scheduling of complete projects.
+
+Those features should extend the same Markdown/control architecture rather than create a parallel project format.

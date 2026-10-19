@@ -81,6 +81,12 @@ const server = http.createServer(async (req, res) => {
     if (req.method === "GET" && url.pathname === "/v1/projects") {
       return json(res, 200, { projects: service.listProjects() });
     }
+    if (req.method === "GET" && url.pathname === "/v1/project") {
+      return json(res, 200, service.getProject(url.searchParams.get("project")));
+    }
+    if (req.method === "GET" && url.pathname === "/v1/studio/settings") {
+      return json(res, 200, service.getStudioSettings());
+    }
     if (req.method === "GET" && url.pathname === "/v1/sounds") {
       const details = url.searchParams.get("details") === "1";
       return json(res, 200, {
@@ -100,6 +106,13 @@ const server = http.createServer(async (req, res) => {
     }
     if (req.method === "GET" && url.pathname === "/v1/transport/audio") {
       const preview = service.getTransportPreview(url.searchParams.get("project"));
+      return binary(res, 200, "audio/wav", preview.buffer);
+    }
+    if (req.method === "GET" && url.pathname === "/v1/transport/track-audio") {
+      const preview = service.getTransportTrackPreview(
+        url.searchParams.get("project"),
+        url.searchParams.get("track")
+      );
       return binary(res, 200, "audio/wav", preview.buffer);
     }
     if (req.method === "GET" && url.pathname === "/v1/audition/audio") {
@@ -148,6 +161,22 @@ const server = http.createServer(async (req, res) => {
     if (req.method === "POST" && url.pathname === "/v1/projects") {
       const input = await body(req);
       return json(res, 200, service.saveProject(input.name, input.markdown));
+    }
+    if (req.method === "POST" && url.pathname === "/v1/projects/rename") {
+      const input = await body(req);
+      return json(res, 200, service.renameProject(input.project, input.name));
+    }
+    if (req.method === "POST" && url.pathname === "/v1/projects/delete") {
+      const input = await body(req);
+      return json(res, 200, service.deleteProject(input.project));
+    }
+    if (req.method === "POST" && url.pathname === "/v1/analyze") {
+      const input = await body(req);
+      return json(res, 200, service.analyzeMarkdown(input.markdown));
+    }
+    if (req.method === "POST" && url.pathname === "/v1/studio/settings") {
+      const input = await body(req);
+      return json(res, 200, service.saveStudioSettings(input));
     }
     if (req.method === "POST" && url.pathname === "/v1/validate") {
       const input = await body(req);
@@ -214,7 +243,7 @@ process.on("SIGTERM", async () => {
 
 server.listen(port, host, () => {
   console.log("NoteScript Control API listening on http://" + host + ":" + port);
-  console.log("Audition Keyboard: http://" + host + ":" + port + "/");
+  console.log("NoteScript Studio: http://" + host + ":" + port + "/");
   console.log("Portable root: " + programRoot);
   if (!token) console.log("Control token: disabled (loopback-only default recommended).");
 });
