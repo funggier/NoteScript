@@ -299,7 +299,7 @@ jobs:
             Invoke-WebRequest -UseBasicParsing -Uri "$baseUri/v1/transport/track-audio?project=Evening%20Walk.md&track=0" -OutFile $stem0 -TimeoutSec 15
             Invoke-WebRequest -UseBasicParsing -Uri "$baseUri/v1/transport/track-audio?project=Evening%20Walk.md&track=1" -OutFile $stem1 -TimeoutSec 15
 
-            $tracksUiScript = Get-Content -Raw (Join-Path $root "src\control\ui\app.js")
+            $tracksUiScript = Get-Content -Raw (Join-Path $root "app\src\control\ui\app.js")
             if (
               $tracksUiScript -notmatch '/v1/tracks/track-audio' -or
               $tracksUiScript -notmatch '/v1/tracks/mix-audio' -or
