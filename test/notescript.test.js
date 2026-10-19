@@ -38,7 +38,24 @@ test("loads pitched and SoundPad sound add-ons", () => {
   assert.equal(piano.type, "pitched");
   assert.equal(piano.samples.size, 5);
   assert.equal(soundPad.type, "soundpad");
-  assert.equal(soundPad.triggers.size, 2);
+  assert.equal(soundPad.triggers.size, 16);
+  for (const trigger of [
+    "kick", "snare", "clap", "closed-hat", "open-hat", "shaker",
+    "tom-low", "tom-high", "rim", "cowbell", "crash", "ride",
+    "chime", "click", "laser", "impact"
+  ]) {
+    assert.equal(soundPad.triggers.has(trigger), true, "missing SoundPad trigger: " + trigger);
+  }
+
+  for (const id of [
+    "electric-piano", "music-box", "organ", "synth-bass",
+    "synth-lead", "warm-pad", "pluck"
+  ]) {
+    const pack = loadSoundPack(path.join(root, "examples", "sounds", id));
+    assert.equal(pack.type, "pitched", id + " should be pitched");
+    assert.equal(pack.samples.size, 5, id + " should expose five root samples");
+    assert.equal(pack.license, "MIT");
+  }
 
   const legacyDir = fs.mkdtempSync(path.join(os.tmpdir(), "notescript-legacy-soundpad-"));
   fs.copyFileSync(
@@ -452,11 +469,35 @@ test("control service exposes sound details and audition WAV", () => {
   assert.ok(piano.samples.some((sample) => sample.note === "C4"));
 
   assert.ok(soundPad);
+  assert.equal(soundPad.triggers.length, 16);
   assert.ok(soundPad.triggers.includes("kick"));
+  assert.ok(soundPad.triggers.includes("impact"));
+
+  for (const id of [
+    "piano", "electric-piano", "music-box", "organ", "synth-bass",
+    "synth-lead", "warm-pad", "pluck", "soundpad"
+  ]) {
+    assert.ok(sounds.some((item) => item.id === id), "missing production sound: " + id);
+  }
 
   const audio = service.getAuditionAudio("piano", { note: 60 });
   assert.equal(audio.buffer.toString("ascii", 0, 4), "RIFF");
   assert.ok(audio.buffer.length > 44);
+
+  for (const id of [
+    "electric-piano", "music-box", "organ", "synth-bass",
+    "synth-lead", "warm-pad", "pluck"
+  ]) {
+    const audition = service.getAuditionAudio(id, { note: 60 });
+    assert.equal(audition.buffer.toString("ascii", 0, 4), "RIFF", id + " audition should be WAV");
+    assert.ok(audition.buffer.length > 44);
+  }
+
+  for (const trigger of ["kick", "snare", "crash", "chime", "laser", "impact"]) {
+    const audition = service.getAuditionAudio("soundpad", { trigger });
+    assert.equal(audition.buffer.toString("ascii", 0, 4), "RIFF", trigger + " should be WAV");
+    assert.ok(audition.buffer.length > 44);
+  }
 
   const instruments = service.listInstruments();
   const sfz = instruments.find((item) => item.id === "SFZ/basic-sfz");

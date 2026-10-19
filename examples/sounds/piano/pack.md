@@ -4,11 +4,11 @@ Built-in deterministic pitched sound source for NoteScript.
 
 ```notescript-sound
 name: Piano
-version: 1
+version: 2
 author: NoteScript project
 license: MIT
 source: generated locally by scripts/generate-core-sounds.js
-description: Core synthetic pitched piano-style sound pack.
+description: Core synthetic piano-style sound pack.
 type: pitched
 fallback: nearest
 sample C3 = C3.wav

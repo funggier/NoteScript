@@ -160,10 +160,30 @@ jobs:
             }
 
             $sounds = Invoke-RestMethod -Uri "$baseUri/v1/sounds?details=1" -TimeoutSec 5
-            $piano = @($sounds.sounds | Where-Object { $_.id -eq "piano" })
+            $requiredSoundIds = @(
+              "piano",
+              "electric-piano",
+              "music-box",
+              "organ",
+              "synth-bass",
+              "synth-lead",
+              "warm-pad",
+              "pluck",
+              "soundpad"
+            )
+            foreach ($requiredSoundId in $requiredSoundIds) {
+              if (@($sounds.sounds | Where-Object { $_.id -eq $requiredSoundId }).Count -ne 1) {
+                throw "Missing portable production sound: $requiredSoundId"
+              }
+            }
             $soundPad = @($sounds.sounds | Where-Object { $_.id -eq "soundpad" })
-            if ($sounds.sounds.Count -ne 2 -or $piano.Count -ne 1 -or $soundPad.Count -ne 1 -or $soundPad[0].type -ne "soundpad") {
-              throw "Portable production sound naming / SoundPad discovery smoke test failed."
+            if (
+              $sounds.sounds.Count -ne $requiredSoundIds.Count -or
+              $soundPad[0].type -ne "soundpad" -or
+              $soundPad[0].triggers.Count -ne 16 -or
+              -not ($soundPad[0].triggers -contains "impact")
+            ) {
+              throw "Portable production sound library / SoundPad discovery smoke test failed."
             }
 
             $preview = Join-Path $env:RUNNER_TEMP "notescript-transport-preview.wav"

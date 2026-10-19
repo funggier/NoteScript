@@ -47,7 +47,25 @@ trigger rain = rain.wav
 
 SoundPad triggers can represent percussion, ambience, effects or arbitrary one-shots.
 
+The built-in production SoundPad currently uses 16 deterministic triggers: `kick`, `snare`, `clap`, `closed-hat`, `open-hat`, `shaker`, `tom-low`, `tom-high`, `rim`, `cowbell`, `crash`, `ride`, `chime`, `click`, `laser`, and `impact`. The default Studio SoundPad hotkey table has 16 slots, so every built-in trigger receives a default binding while remaining fully remappable.
+
 The preferred manifest token is `type: soundpad`. Legacy `type: kit` manifests remain accepted and are canonicalized to SoundPad.
+
+## Built-in production packs
+
+The repository-generated native library currently includes eight pitched packs plus one SoundPad pack:
+
+- `piano`
+- `electric-piano`
+- `music-box`
+- `organ`
+- `synth-bass`
+- `synth-lead`
+- `warm-pad`
+- `pluck`
+- `soundpad`
+
+All bundled WAV files are generated deterministically by `scripts/generate-core-sounds.js` and distributed under the NoteScript project MIT license. Third-party add-ons remain separate works and must preserve their own license/source metadata.
 
 ## Current decoder
 
