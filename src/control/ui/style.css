@@ -201,6 +201,12 @@ input[type="range"] {
   background: #192038;
   color: #dfe5ff;
   cursor: pointer;
+  margin-top: 9px;
+}
+
+.action-button.secondary {
+  background: #151a26;
+  color: #aeb7c8;
 }
 
 .action-button:hover {
@@ -223,6 +229,36 @@ input[type="range"] {
 .action-button:disabled {
   opacity: .45;
   cursor: not-allowed;
+}
+
+.transport-panel select + .action-button {
+  margin-top: 9px;
+}
+
+.transport-buttons {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.transport-buttons .action-button {
+  margin-top: 0;
+  padding-inline: 6px;
+}
+
+.transport-seek {
+  width: 100%;
+  margin-top: 13px;
+}
+
+.transport-time {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 2px;
+  font-size: 10px;
+  color: #7f899a;
+  font-variant-numeric: tabular-nums;
 }
 
 .legend .keymap {

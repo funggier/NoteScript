@@ -170,7 +170,11 @@ Implemented:
 - Decoder abstraction with optional FFmpeg support for FLAC/OGG/OPUS/AIFF/MP3/M4A.
 - First SFZ subset parser/renderer with key/velocity regions, pitch center, tune/transpose, gain and simple envelope handling.
 - MIDI export.
-- Windows preview via the default audio player.
+- Windows preview via the default audio player for the legacy CLI preview command.
+- In-browser Project Transport preview with Play/Pause/Stop/Seek/Loop and no external player.
+- In-memory/cached project preview rendering through the Control API.
+- Non-destructive preview volume and stereo pan controls.
+- Browser audio-output selection when the browser exposes Web Audio `setSinkId`.
 - Separate SFZ/SF2/SF3 instrument add-on discovery/validation.
 - SFZ offline song rendering and SFZ audition-note rendering.
 - Optional FluidSynth backend for SF2/SF3 offline rendering and audition-note rendering.
@@ -186,10 +190,10 @@ Implemented:
 
 Planned:
 
-- Full desktop GUI editor, piano roll, transport and project browser.
-- Measured/tuned end-to-end low-latency audio path and selectable output devices.
+- Full desktop GUI editor, piano roll and richer project browser.
+- Measured/tuned end-to-end low-latency audio path, including direct live-backend output-device selection.
 - Physical MIDI-controller qualification and richer MIDI mappings.
-- Stereo/pan processing.
+- Per-track stereo/pan processing in the deterministic offline renderer.
 - Broader SFZ opcode/loop/round-robin/articulation compatibility.
 - Persistent server-side SFZ/native sample voice engine where browser playback is insufficient.
 - Effects, automation, loops, articulations, velocity layers and round-robin.
@@ -221,12 +225,14 @@ Current API surface:
 - `GET /v1/audition/audio`
 - `GET /v1/audition/instrument`
 - `GET /v1/live/status`
+- `GET /v1/transport/audio`
 - `POST /v1/live/select`
 - `POST /v1/live/note-on`
 - `POST /v1/live/note-off`
 - `POST /v1/live/sustain`
 - `POST /v1/live/all-notes-off`
 - `POST /v1/live/stop`
+- `POST /v1/transport/cache/clear`
 - `POST /v1/projects` — save a validated NoteScript document into `projects/`
 - `POST /v1/validate`
 - `POST /v1/render`

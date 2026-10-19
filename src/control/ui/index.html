@@ -19,6 +19,53 @@
 
     <main class="workspace">
       <aside class="sidebar">
+        <section class="panel transport-panel">
+          <div class="section-title">
+            <h2>Project Transport</h2>
+            <span class="badge">PREVIEW</span>
+          </div>
+
+          <select id="projectSelect" aria-label="NoteScript project"></select>
+          <button id="transportLoad" class="action-button" type="button">Load Project Preview</button>
+
+          <div class="transport-buttons">
+            <button id="transportPlay" class="action-button" type="button">Play</button>
+            <button id="transportPause" class="action-button" type="button">Pause</button>
+            <button id="transportStop" class="action-button" type="button">Stop</button>
+          </div>
+
+          <input id="transportSeek" class="transport-seek" type="range" min="0" max="1000" value="0" aria-label="Project preview position">
+          <div class="transport-time">
+            <span id="transportPosition">0:00.0</span>
+            <span id="transportDuration">0:00.0</span>
+          </div>
+
+          <label class="toggle-row">
+            <input id="transportLoop" type="checkbox">
+            <span>Loop project</span>
+          </label>
+
+          <div class="control-row spaced">
+            <label for="transportVolume">Preview volume</label>
+            <output id="transportVolumeValue">80%</output>
+          </div>
+          <input id="transportVolume" type="range" min="0" max="100" value="80">
+
+          <div class="control-row spaced">
+            <label for="transportPan">Preview pan</label>
+            <output id="transportPanValue">0</output>
+          </div>
+          <input id="transportPan" type="range" min="-100" max="100" value="0">
+
+          <div class="control-row spaced">
+            <label for="outputDevice">Browser output</label>
+          </div>
+          <select id="outputDevice" aria-label="Browser audio output"></select>
+          <button id="refreshOutputs" class="action-button secondary" type="button">Refresh Outputs</button>
+
+          <div id="transportStatus" class="meta">Select a project and load its preview.</div>
+        </section>
+
         <section class="panel">
           <div class="section-title">
             <h2>Sound Pack</h2>

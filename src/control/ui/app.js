@@ -1,5 +1,21 @@
 const ui = {
   engineStatus: document.querySelector("#engineStatus"),
+  projectSelect: document.querySelector("#projectSelect"),
+  transportLoad: document.querySelector("#transportLoad"),
+  transportPlay: document.querySelector("#transportPlay"),
+  transportPause: document.querySelector("#transportPause"),
+  transportStop: document.querySelector("#transportStop"),
+  transportSeek: document.querySelector("#transportSeek"),
+  transportPosition: document.querySelector("#transportPosition"),
+  transportDuration: document.querySelector("#transportDuration"),
+  transportLoop: document.querySelector("#transportLoop"),
+  transportVolume: document.querySelector("#transportVolume"),
+  transportVolumeValue: document.querySelector("#transportVolumeValue"),
+  transportPan: document.querySelector("#transportPan"),
+  transportPanValue: document.querySelector("#transportPanValue"),
+  outputDevice: document.querySelector("#outputDevice"),
+  refreshOutputs: document.querySelector("#refreshOutputs"),
+  transportStatus: document.querySelector("#transportStatus"),
   soundSelect: document.querySelector("#soundSelect"),
   soundMeta: document.querySelector("#soundMeta"),
   instrumentSelect: document.querySelector("#instrumentSelect"),
@@ -44,7 +60,20 @@ const state = {
   liveReady: false,
   buffers: new Map(),
   keyHeld: new Set(),
-  midiAccess: null
+  midiAccess: null,
+  transport: {
+    project: null,
+    buffer: null,
+    source: null,
+    gain: null,
+    panner: null,
+    playing: false,
+    offset: 0,
+    startedAt: 0,
+    duration: 0,
+    raf: 0,
+    loadToken: 0
+  }
 };
 
 const COMPUTER_KEYS = new Map([
@@ -121,6 +150,316 @@ function ensureAudio() {
   }
   if (state.audioContext.state === "suspended") state.audioContext.resume();
   return state.audioContext;
+}
+
+
+function formatTime(seconds) {
+  const value = Math.max(0, Number(seconds) || 0);
+  const minutes = Math.floor(value / 60);
+  const remaining = value - minutes * 60;
+  return minutes + ":" + remaining.toFixed(1).padStart(4, "0");
+}
+
+function transportPosition() {
+  const transport = state.transport;
+  if (!transport.playing || !state.audioContext) return transport.offset;
+
+  const elapsed = Math.max(0, state.audioContext.currentTime - transport.startedAt);
+  let position = transport.offset + elapsed;
+
+  if (ui.transportLoop.checked && transport.duration > 0) {
+    position %= transport.duration;
+  } else {
+    position = Math.min(transport.duration, position);
+  }
+
+  return position;
+}
+
+function updateTransportDisplay(position = transportPosition()) {
+  const transport = state.transport;
+  const duration = Math.max(0, transport.duration);
+  const safe = Math.max(0, Math.min(duration || 0, position || 0));
+  ui.transportPosition.textContent = formatTime(safe);
+  ui.transportDuration.textContent = formatTime(duration);
+  ui.transportSeek.value = duration > 0 ? String(Math.round((safe / duration) * 1000)) : "0";
+}
+
+function stopTransportAnimation() {
+  if (state.transport.raf) cancelAnimationFrame(state.transport.raf);
+  state.transport.raf = 0;
+}
+
+function transportAnimationTick() {
+  if (!state.transport.playing) {
+    stopTransportAnimation();
+    updateTransportDisplay();
+    return;
+  }
+  updateTransportDisplay();
+  state.transport.raf = requestAnimationFrame(transportAnimationTick);
+}
+
+function disconnectTransportNodes() {
+  const transport = state.transport;
+  try { transport.source?.disconnect(); } catch {}
+  try { transport.gain?.disconnect(); } catch {}
+  try { transport.panner?.disconnect(); } catch {}
+  transport.source = null;
+  transport.gain = null;
+  transport.panner = null;
+}
+
+function stopTransportSource(manual = true) {
+  const transport = state.transport;
+  if (!transport.source) return;
+  try {
+    transport.source.__manualStop = manual;
+    transport.source.stop();
+  } catch {}
+  disconnectTransportNodes();
+}
+
+function transportGainValue() {
+  return Math.max(0, Math.min(1, Number(ui.transportVolume.value) / 100));
+}
+
+function transportPanValue() {
+  return Math.max(-1, Math.min(1, Number(ui.transportPan.value) / 100));
+}
+
+async function loadTransportProject(project = ui.projectSelect.value, force = false) {
+  const name = String(project || "").trim();
+  if (!name) {
+    ui.transportStatus.textContent = "No project selected.";
+    return false;
+  }
+
+  const token = ++state.transport.loadToken;
+  stopTransport();
+  ui.transportStatus.textContent = "Rendering preview…";
+  ui.transportLoad.disabled = true;
+
+  try {
+    if (force) {
+      await post("/v1/transport/cache/clear", { project: name });
+    }
+
+    const response = await fetch(
+      "/v1/transport/audio?project=" + encodeURIComponent(name),
+      { cache: "no-store" }
+    );
+
+    if (!response.ok) {
+      let message = response.statusText;
+      try {
+        const data = await response.json();
+        message = data.message || data.error || message;
+      } catch {}
+      throw new Error(message);
+    }
+
+    const bytes = await response.arrayBuffer();
+    const context = ensureAudio();
+    const buffer = await context.decodeAudioData(bytes.slice(0));
+
+    if (token !== state.transport.loadToken) return false;
+
+    state.transport.project = name;
+    state.transport.buffer = buffer;
+    state.transport.duration = buffer.duration;
+    state.transport.offset = 0;
+    ui.transportStatus.textContent =
+      "Loaded " + name + " · " + formatTime(buffer.duration) + " · browser context " +
+      Math.round(buffer.sampleRate / 100) / 10 + " kHz";
+    updateTransportDisplay(0);
+    return true;
+  } catch (error) {
+    if (token === state.transport.loadToken) {
+      state.transport.buffer = null;
+      state.transport.duration = 0;
+      state.transport.offset = 0;
+      ui.transportStatus.textContent = "Preview error: " + error.message;
+      updateTransportDisplay(0);
+    }
+    return false;
+  } finally {
+    if (token === state.transport.loadToken) ui.transportLoad.disabled = false;
+  }
+}
+
+function createTransportSource() {
+  const context = ensureAudio();
+  const transport = state.transport;
+  const source = context.createBufferSource();
+  const gain = context.createGain();
+
+  source.buffer = transport.buffer;
+  source.loop = ui.transportLoop.checked;
+  if (source.loop && transport.duration > 0) {
+    source.loopStart = 0;
+    source.loopEnd = transport.duration;
+  }
+
+  gain.gain.value = transportGainValue();
+  source.connect(gain);
+
+  let panner = null;
+  if (typeof context.createStereoPanner === "function") {
+    panner = context.createStereoPanner();
+    panner.pan.value = transportPanValue();
+    gain.connect(panner);
+    panner.connect(context.destination);
+  } else {
+    gain.connect(context.destination);
+  }
+
+  source.onended = () => {
+    if (source.__manualStop) return;
+    if (state.transport.source !== source) return;
+    state.transport.playing = false;
+    state.transport.offset = 0;
+    disconnectTransportNodes();
+    stopTransportAnimation();
+    updateTransportDisplay(0);
+    ui.transportStatus.textContent = "Preview ended.";
+  };
+
+  transport.source = source;
+  transport.gain = gain;
+  transport.panner = panner;
+  return source;
+}
+
+async function playTransport() {
+  if (!state.transport.buffer) {
+    const loaded = await loadTransportProject();
+    if (!loaded) return;
+  }
+
+  const context = ensureAudio();
+  if (state.transport.playing) return;
+
+  if (state.transport.offset >= state.transport.duration) {
+    state.transport.offset = 0;
+  }
+
+  const source = createTransportSource();
+  const offset = Math.max(0, Math.min(state.transport.duration, state.transport.offset));
+  state.transport.startedAt = context.currentTime;
+  state.transport.playing = true;
+
+  source.start(0, offset);
+  ui.transportStatus.textContent =
+    "Playing " + (state.transport.project || "project") +
+    (ui.transportLoop.checked ? " · loop" : "");
+  stopTransportAnimation();
+  state.transport.raf = requestAnimationFrame(transportAnimationTick);
+}
+
+function pauseTransport() {
+  if (!state.transport.playing) return;
+
+  const position = transportPosition();
+  state.transport.playing = false;
+  state.transport.offset = position;
+  stopTransportSource(true);
+  stopTransportAnimation();
+  updateTransportDisplay(position);
+  ui.transportStatus.textContent = "Paused at " + formatTime(position) + ".";
+}
+
+function stopTransport() {
+  if (state.transport.playing) {
+    state.transport.playing = false;
+    stopTransportSource(true);
+  } else {
+    stopTransportSource(true);
+  }
+
+  stopTransportAnimation();
+  state.transport.offset = 0;
+  updateTransportDisplay(0);
+
+  if (state.transport.buffer) {
+    ui.transportStatus.textContent = "Stopped.";
+  }
+}
+
+function seekTransport(positionSeconds) {
+  const duration = state.transport.duration;
+  if (!duration) return;
+
+  const target = Math.max(0, Math.min(duration, positionSeconds));
+  const wasPlaying = state.transport.playing;
+  if (wasPlaying) pauseTransport();
+  state.transport.offset = target;
+  updateTransportDisplay(target);
+  if (wasPlaying) playTransport();
+}
+
+function updateTransportGain() {
+  const value = transportGainValue();
+  ui.transportVolumeValue.textContent = Math.round(value * 100) + "%";
+  if (state.transport.gain) state.transport.gain.gain.value = value;
+}
+
+function updateTransportPan() {
+  const value = transportPanValue();
+  ui.transportPanValue.textContent = String(Math.round(value * 100));
+  if (state.transport.panner) state.transport.panner.pan.value = value;
+}
+
+async function refreshOutputDevices() {
+  ui.outputDevice.innerHTML = "";
+
+  const defaultOption = document.createElement("option");
+  defaultOption.value = "";
+  defaultOption.textContent = "Default browser output";
+  ui.outputDevice.appendChild(defaultOption);
+
+  const context = ensureAudio();
+  if (
+    !navigator.mediaDevices?.enumerateDevices ||
+    typeof context.setSinkId !== "function"
+  ) {
+    ui.outputDevice.disabled = true;
+    ui.refreshOutputs.disabled = true;
+    ui.outputDevice.title = "Browser does not expose selectable Web Audio output devices.";
+    return;
+  }
+
+  try {
+    const devices = (await navigator.mediaDevices.enumerateDevices())
+      .filter((device) => device.kind === "audiooutput");
+
+    for (const [index, device] of devices.entries()) {
+      const option = document.createElement("option");
+      option.value = device.deviceId;
+      option.textContent = device.label || ("Audio output " + (index + 1));
+      ui.outputDevice.appendChild(option);
+    }
+
+    ui.outputDevice.disabled = false;
+    ui.refreshOutputs.disabled = false;
+  } catch (error) {
+    ui.outputDevice.disabled = true;
+    ui.transportStatus.textContent = "Output discovery unavailable: " + error.message;
+  }
+}
+
+async function applyOutputDevice() {
+  const context = ensureAudio();
+  if (typeof context.setSinkId !== "function") return;
+
+  try {
+    await context.setSinkId(ui.outputDevice.value || "");
+    ui.transportStatus.textContent =
+      "Browser output changed to " +
+      (ui.outputDevice.selectedOptions[0]?.textContent || "default") + ".";
+  } catch (error) {
+    ui.transportStatus.textContent = "Could not change browser output: " + error.message;
+  }
 }
 
 function nearestRoot(pack, midi) {
@@ -743,10 +1082,48 @@ async function initialize() {
   ui.enableMidi?.addEventListener("click", enableMidiInput);
   ui.instrumentSelect.addEventListener("change", () => selectInstrument(ui.instrumentSelect.value));
 
+  ui.transportLoad.addEventListener("click", () => loadTransportProject(ui.projectSelect.value, true));
+  ui.transportPlay.addEventListener("click", playTransport);
+  ui.transportPause.addEventListener("click", pauseTransport);
+  ui.transportStop.addEventListener("click", stopTransport);
+  ui.transportSeek.addEventListener("change", () => {
+    const ratio = Number(ui.transportSeek.value) / 1000;
+    seekTransport(state.transport.duration * ratio);
+  });
+  ui.transportLoop.addEventListener("change", () => {
+    if (state.transport.source) {
+      state.transport.source.loop = ui.transportLoop.checked;
+      if (ui.transportLoop.checked && state.transport.duration > 0) {
+        state.transport.source.loopStart = 0;
+        state.transport.source.loopEnd = state.transport.duration;
+      }
+    }
+    if (state.transport.playing) {
+      ui.transportStatus.textContent =
+        "Playing " + (state.transport.project || "project") +
+        (ui.transportLoop.checked ? " · loop" : "");
+    }
+  });
+  ui.transportVolume.addEventListener("input", updateTransportGain);
+  ui.transportPan.addEventListener("input", updateTransportPan);
+  ui.refreshOutputs.addEventListener("click", refreshOutputDevices);
+  ui.outputDevice.addEventListener("change", applyOutputDevice);
+  ui.projectSelect.addEventListener("change", () => {
+    if (state.transport.project !== ui.projectSelect.value) {
+      ui.transportStatus.textContent = "Project changed. Load preview to refresh audio.";
+    }
+  });
+
+  updateTransportGain();
+  updateTransportPan();
+  updateTransportDisplay(0);
+  ui.outputDevice.innerHTML = '<option value="">Default browser output</option>';
+
   try {
-    const [health, capabilities, soundsData, instrumentsData] = await Promise.all([
+    const [health, capabilities, projectsData, soundsData, instrumentsData] = await Promise.all([
       api("/v1/health"),
       api("/v1/capabilities"),
+      api("/v1/projects"),
       api("/v1/sounds?details=1"),
       api("/v1/instruments")
     ]);
@@ -754,6 +1131,29 @@ async function initialize() {
     state.capabilities = capabilities;
     state.sounds = soundsData.sounds || [];
     state.instruments = instrumentsData.instruments || [];
+
+    const projects = projectsData.projects || [];
+    ui.projectSelect.innerHTML = "";
+    if (projects.length === 0) {
+      const option = document.createElement("option");
+      option.value = "";
+      option.textContent = "No projects found";
+      ui.projectSelect.appendChild(option);
+      ui.projectSelect.disabled = true;
+      ui.transportLoad.disabled = true;
+      ui.transportPlay.disabled = true;
+      ui.transportPause.disabled = true;
+      ui.transportStop.disabled = true;
+      ui.transportStatus.textContent = "Put NoteScript .md files in the projects folder.";
+    } else {
+      for (const project of projects) {
+        const option = document.createElement("option");
+        option.value = project;
+        option.textContent = project;
+        ui.projectSelect.appendChild(option);
+      }
+      ui.transportStatus.textContent = "Select a project and load its preview.";
+    }
 
     ui.engineStatus.textContent = health.coreVersion + " · ready";
     ui.engineStatus.classList.add("ok");
@@ -802,7 +1202,12 @@ async function initialize() {
 
 window.addEventListener("keydown", (event) => {
   if (event.repeat) return;
-  if (event.target instanceof HTMLInputElement || event.target instanceof HTMLSelectElement) return;
+  if (
+    event.target instanceof HTMLInputElement ||
+    event.target instanceof HTMLSelectElement ||
+    event.target instanceof HTMLButtonElement ||
+    event.target instanceof HTMLTextAreaElement
+  ) return;
 
   const key = event.key.toLowerCase();
 

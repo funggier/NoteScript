@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { parseSong } from "../parser.js";
-import { renderInstrumentNoteToWavBuffer, renderToWav } from "../renderer.js";
+import { renderInstrumentNoteToWavBuffer, renderToWav, renderToWavBuffer } from "../renderer.js";
 import { exportMidi } from "../midi.js";
 import { listSoundAddons } from "../sound/resolver.js";
 import { loadSoundPack } from "../sound/pack.js";
@@ -57,6 +57,7 @@ export function createControlService(programRoot) {
   const soundsRoot = path.join(root, "sounds");
   const instrumentsRoot = path.join(root, "instruments");
   const livePlayback = new LivePlaybackManager(root);
+  const transportCache = new Map();
 
   for (const dir of [projectsRoot, exportsRoot, soundsRoot, instrumentsRoot]) {
     fs.mkdirSync(dir, { recursive: true });
@@ -148,6 +149,7 @@ export function createControlService(programRoot) {
       const file = assertInside(projectsRoot, path.join(projectsRoot, filename));
       const parsed = parseSong(String(markdown));
       fs.writeFileSync(file, String(markdown), "utf8");
+      transportCache.delete(file);
       return { file, title: parsed.title, tracks: parsed.tracks.length };
     },
 
@@ -240,6 +242,45 @@ export function createControlService(programRoot) {
             ((addon.format === "SF2" || addon.format === "SF3") && fluidSynth.available)
         };
       });
+    },
+
+    getTransportPreview(fileOrName) {
+      const { file, markdown } = loadProject(fileOrName);
+      const stat = fs.statSync(file);
+      const signature = stat.size + ":" + stat.mtimeMs;
+      const cached = transportCache.get(file);
+
+      if (cached && cached.signature === signature) {
+        return cached.preview;
+      }
+
+      const song = parseSong(markdown);
+      const rendered = renderToWavBuffer(song, file, { portableRoot: root });
+      const preview = {
+        buffer: rendered.buffer,
+        project: path.basename(file),
+        title: song.title,
+        tempo: song.config.tempo,
+        ...rendered.report
+      };
+
+      transportCache.set(file, { signature, preview });
+      while (transportCache.size > 4) {
+        const oldest = transportCache.keys().next().value;
+        transportCache.delete(oldest);
+      }
+
+      return preview;
+    },
+
+    clearTransportCache(fileOrName = null) {
+      if (!fileOrName) {
+        transportCache.clear();
+        return { cleared: "all" };
+      }
+      const file = resolveProject(fileOrName);
+      transportCache.delete(file);
+      return { cleared: path.basename(file) };
     },
 
     liveStatus() {

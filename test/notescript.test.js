@@ -9,7 +9,7 @@ import { parseSong } from "../src/parser.js";
 import { loadSoundPack } from "../src/sound/pack.js";
 import { loadInstrumentAddon, listInstrumentAddons } from "../src/instrument/addon.js";
 import { parseSfzFile, selectSfzRegions, sfzPitchRatio } from "../src/instrument/sfz.js";
-import { renderToWav } from "../src/renderer.js";
+import { renderToWav, renderToWavBuffer } from "../src/renderer.js";
 import { buildSingleTrackMidiBuffer } from "../src/midi.js";
 import { compileTimeline } from "../src/timeline.js";
 import { getFluidSynthCapabilities } from "../src/instrument/fluidsynth.js";
@@ -67,6 +67,15 @@ test("renders deterministic WAV output", () => {
   assert.ok(fs.statSync(out).size > 44);
   assert.equal(report.sampleRate, 44100);
   assert.equal(fs.readFileSync(out).toString("ascii", 0, 4), "RIFF");
+});
+
+test("renders an in-memory WAV preview without writing a file", () => {
+  const song = parseSong(fs.readFileSync(songFile, "utf8"));
+  const rendered = renderToWavBuffer(song, songFile);
+  assert.equal(rendered.buffer.toString("ascii", 0, 4), "RIFF");
+  assert.ok(rendered.buffer.length > 44);
+  assert.equal(rendered.report.sampleRate, 44100);
+  assert.ok(rendered.report.durationSeconds > 1);
 });
 
 test("renders a NoteScript project through the SFZ instrument adapter", () => {
@@ -234,6 +243,30 @@ test("control service saves and validates a project inside portable workspace", 
   assert.deepEqual(service.listProjects(), ["Evening Test.md"]);
 });
 
+test("control service caches project transport preview audio", () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "notescript-transport-"));
+  fs.mkdirSync(path.join(dir, "projects"), { recursive: true });
+  fs.cpSync(path.join(root, "examples", "sounds"), path.join(dir, "sounds"), {
+    recursive: true,
+    force: true
+  });
+  fs.copyFileSync(songFile, path.join(dir, "projects", "Evening Walk.md"));
+
+  const service = createControlService(dir);
+  const first = service.getTransportPreview("Evening Walk.md");
+  const second = service.getTransportPreview("Evening Walk.md");
+
+  assert.equal(first.buffer.toString("ascii", 0, 4), "RIFF");
+  assert.strictEqual(first, second);
+  assert.equal(first.project, "Evening Walk.md");
+  assert.ok(first.durationSeconds > 1);
+
+  service.clearTransportCache("Evening Walk.md");
+  const third = service.getTransportPreview("Evening Walk.md");
+  assert.notStrictEqual(first, third);
+  assert.equal(third.buffer.toString("ascii", 0, 4), "RIFF");
+});
+
 test("control service exposes sound details and audition WAV", () => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "notescript-audition-"));
   fs.cpSync(path.join(root, "examples", "sounds"), path.join(dir, "sounds"), {
@@ -282,6 +315,12 @@ test("audition UI assets expose live playback and Web MIDI controls", () => {
   const app = fs.readFileSync(path.join(root, "src", "control", "ui", "app.js"), "utf8");
   assert.match(html, /id="panic"/);
   assert.match(html, /id="enableMidi"/);
+  assert.match(html, /id="transportPlay"/);
+  assert.match(html, /id="transportSeek"/);
+  assert.match(html, /id="outputDevice"/);
+  assert.match(app, /\/v1\/transport\/audio/);
+  assert.match(app, /createStereoPanner/);
+  assert.match(app, /setSinkId/);
   assert.match(app, /\/v1\/live\/select/);
   assert.match(app, /\/v1\/live\/note-on/);
   assert.match(app, /\/v1\/live\/all-notes-off/);

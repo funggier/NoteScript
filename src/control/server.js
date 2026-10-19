@@ -98,6 +98,10 @@ const server = http.createServer(async (req, res) => {
     if (req.method === "GET" && url.pathname === "/v1/live/status") {
       return json(res, 200, service.liveStatus());
     }
+    if (req.method === "GET" && url.pathname === "/v1/transport/audio") {
+      const preview = service.getTransportPreview(url.searchParams.get("project"));
+      return binary(res, 200, "audio/wav", preview.buffer);
+    }
     if (req.method === "GET" && url.pathname === "/v1/audition/audio") {
       const pack = url.searchParams.get("pack");
       const note = url.searchParams.has("note") ? url.searchParams.get("note") : null;
@@ -111,6 +115,11 @@ const server = http.createServer(async (req, res) => {
       const velocity = url.searchParams.get("velocity") || "96";
       const audio = service.getInstrumentAuditionAudio(instrument, note, velocity);
       return binary(res, 200, "audio/wav", audio.buffer);
+    }
+
+    if (req.method === "POST" && url.pathname === "/v1/transport/cache/clear") {
+      const input = await body(req);
+      return json(res, 200, service.clearTransportCache(input.project || null));
     }
 
     if (req.method === "POST" && url.pathname === "/v1/live/select") {

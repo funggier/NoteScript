@@ -30,6 +30,8 @@ Current v1 routes:
 - native sound audition audio
 - SFZ/SF2/SF3 instrument audition audio
 - persistent SoundFont live status and commands
+- in-memory/cached project transport preview audio
+- transport preview cache invalidation
 - save project
 - validate project
 - render WAV

@@ -193,6 +193,14 @@ The following were verified instead:
 - live API endpoints work against real audio backend;
 - portable and source capability/status behavior is correct.
 
+## GitHub exact-commit evidence
+
+- repository: `funggier/NoteScript` (public)
+- persistent-live checkpoint commit: `a70e43bb791ed609f491a7257463a58e6d61c375`
+- GitHub Actions run: `39262242295` (CI run #5)
+- result: `completed / success`
+- successful steps: checkout, Node setup, `npm ci`, syntax check, automated tests, portable build, portable smoke test
+
 ## Conclusion
 
 The NTS-003 persistent SoundFont playback baseline is locally GREEN.

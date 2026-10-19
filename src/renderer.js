@@ -157,7 +157,7 @@ function renderSfzEvent(event, track, instrument, output, startFrame, durationFr
   }
 }
 
-export function renderToWav(song, songFile, outputFile, options = {}) {
+function renderSongSamples(song, songFile, options = {}) {
   const timeline = compileTimeline(song);
   const sampleRate = options.sampleRate || 44100;
   const tailSeconds = options.tailSeconds ?? 0.5;
@@ -246,15 +246,37 @@ export function renderToWav(song, songFile, outputFile, options = {}) {
   }
 
   const peak = normalizeOutput(output);
-  fs.mkdirSync(path.dirname(path.resolve(outputFile)), { recursive: true });
-  fs.writeFileSync(outputFile, encodeMonoPcm16(output, sampleRate));
-
   return {
-    outputFile: path.resolve(outputFile),
+    samples: output,
     sampleRate,
     durationSeconds: output.length / sampleRate,
     peakBeforeNormalization: peak,
     tracks: timeline.tracks.length
+  };
+}
+
+export function renderToWavBuffer(song, songFile, options = {}) {
+  const rendered = renderSongSamples(song, songFile, options);
+  return {
+    buffer: encodeMonoPcm16(rendered.samples, rendered.sampleRate),
+    report: {
+      sampleRate: rendered.sampleRate,
+      durationSeconds: rendered.durationSeconds,
+      peakBeforeNormalization: rendered.peakBeforeNormalization,
+      tracks: rendered.tracks
+    }
+  };
+}
+
+export function renderToWav(song, songFile, outputFile, options = {}) {
+  const rendered = renderToWavBuffer(song, songFile, options);
+  const resolved = path.resolve(outputFile);
+  fs.mkdirSync(path.dirname(resolved), { recursive: true });
+  fs.writeFileSync(resolved, rendered.buffer);
+
+  return {
+    outputFile: resolved,
+    ...rendered.report
   };
 }
 
