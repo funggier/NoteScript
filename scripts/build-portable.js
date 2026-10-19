@@ -58,6 +58,10 @@ fs.copyFileSync(
   path.join(root, "examples", "sfz-basic.md"),
   path.join(out, "projects", "SFZ Basic.md")
 );
+fs.copyFileSync(
+  path.join(root, "examples", "beatlane6-starter.md"),
+  path.join(out, "projects", "BeatLane6 Starter.md")
+);
 
 const cmd = [
   "@echo off",

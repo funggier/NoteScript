@@ -160,8 +160,45 @@ Evidence:
 
 `docs/development/reports/NOTESCRIPT-20261020-sound-library-expansion.md`
 
-## Next requested work — NTS-007 BeatLane6
+## NTS-007 BeatLane6
 
-Status: **PLANNED / NOT YET ACTIVE**
+Status: **ACTIVE / IMPLEMENTED / LOCAL GREEN / EXACT-COMMIT CI PENDING**
 
-BeatLane6 is the next user-prioritized feature. It must use NoteScript Markdown songs as level/chart sources and retain Markdown as the authoritative music representation.
+BeatLane6 is the current user-prioritized feature. NoteScript Markdown remains the authoritative music representation; gameplay charts are derived deterministically from the canonical timeline.
+
+Implemented baseline:
+
+- [x] Six lanes: `A S D | J K L`.
+- [x] Deterministic Easy / Normal / Hard chart generation from existing `.md` projects.
+- [x] 2.5-second pre-roll / approach highway.
+- [x] Tap, simultaneous/chord and Hold notes.
+- [x] Web Audio `AudioContext.currentTime` as gameplay timing authority.
+- [x] Perfect / Great / Good / Miss judgement windows.
+- [x] Combo, multiplier, score, weighted accuracy and max combo.
+- [x] Life gauge, FAILED state and SUCCESS result path.
+- [x] Successful hits play the source track's real NoteScript sound/instrument.
+- [x] Optional low-volume project guide track synchronized to the same audio clock.
+- [x] Pointer lanes plus simultaneous computer-keyboard input.
+- [x] Game stop on window blur to avoid passive misses while focus is lost.
+- [x] Bundled `BeatLane6 Starter.md` teaching all six lanes.
+- [x] Portable Control API capability/chart endpoints.
+- [x] Architecture documentation.
+- [x] Local syntax check: 26 JavaScript files PASS.
+- [x] Automated tests: 22/22 PASS.
+- [x] Portable build and runtime/API smoke PASS.
+- [x] Isolated browser UI smoke: Game mode, Starter discovery, Start, Fail, Restart, Stop and return to Live mode PASS.
+
+Evidence:
+
+- `docs/architecture/BEATLANE6.md`
+
+Remaining gate for this implementation commit:
+
+- [ ] exact-commit GitHub Actions GREEN.
+
+Deferred extensions, not required for the current baseline:
+
+- slide/drag notes
+- manual chart overrides/editor
+- persistent high scores
+- input/audio offset calibration polish

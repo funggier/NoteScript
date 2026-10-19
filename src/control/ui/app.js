@@ -3,6 +3,35 @@ const ui = {
   dirtyState: document.querySelector("#dirtyState"),
   hudOctave: document.querySelector("#hudOctave"),
   hudVelocity: document.querySelector("#hudVelocity"),
+  livePlayMode: document.querySelector("#livePlayMode"),
+  beatLanePlayMode: document.querySelector("#beatLanePlayMode"),
+  liveStageHeader: document.querySelector("#liveStageHeader"),
+  liveMonitor: document.querySelector("#liveMonitor"),
+  beatLaneView: document.querySelector("#beatLaneView"),
+  beatLaneControls: document.querySelector("#beatLaneControls"),
+  beatLaneProject: document.querySelector("#beatLaneProject"),
+  beatLaneDifficulty: document.querySelector("#beatLaneDifficulty"),
+  beatLaneGuide: document.querySelector("#beatLaneGuide"),
+  beatLaneStart: document.querySelector("#beatLaneStart"),
+  beatLaneStop: document.querySelector("#beatLaneStop"),
+  beatLaneStatus: document.querySelector("#beatLaneStatus"),
+  beatLaneSongTitle: document.querySelector("#beatLaneSongTitle"),
+  beatLaneHighway: document.querySelector("#beatLaneHighway"),
+  beatLaneNotes: document.querySelector("#beatLaneNotes"),
+  beatLaneCountdown: document.querySelector("#beatLaneCountdown"),
+  beatLaneJudgement: document.querySelector("#beatLaneJudgement"),
+  beatLaneScore: document.querySelector("#beatLaneScore"),
+  beatLaneCombo: document.querySelector("#beatLaneCombo"),
+  beatLaneMultiplier: document.querySelector("#beatLaneMultiplier"),
+  beatLaneAccuracy: document.querySelector("#beatLaneAccuracy"),
+  beatLaneLifeText: document.querySelector("#beatLaneLifeText"),
+  beatLaneLifeBar: document.querySelector("#beatLaneLifeBar"),
+  beatLaneResult: document.querySelector("#beatLaneResult"),
+  beatLaneResultTitle: document.querySelector("#beatLaneResultTitle"),
+  beatLaneResultSummary: document.querySelector("#beatLaneResultSummary"),
+  beatLaneLanes: [...document.querySelectorAll(".beatlane-lane")],
+  playWorkspace: document.querySelector(".play-workspace"),
+  projectTransportControls: document.querySelector(".transport-sidebar > .panel.transport-panel:not(.beatlane-controls)"),
   projectSelect: document.querySelector("#projectSelect"),
   transportLoad: document.querySelector("#transportLoad"),
   transportPlay: document.querySelector("#transportPlay"),
@@ -117,6 +146,7 @@ const state = {
   capabilities: null,
   selected: null,
   selectedInstrument: null,
+  playMode: "live",
   sourceMode: "sound",
   instrumentPlaybackMode: "buffered",
   octaveShift: 0,
@@ -132,6 +162,30 @@ const state = {
   buffers: new Map(),
   keyHeld: new Set(),
   midiAccess: null,
+  beatLane6: {
+    chart: null,
+    project: null,
+    difficulty: "normal",
+    running: false,
+    startedAt: 0,
+    raf: 0,
+    score: 0,
+    combo: 0,
+    maxCombo: 0,
+    life: 100,
+    judgements: { perfect: 0, great: 0, good: 0, miss: 0 },
+    eventState: new Map(),
+    activeHolds: new Map(),
+    gameVoices: new Map(),
+    guideSource: null,
+    guideGain: null,
+    guideBuffer: null,
+    guideProject: null,
+    laneHeld: new Set(),
+    audio: new Map(),
+    noteElements: new Map(),
+    judgementTimer: 0
+  },
   studio: {
     projects: [],
     currentProject: null,
@@ -494,6 +548,646 @@ function ensureAudio() {
   return state.audioContext;
 }
 
+
+
+const BEATLANE6_INPUT_KEYS = ["a", "s", "d", "j", "k", "l"];
+
+function beatLaneMultiplier(combo = state.beatLane6.combo) {
+  if (combo >= 50) return 4;
+  if (combo >= 25) return 3;
+  if (combo >= 10) return 2;
+  return 1;
+}
+
+function beatLaneAccuracy() {
+  const counts = state.beatLane6.judgements;
+  const total = counts.perfect + counts.great + counts.good + counts.miss;
+  if (total === 0) return 100;
+  const weighted =
+    counts.perfect +
+    counts.great * 0.85 +
+    counts.good * 0.6;
+  return (weighted / total) * 100;
+}
+
+function updateBeatLaneHud() {
+  ui.beatLaneScore.textContent = Math.round(state.beatLane6.score).toLocaleString();
+  ui.beatLaneCombo.textContent = String(state.beatLane6.combo);
+  ui.beatLaneMultiplier.textContent = "x" + beatLaneMultiplier();
+  ui.beatLaneAccuracy.textContent = beatLaneAccuracy().toFixed(1) + "%";
+  ui.beatLaneLifeText.textContent = String(Math.max(0, Math.round(state.beatLane6.life)));
+  ui.beatLaneLifeBar.style.width = Math.max(0, Math.min(100, state.beatLane6.life)) + "%";
+}
+
+function showBeatLaneJudgement(text, className = "") {
+  clearTimeout(state.beatLane6.judgementTimer);
+  ui.beatLaneJudgement.textContent = text;
+  ui.beatLaneJudgement.className = "beatlane-judgement" + (className ? " " + className : "");
+  state.beatLane6.judgementTimer = window.setTimeout(() => {
+    ui.beatLaneJudgement.textContent = "";
+    ui.beatLaneJudgement.className = "beatlane-judgement";
+  }, 420);
+}
+
+function beatLanePosition() {
+  if (!state.beatLane6.running || !state.audioContext) return 0;
+  return state.audioContext.currentTime - state.beatLane6.startedAt;
+}
+
+function setBeatLaneLaneActive(lane, active) {
+  const element = ui.beatLaneLanes.find((item) => Number(item.dataset.lane) === lane);
+  if (element) element.classList.toggle("active", active);
+}
+
+function stopBeatLaneGuide() {
+  try { state.beatLane6.guideSource?.stop(); } catch {}
+  try { state.beatLane6.guideSource?.disconnect(); } catch {}
+  try { state.beatLane6.guideGain?.disconnect(); } catch {}
+  state.beatLane6.guideSource = null;
+  state.beatLane6.guideGain = null;
+}
+
+function releaseBeatLaneVoice(eventId, fast = false) {
+  const voice = state.beatLane6.gameVoices.get(eventId);
+  if (!voice) return;
+  state.beatLane6.gameVoices.delete(eventId);
+  const now = voice.context.currentTime;
+  const release = fast ? 0.02 : 0.07;
+  try {
+    voice.gain.gain.cancelScheduledValues(now);
+    voice.gain.gain.setValueAtTime(Math.max(0.0001, voice.gain.gain.value), now);
+    voice.gain.gain.exponentialRampToValueAtTime(0.0001, now + release);
+    voice.source.stop(now + release + 0.01);
+  } catch {}
+}
+
+function stopBeatLaneVoices(fast = true) {
+  for (const eventId of [...state.beatLane6.gameVoices.keys()]) {
+    releaseBeatLaneVoice(eventId, fast);
+  }
+}
+
+function stopBeatLaneAnimation() {
+  if (state.beatLane6.raf) cancelAnimationFrame(state.beatLane6.raf);
+  state.beatLane6.raf = 0;
+}
+
+function resetBeatLaneRuntime() {
+  stopBeatLaneAnimation();
+  stopBeatLaneGuide();
+  stopBeatLaneVoices(true);
+  state.beatLane6.running = false;
+  state.beatLane6.startedAt = 0;
+  state.beatLane6.activeHolds.clear();
+  state.beatLane6.laneHeld.clear();
+  for (const lane of ui.beatLaneLanes) lane.classList.remove("active");
+}
+
+function stopBeatLaneGame(manual = true) {
+  const wasRunning = state.beatLane6.running;
+  resetBeatLaneRuntime();
+  if (manual) {
+    ui.beatLaneCountdown.textContent = "READY";
+    ui.beatLaneJudgement.textContent = "";
+    ui.beatLaneResult.classList.add("hidden");
+    if (wasRunning || state.beatLane6.chart) {
+      ui.beatLaneStatus.textContent = "Stopped. Press Start Game to play again.";
+    }
+  }
+}
+
+function restoreLivePlayView() {
+  ui.liveStageHeader.classList.remove("hidden");
+  ui.liveMonitor.classList.remove("hidden");
+  ui.beatLaneView.classList.add("hidden");
+  ui.beatLaneControls.classList.add("hidden");
+  ui.projectTransportControls?.classList.remove("hidden");
+  ui.playWorkspace?.classList.remove("beatlane-mode");
+
+  const showSoundPad = state.sourceMode === "sound" && state.selected?.type === "soundpad";
+  ui.pianoView.classList.toggle("hidden", showSoundPad);
+  ui.soundPadView.classList.toggle("hidden", !showSoundPad);
+}
+
+function setPlayMode(mode) {
+  const next = mode === "beatlane6" ? "beatlane6" : "live";
+  if (state.playMode === "beatlane6" && next !== "beatlane6") {
+    stopBeatLaneGame(true);
+  }
+  state.playMode = next;
+  const game = next === "beatlane6";
+  ui.livePlayMode.classList.toggle("active", !game);
+  ui.beatLanePlayMode.classList.toggle("active", game);
+
+  if (!game) {
+    restoreLivePlayView();
+    return;
+  }
+
+  stopTransport();
+  stopAllVoices(true);
+  ui.liveStageHeader.classList.add("hidden");
+  ui.liveMonitor.classList.add("hidden");
+  ui.pianoView.classList.add("hidden");
+  ui.soundPadView.classList.add("hidden");
+  ui.beatLaneView.classList.remove("hidden");
+  ui.beatLaneControls.classList.remove("hidden");
+  ui.projectTransportControls?.classList.add("hidden");
+  ui.playWorkspace?.classList.add("beatlane-mode");
+  ui.beatLaneStatus.textContent = state.beatLane6.chart
+    ? "Ready. Press Start Game."
+    : "Choose a song. Chart is generated from NoteScript Markdown.";
+}
+
+function buildBeatLaneNoteElements(chart) {
+  ui.beatLaneNotes.innerHTML = "";
+  state.beatLane6.noteElements.clear();
+  for (const event of chart.events) {
+    const element = document.createElement("div");
+    element.className = "beatlane-note " + event.type;
+    element.dataset.eventId = event.id;
+    element.dataset.lane = String(event.lane);
+    element.style.left = (event.lane * (100 / 6)) + "%";
+    element.style.opacity = "0";
+
+    if (event.type === "hold") {
+      const tail = document.createElement("span");
+      tail.className = "beatlane-hold-tail";
+      const holdHeight = Math.max(
+        24,
+        Math.min(250, (event.durationSeconds / chart.approachSeconds) * 350)
+      );
+      tail.style.setProperty("--hold-height", holdHeight + "px");
+      element.appendChild(tail);
+    }
+
+    ui.beatLaneNotes.appendChild(element);
+    state.beatLane6.noteElements.set(event.id, element);
+  }
+}
+
+async function loadBeatLaneChart(force = false) {
+  const project = String(ui.beatLaneProject.value || "").trim();
+  const difficulty = String(ui.beatLaneDifficulty.value || "normal");
+  if (!project) {
+    ui.beatLaneStatus.textContent = "No NoteScript project selected.";
+    return null;
+  }
+
+  if (
+    !force &&
+    state.beatLane6.chart &&
+    state.beatLane6.project === project &&
+    state.beatLane6.difficulty === difficulty
+  ) {
+    return state.beatLane6.chart;
+  }
+
+  ui.beatLaneStatus.textContent = "Generating " + difficulty + " chart...";
+  const chart = await api(
+    "/v1/game/beatlane6/chart?project=" + encodeURIComponent(project) +
+    "&difficulty=" + encodeURIComponent(difficulty)
+  );
+
+  state.beatLane6.chart = chart;
+  state.beatLane6.project = project;
+  state.beatLane6.difficulty = difficulty;
+  state.beatLane6.eventState = new Map(chart.events.map((event) => [event.id, "pending"]));
+  state.beatLane6.audio.clear();
+  buildBeatLaneNoteElements(chart);
+  ui.beatLaneSongTitle.textContent =
+    chart.title + " · " + difficulty.toUpperCase() +
+    " · " + chart.stats.chartEvents + " notes";
+  ui.beatLaneStatus.textContent =
+    chart.stats.chartEvents + " chart events · " +
+    chart.stats.tapCount + " tap · " +
+    chart.stats.holdCount + " hold · pre-roll " +
+    chart.approachSeconds.toFixed(1) + "s";
+  return chart;
+}
+
+async function beatLaneAudioDescriptor(event) {
+  if (event.kind === "trigger" && event.source.sound) {
+    const buffer = await loadTriggerBuffer(event.source.sound, event.trigger);
+    return { buffer, playbackRate: 1 };
+  }
+
+  if (event.kind !== "note") return null;
+
+  if (event.source.instrument) {
+    const item = state.instruments.find((instrument) => instrument.id === event.source.instrument);
+    if (!item?.playable) return null;
+    const buffer = await loadInstrumentBuffer(
+      event.source.instrument,
+      event.note,
+      event.velocity || 96
+    );
+    return { buffer, playbackRate: 1 };
+  }
+
+  if (event.source.sound) {
+    const pack = state.sounds.find((sound) => sound.id === event.source.sound);
+    if (!pack || pack.type !== "pitched") return null;
+    const root = nearestRoot(pack, event.note);
+    if (!root) return null;
+    const buffer = await loadRootBuffer(pack.id, root.midi);
+    return {
+      buffer,
+      playbackRate: Math.pow(2, (event.note - root.midi) / 12)
+    };
+  }
+
+  return null;
+}
+
+function beatLaneAudioKey(event) {
+  if (event.kind === "trigger") {
+    return "trigger:" + event.source.sound + ":" + event.trigger;
+  }
+  if (event.source.instrument) {
+    return "instrument:" + event.source.instrument + ":" + event.note + ":" + (event.velocity || 96);
+  }
+  return "sound:" + event.source.sound + ":" + event.note;
+}
+
+async function prepareBeatLaneAudio(chart) {
+  const descriptorByKey = new Map();
+  const tasks = [];
+
+  for (const event of chart.events) {
+    const key = beatLaneAudioKey(event);
+    if (!descriptorByKey.has(key)) {
+      const promise = beatLaneAudioDescriptor(event).catch(() => null);
+      descriptorByKey.set(key, promise);
+      tasks.push(promise);
+    }
+  }
+
+  await Promise.all(tasks);
+  state.beatLane6.audio.clear();
+  for (const event of chart.events) {
+    const descriptor = await descriptorByKey.get(beatLaneAudioKey(event));
+    state.beatLane6.audio.set(event.id, descriptor);
+  }
+}
+
+async function loadBeatLaneGuide(project) {
+  if (
+    state.beatLane6.guideBuffer &&
+    state.beatLane6.guideProject === project
+  ) {
+    return state.beatLane6.guideBuffer;
+  }
+
+  const response = await fetch(
+    "/v1/transport/audio?project=" + encodeURIComponent(project),
+    { cache: "no-store" }
+  );
+  if (!response.ok) throw new Error("Could not load BeatLane6 guide track.");
+  const bytes = await response.arrayBuffer();
+  const context = ensureAudio();
+  const buffer = await context.decodeAudioData(bytes.slice(0));
+  state.beatLane6.guideBuffer = buffer;
+  state.beatLane6.guideProject = project;
+  return buffer;
+}
+
+function startBeatLaneGuide(startAt) {
+  if (!ui.beatLaneGuide.checked || !state.beatLane6.guideBuffer) return;
+  const context = ensureAudio();
+  const source = context.createBufferSource();
+  const gain = context.createGain();
+  source.buffer = state.beatLane6.guideBuffer;
+  gain.gain.value = 0.30;
+  source.connect(gain);
+  gain.connect(context.destination);
+  source.start(startAt);
+  state.beatLane6.guideSource = source;
+  state.beatLane6.guideGain = gain;
+}
+
+function playBeatLaneEventSound(event) {
+  const descriptor = state.beatLane6.audio.get(event.id);
+  if (!descriptor?.buffer) return;
+
+  const context = ensureAudio();
+  const source = context.createBufferSource();
+  const gain = context.createGain();
+  source.buffer = descriptor.buffer;
+  source.playbackRate.value = descriptor.playbackRate || 1;
+
+  const velocity = Math.max(1, Math.min(127, Number(event.velocity) || 96)) / 127;
+  gain.gain.value = Math.max(0.0001, Math.pow(velocity, 1.25) * 0.82);
+  source.connect(gain);
+  gain.connect(context.destination);
+
+  const voice = { source, gain, context };
+  state.beatLane6.gameVoices.set(event.id, voice);
+  source.onended = () => {
+    if (state.beatLane6.gameVoices.get(event.id) === voice) {
+      state.beatLane6.gameVoices.delete(event.id);
+    }
+  };
+  source.start();
+
+  if (event.type === "hold") {
+    try {
+      source.stop(context.currentTime + Math.max(0.12, event.durationSeconds + 0.08));
+    } catch {}
+  }
+}
+
+function beatLaneJudgementForDelta(delta, windows) {
+  const distance = Math.abs(delta);
+  if (distance <= windows.perfect) return "perfect";
+  if (distance <= windows.great) return "great";
+  if (distance <= windows.good) return "good";
+  return null;
+}
+
+function registerBeatLaneHit(event, judgement) {
+  const game = state.beatLane6;
+  const base = game.chart.scoring[judgement] || 0;
+  game.combo += 1;
+  game.maxCombo = Math.max(game.maxCombo, game.combo);
+  game.score += base * beatLaneMultiplier(game.combo);
+  game.judgements[judgement] += 1;
+
+  if (judgement === "perfect") {
+    game.life = Math.min(100, game.life + game.chart.life.perfectRecovery);
+  } else if (judgement === "great") {
+    game.life = Math.min(100, game.life + game.chart.life.greatRecovery);
+  }
+
+  game.eventState.set(event.id, event.type === "hold" ? "holding" : "hit");
+  const element = game.noteElements.get(event.id);
+  if (element) {
+    element.classList.add("hit");
+    element.style.opacity = event.type === "hold" ? "1" : "0.12";
+  }
+
+  if (event.type === "hold") {
+    game.activeHolds.set(event.lane, event.id);
+  }
+
+  playBeatLaneEventSound(event);
+  showBeatLaneJudgement(judgement.toUpperCase(), judgement);
+  updateBeatLaneHud();
+}
+
+function registerBeatLaneMiss(event, label = "MISS") {
+  const game = state.beatLane6;
+  if (game.eventState.get(event.id) !== "pending") return;
+
+  game.eventState.set(event.id, "missed");
+  game.combo = 0;
+  game.judgements.miss += 1;
+  game.life = Math.max(0, game.life - game.chart.life.missDamage);
+
+  const element = game.noteElements.get(event.id);
+  if (element) {
+    element.classList.add("missed");
+    element.style.opacity = "0.08";
+  }
+  showBeatLaneJudgement(label, "miss");
+  updateBeatLaneHud();
+}
+
+function breakBeatLaneHold(event) {
+  const game = state.beatLane6;
+  game.eventState.set(event.id, "broken");
+  game.activeHolds.delete(event.lane);
+  game.combo = 0;
+  game.life = Math.max(0, game.life - game.chart.life.earlyHoldReleaseDamage);
+  releaseBeatLaneVoice(event.id, true);
+  showBeatLaneJudgement("HOLD BREAK", "miss");
+  updateBeatLaneHud();
+}
+
+function completeBeatLaneHold(event) {
+  const game = state.beatLane6;
+  if (game.eventState.get(event.id) !== "holding") return;
+  game.eventState.set(event.id, "held");
+  game.activeHolds.delete(event.lane);
+  releaseBeatLaneVoice(event.id, false);
+}
+
+function beatLaneKeyDown(lane) {
+  if (state.playMode !== "beatlane6") return false;
+  setBeatLaneLaneActive(lane, true);
+  if (!state.beatLane6.running || state.beatLane6.laneHeld.has(lane)) return true;
+  state.beatLane6.laneHeld.add(lane);
+
+  const songTime = beatLanePosition();
+  const chart = state.beatLane6.chart;
+  if (!chart || songTime < -chart.judgementWindows.good) return true;
+
+  let best = null;
+  let bestDistance = Infinity;
+  for (const event of chart.events) {
+    if (event.lane !== lane || state.beatLane6.eventState.get(event.id) !== "pending") continue;
+    const distance = Math.abs(songTime - event.timeSeconds);
+    if (distance <= chart.judgementWindows.good && distance < bestDistance) {
+      best = event;
+      bestDistance = distance;
+    }
+  }
+
+  if (!best) return true;
+  const judgement = beatLaneJudgementForDelta(
+    songTime - best.timeSeconds,
+    chart.judgementWindows
+  );
+  if (judgement) registerBeatLaneHit(best, judgement);
+  return true;
+}
+
+function beatLaneKeyUp(lane) {
+  if (state.playMode !== "beatlane6") return false;
+  setBeatLaneLaneActive(lane, false);
+  state.beatLane6.laneHeld.delete(lane);
+
+  const eventId = state.beatLane6.activeHolds.get(lane);
+  if (!eventId || !state.beatLane6.chart) return true;
+  const event = state.beatLane6.chart.events.find((item) => item.id === eventId);
+  if (!event) return true;
+
+  const songTime = beatLanePosition();
+  if (songTime + state.beatLane6.chart.judgementWindows.good < event.endSeconds) {
+    breakBeatLaneHold(event);
+  } else {
+    completeBeatLaneHold(event);
+  }
+  return true;
+}
+
+function renderBeatLaneFrame(songTime) {
+  const chart = state.beatLane6.chart;
+  if (!chart) return;
+
+  const height = ui.beatLaneHighway.clientHeight || 430;
+  const spawnY = 18;
+  const hitY = height - 59;
+  const travel = hitY - spawnY;
+
+  for (const event of chart.events) {
+    const element = state.beatLane6.noteElements.get(event.id);
+    if (!element) continue;
+    const delta = event.timeSeconds - songTime;
+    const stateValue = state.beatLane6.eventState.get(event.id);
+    const visible =
+      delta <= chart.approachSeconds + 0.20 &&
+      (
+        delta >= -0.45 ||
+        stateValue === "holding"
+      );
+
+    if (!visible || ["hit", "held", "broken"].includes(stateValue) && songTime - event.timeSeconds > 0.30) {
+      element.style.opacity = "0";
+      continue;
+    }
+
+    const progress = 1 - delta / chart.approachSeconds;
+    const y = spawnY + progress * travel;
+    element.style.transform = "translateY(" + y.toFixed(2) + "px)";
+    if (stateValue === "pending" || stateValue === "holding") {
+      element.style.opacity = "1";
+    }
+  }
+}
+
+function updateBeatLaneCountdown(songTime) {
+  if (songTime < -3) {
+    ui.beatLaneCountdown.textContent = "READY";
+  } else if (songTime < -0.05) {
+    ui.beatLaneCountdown.textContent = String(Math.max(1, Math.ceil(-songTime)));
+  } else if (songTime < 0.38) {
+    ui.beatLaneCountdown.textContent = "GO";
+  } else {
+    ui.beatLaneCountdown.textContent = "";
+  }
+}
+
+function finishBeatLaneGame(success) {
+  const game = state.beatLane6;
+  if (!game.chart) return;
+
+  game.running = false;
+  stopBeatLaneAnimation();
+  stopBeatLaneGuide();
+  stopBeatLaneVoices(false);
+  game.activeHolds.clear();
+  game.laneHeld.clear();
+  for (const lane of ui.beatLaneLanes) lane.classList.remove("active");
+
+  const counts = game.judgements;
+  ui.beatLaneResultTitle.textContent = success ? "SUCCESS" : "FAILED";
+  ui.beatLaneResultSummary.textContent =
+    "Score " + Math.round(game.score).toLocaleString() +
+    " · Accuracy " + beatLaneAccuracy().toFixed(1) + "%\n" +
+    "Perfect " + counts.perfect +
+    " · Great " + counts.great +
+    " · Good " + counts.good +
+    " · Miss " + counts.miss +
+    "\nMax Combo " + game.maxCombo;
+  ui.beatLaneResult.classList.remove("hidden");
+  ui.beatLaneCountdown.textContent = "";
+  ui.beatLaneStatus.textContent = success
+    ? "Song complete. SUCCESS."
+    : "Life reached zero. FAILED.";
+}
+
+function beatLaneAnimationTick() {
+  const game = state.beatLane6;
+  if (!game.running || !game.chart) return;
+
+  const songTime = beatLanePosition();
+  updateBeatLaneCountdown(songTime);
+  renderBeatLaneFrame(songTime);
+
+  for (const event of game.chart.events) {
+    const eventStatus = game.eventState.get(event.id);
+    if (
+      eventStatus === "pending" &&
+      songTime > event.timeSeconds + game.chart.judgementWindows.good
+    ) {
+      registerBeatLaneMiss(event);
+      if (game.life <= 0) {
+        finishBeatLaneGame(false);
+        return;
+      }
+    } else if (
+      eventStatus === "holding" &&
+      songTime >= event.endSeconds
+    ) {
+      completeBeatLaneHold(event);
+    }
+  }
+
+  if (game.life <= 0) {
+    finishBeatLaneGame(false);
+    return;
+  }
+
+  const terminal = [...game.eventState.values()].every((value) =>
+    ["hit", "held", "broken", "missed"].includes(value)
+  );
+  if (
+    songTime > game.chart.durationSeconds + game.chart.judgementWindows.good &&
+    terminal
+  ) {
+    finishBeatLaneGame(true);
+    return;
+  }
+
+  game.raf = requestAnimationFrame(beatLaneAnimationTick);
+}
+
+async function startBeatLaneGame() {
+  setPlayMode("beatlane6");
+  resetBeatLaneRuntime();
+  ui.beatLaneResult.classList.add("hidden");
+  ui.beatLaneJudgement.textContent = "";
+  ui.beatLaneCountdown.textContent = "READY";
+  ui.beatLaneStatus.textContent = "Preparing chart and sounds...";
+
+  try {
+    const chart = await loadBeatLaneChart(true);
+    if (!chart || chart.events.length === 0) {
+      ui.beatLaneStatus.textContent = "This song produced no playable BeatLane6 events.";
+      return;
+    }
+
+    state.beatLane6.score = 0;
+    state.beatLane6.combo = 0;
+    state.beatLane6.maxCombo = 0;
+    state.beatLane6.life = chart.life.start;
+    state.beatLane6.judgements = { perfect: 0, great: 0, good: 0, miss: 0 };
+    state.beatLane6.eventState = new Map(chart.events.map((event) => [event.id, "pending"]));
+    updateBeatLaneHud();
+
+    await prepareBeatLaneAudio(chart);
+    if (ui.beatLaneGuide.checked) {
+      ui.beatLaneStatus.textContent = "Preparing guide track...";
+      await loadBeatLaneGuide(state.beatLane6.project);
+    }
+
+    const context = ensureAudio();
+    if (context.state === "suspended") await context.resume();
+
+    state.beatLane6.startedAt = context.currentTime + chart.approachSeconds;
+    state.beatLane6.running = true;
+    startBeatLaneGuide(state.beatLane6.startedAt);
+    ui.beatLaneStatus.textContent =
+      "Playing " + chart.title + " · " + chart.difficulty.toUpperCase() +
+      " · A S D | J K L";
+    renderBeatLaneFrame(-chart.approachSeconds);
+    state.beatLane6.raf = requestAnimationFrame(beatLaneAnimationTick);
+  } catch (error) {
+    resetBeatLaneRuntime();
+    ui.beatLaneStatus.textContent = "BeatLane6 error: " + error.message;
+  }
+}
 
 function formatTime(seconds) {
   const value = Math.max(0, Number(seconds) || 0);
@@ -1844,35 +2538,48 @@ function renderProjectList() {
 
 function syncProjectSelects() {
   const selected = state.studio.currentProject || ui.projectSelect.value;
+  const gameSelected = state.beatLane6.project || ui.beatLaneProject.value || selected;
   ui.projectSelect.innerHTML = "";
+  ui.beatLaneProject.innerHTML = "";
 
   if (state.studio.projects.length === 0) {
-    const option = document.createElement("option");
-    option.value = "";
-    option.textContent = "No projects found";
-    ui.projectSelect.appendChild(option);
-    ui.projectSelect.disabled = true;
+    for (const select of [ui.projectSelect, ui.beatLaneProject]) {
+      const option = document.createElement("option");
+      option.value = "";
+      option.textContent = "No projects found";
+      select.appendChild(option);
+      select.disabled = true;
+    }
     ui.transportLoad.disabled = true;
     ui.transportPlay.disabled = true;
     ui.transportPause.disabled = true;
     ui.transportStop.disabled = true;
+    ui.beatLaneStart.disabled = true;
     return;
   }
 
   ui.projectSelect.disabled = false;
+  ui.beatLaneProject.disabled = false;
   ui.transportLoad.disabled = false;
   ui.transportPlay.disabled = false;
   ui.transportPause.disabled = false;
   ui.transportStop.disabled = false;
+  ui.beatLaneStart.disabled = false;
+
   for (const project of state.studio.projects) {
-    const option = document.createElement("option");
-    option.value = project;
-    option.textContent = project;
-    ui.projectSelect.appendChild(option);
+    for (const select of [ui.projectSelect, ui.beatLaneProject]) {
+      const option = document.createElement("option");
+      option.value = project;
+      option.textContent = project;
+      select.appendChild(option);
+    }
   }
 
   if (selected && state.studio.projects.includes(selected)) {
     ui.projectSelect.value = selected;
+  }
+  if (gameSelected && state.studio.projects.includes(gameSelected)) {
+    ui.beatLaneProject.value = gameSelected;
   }
 }
 
@@ -3163,6 +3870,56 @@ function wireStudioUi() {
   ui.soundPadHotkeyCancel.addEventListener("click", cancelSoundPadHotkeyEdit);
   ui.soundPadMixLock.addEventListener("click", toggleSoundPadMixLock);
   ui.soundPadResetMix.addEventListener("click", resetSoundPadMix);
+
+  ui.livePlayMode.addEventListener("click", () => setPlayMode("live"));
+  ui.beatLanePlayMode.addEventListener("click", async () => {
+    setPlayMode("beatlane6");
+    try {
+      if (ui.beatLaneProject.value) await loadBeatLaneChart(false);
+    } catch (error) {
+      ui.beatLaneStatus.textContent = "BeatLane6 chart error: " + error.message;
+    }
+  });
+  ui.beatLaneStart.addEventListener("click", startBeatLaneGame);
+  ui.beatLaneStop.addEventListener("click", () => stopBeatLaneGame(true));
+  ui.beatLaneProject.addEventListener("change", async () => {
+    stopBeatLaneGame(false);
+    state.beatLane6.chart = null;
+    state.beatLane6.project = ui.beatLaneProject.value || null;
+    try {
+      if (ui.beatLaneProject.value) await loadBeatLaneChart(true);
+    } catch (error) {
+      ui.beatLaneStatus.textContent = "BeatLane6 chart error: " + error.message;
+    }
+  });
+  ui.beatLaneDifficulty.addEventListener("change", async () => {
+    stopBeatLaneGame(false);
+    state.beatLane6.chart = null;
+    try {
+      if (ui.beatLaneProject.value) await loadBeatLaneChart(true);
+    } catch (error) {
+      ui.beatLaneStatus.textContent = "BeatLane6 chart error: " + error.message;
+    }
+  });
+
+  for (const laneElement of ui.beatLaneLanes) {
+    const lane = Number(laneElement.dataset.lane);
+    laneElement.addEventListener("pointerdown", (event) => {
+      if (state.playMode !== "beatlane6") return;
+      event.preventDefault();
+      laneElement.setPointerCapture?.(event.pointerId);
+      beatLaneKeyDown(lane);
+    });
+    const releaseLane = (event) => {
+      if (state.playMode !== "beatlane6") return;
+      event.preventDefault();
+      beatLaneKeyUp(lane);
+    };
+    laneElement.addEventListener("pointerup", releaseLane);
+    laneElement.addEventListener("pointercancel", releaseLane);
+    laneElement.addEventListener("lostpointercapture", releaseLane);
+  }
+
   wireNodePalette();
 }
 
@@ -3237,6 +3994,8 @@ async function initialize() {
   updateTransportPan();
   updateTransportDisplay(0);
   updateAdvancedTransportDisplay(0);
+  updateBeatLaneHud();
+  setPlayMode("live");
   ui.outputDevice.innerHTML = '<option value="">Default browser output</option>';
 
   try {
@@ -3348,6 +4107,20 @@ window.addEventListener("keydown", (event) => {
     event.target instanceof HTMLTextAreaElement
   ) return;
 
+  if (state.playMode === "beatlane6") {
+    if (event.key === "Escape") {
+      event.preventDefault();
+      stopBeatLaneGame(true);
+      return;
+    }
+    const lane = BEATLANE6_INPUT_KEYS.indexOf(event.key.toLowerCase());
+    if (lane >= 0) {
+      event.preventDefault();
+      beatLaneKeyDown(lane);
+    }
+    return;
+  }
+
   const current = hotkeys();
 
   if (keyMatches(event, current.panic)) {
@@ -3417,8 +4190,17 @@ window.addEventListener("keyup", (event) => {
     return;
   }
 
-  const current = hotkeys();
   const key = event.key.toLowerCase();
+  if (state.playMode === "beatlane6") {
+    const lane = BEATLANE6_INPUT_KEYS.indexOf(key);
+    if (lane >= 0) {
+      event.preventDefault();
+      beatLaneKeyUp(lane);
+    }
+    return;
+  }
+
+  const current = hotkeys();
 
   if (keyMatches(event, current.sustain)) {
     event.preventDefault();
@@ -3439,6 +4221,7 @@ window.addEventListener("keyup", (event) => {
 window.addEventListener("blur", () => {
   state.keyHeld.clear();
   state.spaceSustain = false;
+  if (state.beatLane6.running) stopBeatLaneGame(true);
   syncSustain();
   panicAll();
 });

@@ -13,6 +13,7 @@ import { midiToNote } from "../music.js";
 import { NoteScriptError } from "../error.js";
 import { LivePlaybackManager } from "../playback/manager.js";
 import { compileTimeline } from "../timeline.js";
+import { generateBeatLane6Chart } from "../game/beatlane6.js";
 
 function safeName(name) {
   const value = String(name || "").trim();
@@ -240,6 +241,14 @@ export function createControlService(programRoot) {
             render: fluidSynth.available,
             audition: fluidSynth.available
           }
+        },
+        games: {
+          beatLane6: {
+            available: true,
+            lanes: 6,
+            keys: ["A", "S", "D", "J", "K", "L"],
+            difficulties: ["easy", "normal", "hard"]
+          }
         }
       };
     },
@@ -285,6 +294,13 @@ export function createControlService(programRoot) {
           timeline: null
         };
       }
+    },
+
+    getBeatLane6Chart(fileOrName, difficulty = "normal") {
+      const { markdown } = loadProject(fileOrName);
+      const song = parseSong(markdown);
+      const timeline = compileTimeline(song);
+      return generateBeatLane6Chart(timeline, { difficulty });
     },
 
     saveProject(name, markdown) {

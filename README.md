@@ -210,6 +210,11 @@ Implemented:
 - SoundFont bank/preset selection through `instrument.md`.
 - NoteScript Studio with tabbed Play / Project / Compose / Tracks / Sounds / Settings workspaces.
 - Game-style Play page with performance HUD, on-key hotkey caps and playable piano/SoundPad controls.
+- BeatLane6 rhythm-game mode using NoteScript Markdown projects as level sources.
+- BeatLane6 six-lane `A S D | J K L` play with deterministic Easy/Normal/Hard chart generation from the canonical timeline.
+- BeatLane6 pre-roll highway, Tap/Hold/chord input, Perfect/Great/Good/Miss judgement, combo multiplier, score, accuracy, life/fail and success results.
+- BeatLane6 hit audio uses the source track's real NoteScript sound/instrument; an optional low-volume full-song guide track is available.
+- Bundled `BeatLane6 Starter.md` project teaches all six lanes with the Pluck sound pack.
 - Browser-based live playing: mouse keys, remappable computer-keyboard controls, polyphony, velocity, octave shift, sustain and panic.
 - Direct piano hotkey edit mode: click a mapped piano key, press its new keyboard binding, then Save or Cancel; current bindings remain visible as faint keycaps beside note names.
 - SoundPad controls use the same game-style hotkey model: each pad shows its trigger name plus a faint current hotkey, keyboard hotkeys can trigger pads directly, and Edit Hotkeys works from the pad itself.
@@ -243,6 +248,7 @@ Planned:
 - Broader SFZ opcode/loop/round-robin/articulation compatibility.
 - Persistent server-side SFZ/native sample voice engine where browser playback is insufficient.
 - Effects, automation, loops, articulations, velocity layers and round-robin.
+- BeatLane6 slide/drag notes, manual chart editing, persistent high scores and timing-calibration polish.
 - ChatGPT Plugin/MCP adapter over the Control API.
 
 ## Control API
@@ -282,6 +288,7 @@ Current API surface:
 - `GET /v1/audition/audio`
 - `GET /v1/audition/instrument`
 - `GET /v1/live/status`
+- `GET /v1/game/beatlane6/chart`
 - `GET /v1/transport/audio`
 - `GET /v1/transport/track-audio`
 - `POST /v1/live/select`

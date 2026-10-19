@@ -12,6 +12,7 @@ import { parseSfzFile, selectSfzRegions, sfzPitchRatio } from "../src/instrument
 import { renderToWav, renderToWavBuffer } from "../src/renderer.js";
 import { buildSingleTrackMidiBuffer } from "../src/midi.js";
 import { compileTimeline } from "../src/timeline.js";
+import { generateBeatLane6Chart, BEATLANE6_KEYS } from "../src/game/beatlane6.js";
 import { getFluidSynthCapabilities } from "../src/instrument/fluidsynth.js";
 import { buildFluidSynthLiveArgs, FluidSynthLiveSession } from "../src/playback/fluidsynth-live.js";
 import { LivePlaybackManager } from "../src/playback/manager.js";
@@ -22,6 +23,7 @@ import { decodeAudioFile, getDecoderCapabilities } from "../src/audio/decoder.js
 const here = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(here, "..");
 const songFile = path.join(root, "examples", "evening-walk.md");
+const beatLaneStarterFile = path.join(root, "examples", "beatlane6-starter.md");
 
 test("parses the example song", () => {
   const song = parseSong(fs.readFileSync(songFile, "utf8"));
@@ -124,6 +126,51 @@ test("renders a NoteScript project through the SFZ instrument adapter", () => {
   assert.ok(fs.statSync(out).size > 44);
   assert.equal(report.sampleRate, 44100);
   assert.equal(fs.readFileSync(out).toString("ascii", 0, 4), "RIFF");
+});
+
+test("generates deterministic BeatLane6 charts from the canonical timeline", () => {
+  const song = parseSong(fs.readFileSync(songFile, "utf8"));
+  const timeline = compileTimeline(song);
+  const normal = generateBeatLane6Chart(timeline, { difficulty: "normal" });
+  const normalAgain = generateBeatLane6Chart(timeline, { difficulty: "normal" });
+  const easy = generateBeatLane6Chart(timeline, { difficulty: "easy" });
+  const hard = generateBeatLane6Chart(timeline, { difficulty: "hard" });
+
+  assert.equal(normal.game, "BeatLane6");
+  assert.equal(normal.laneCount, 6);
+  assert.deepEqual(normal.lanes.map((lane) => lane.key), BEATLANE6_KEYS);
+  assert.ok(normal.events.length > 0);
+  assert.ok(normal.stats.holdCount > 0);
+  assert.deepEqual(normal, normalAgain);
+  assert.ok(easy.events.length <= normal.events.length);
+  assert.ok(normal.events.length <= hard.events.length);
+
+  for (const event of normal.events) {
+    assert.ok(event.lane >= 0 && event.lane < 6);
+    assert.equal(event.key, BEATLANE6_KEYS[event.lane]);
+    assert.ok(event.timeSeconds >= 0);
+    assert.ok(event.durationSeconds > 0);
+  }
+
+  const starterSong = parseSong(fs.readFileSync(beatLaneStarterFile, "utf8"));
+  const starter = generateBeatLane6Chart(compileTimeline(starterSong), { difficulty: "normal" });
+  assert.equal(starter.title, "BeatLane6 Starter");
+  assert.deepEqual(
+    [...new Set(starter.events.map((event) => event.lane))].sort((a, b) => a - b),
+    [0, 1, 2, 3, 4, 5]
+  );
+  assert.deepEqual(
+    starter.events.slice(0, 6).map((event) => event.label),
+    ["A", "S", "D", "J", "K", "L"]
+  );
+  assert.ok(starter.stats.tapCount > starter.stats.holdCount);
+
+  const laneAtTime = new Set();
+  for (const event of normal.events) {
+    const key = event.timeSeconds.toFixed(6) + ":" + event.lane;
+    assert.equal(laneAtTime.has(key), false, "same lane should not receive simultaneous notes");
+    laneAtTime.add(key);
+  }
 });
 
 test("builds format-0 MIDI for isolated instrument rendering", () => {
@@ -458,8 +505,18 @@ test("control service exposes sound details and audition WAV", () => {
     recursive: true,
     force: true
   });
+  fs.mkdirSync(path.join(dir, "projects"), { recursive: true });
+  fs.copyFileSync(
+    path.join(root, "examples", "evening-walk.md"),
+    path.join(dir, "projects", "Evening Walk.md")
+  );
 
   const service = createControlService(dir);
+  const gameChart = service.getBeatLane6Chart("Evening Walk.md", "normal");
+  assert.equal(gameChart.game, "BeatLane6");
+  assert.equal(gameChart.laneCount, 6);
+  assert.ok(gameChart.events.length > 0);
+
   const sounds = service.listPortableSoundsDetailed();
   const piano = sounds.find((item) => item.id === "piano");
   const soundPad = sounds.find((item) => item.id === "soundpad");
@@ -549,6 +606,15 @@ test("Studio UI exposes tabbed game piano, compose modes, advanced tracks and re
   assert.match(html, /id="soundPadHotkeyCancel"/);
   assert.match(html, /id="soundPadMixLock"/);
   assert.match(html, /id="soundPadResetMix"/);
+  assert.match(html, /id="beatLanePlayMode"/);
+  assert.match(html, /id="beatLaneView"/);
+  assert.match(html, /id="beatLaneHighway"/);
+  assert.match(html, /id="beatLaneProject"/);
+  assert.match(html, /id="beatLaneDifficulty"/);
+  assert.match(html, /id="beatLaneStart"/);
+  assert.match(html, /id="beatLaneResult"/);
+  assert.match(html, /A S D/);
+  assert.match(html, /J K L/);
   assert.match(html, /class="pan-scale"/);
   assert.match(html, /left speaker to right speaker/);
   assert.match(html, /id="soundPads"/);
@@ -570,6 +636,12 @@ test("Studio UI exposes tabbed game piano, compose modes, advanced tracks and re
   assert.match(app, /requestMIDIAccess/);
   assert.match(app, /\/v1\/project\?project=/);
   assert.match(app, /\/v1\/analyze/);
+  assert.match(app, /\/v1\/game\/beatlane6\/chart/);
+  assert.match(app, /BEATLANE6_INPUT_KEYS/);
+  assert.match(app, /beatLaneAnimationTick/);
+  assert.match(app, /beatLaneJudgementForDelta/);
+  assert.match(app, /startBeatLaneGame/);
+  assert.match(app, /state\.audioContext\.currentTime|context\.currentTime/);
   assert.match(app, /\/v1\/studio\/settings/);
   assert.match(app, /updatePianoHotkeyCaps/);
   assert.match(app, /beginPianoHotkeyEdit/);
@@ -602,6 +674,10 @@ test("Studio UI exposes tabbed game piano, compose modes, advanced tracks and re
   assert.match(css, /#soundPadMixLock\.active[\s\S]*?box-shadow:\s*none;/);
   assert.match(css, /\.deck-button:disabled[\s\S]*?box-shadow:\s*none;/);
   assert.match(css, /#transportPan\s*\{[^}]*direction:\s*ltr;/s);
+  assert.match(css, /\.beatlane-highway/);
+  assert.match(css, /\.beatlane-note/);
+  assert.match(css, /\.beatlane-hit-line/);
+  assert.match(css, /\.beatlane-result/);
 });
 
 test("parser rejects a track with both sound and instrument sources", () => {

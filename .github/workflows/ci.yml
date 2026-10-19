@@ -26,6 +26,7 @@ jobs:
           out\NoteScript-portable\NoteScript.cmd capabilities
           out\NoteScript-portable\NoteScript.cmd validate "out\NoteScript-portable\projects\Evening Walk.md"
           out\NoteScript-portable\NoteScript.cmd validate "out\NoteScript-portable\projects\SFZ Basic.md"
+          out\NoteScript-portable\NoteScript.cmd validate "out\NoteScript-portable\projects\BeatLane6 Starter.md"
           out\NoteScript-portable\NoteScript.cmd list-sounds "out\NoteScript-portable\projects\Evening Walk.md"
           out\NoteScript-portable\NoteScript.cmd list-instruments "out\NoteScript-portable\projects\SFZ Basic.md"
           out\NoteScript-portable\NoteScript.cmd render "out\NoteScript-portable\projects\Evening Walk.md" -o "out\NoteScript-portable\exports\Evening Walk.wav"
@@ -138,6 +139,12 @@ jobs:
               $page.Content -notmatch 'id="soundPadHotkeyCancel"' -or
               $page.Content -notmatch 'id="soundPadMixLock"' -or
               $page.Content -notmatch 'id="soundPadResetMix"' -or
+              $page.Content -notmatch 'id="beatLanePlayMode"' -or
+              $page.Content -notmatch 'id="beatLaneView"' -or
+              $page.Content -notmatch 'id="beatLaneHighway"' -or
+              $page.Content -notmatch 'id="beatLaneProject"' -or
+              $page.Content -notmatch 'id="beatLaneStart"' -or
+              $page.Content -notmatch 'id="beatLaneResult"' -or
               $page.Content -notmatch 'id="transportPan"' -or
               $page.Content -notmatch 'class="pan-scale"'
             ) {
@@ -147,6 +154,29 @@ jobs:
             $project = Invoke-RestMethod -Uri "$baseUri/v1/project?project=Evening%20Walk.md" -TimeoutSec 5
             if (-not $project.valid -or $project.song.tracks.Count -ne 2) {
               throw "Portable project API smoke test failed."
+            }
+
+            $beatLane = Invoke-RestMethod -Uri "$baseUri/v1/game/beatlane6/chart?project=BeatLane6%20Starter.md&difficulty=normal" -TimeoutSec 5
+            $beatLaneUsed = @($beatLane.events | ForEach-Object { [int]$_.lane } | Sort-Object -Unique)
+            if (
+              $beatLane.game -ne "BeatLane6" -or
+              $beatLane.laneCount -ne 6 -or
+              $beatLane.events.Count -lt 20 -or
+              $beatLane.stats.holdCount -lt 1 -or
+              $beatLane.lanes.Count -ne 6 -or
+              $beatLane.lanes[0].key -ne "a" -or
+              $beatLane.lanes[5].key -ne "l" -or
+              $beatLaneUsed.Count -ne 6
+            ) {
+              throw "Portable BeatLane6 starter chart API smoke test failed."
+            }
+
+            $capabilities = Invoke-RestMethod -Uri "$baseUri/v1/capabilities" -TimeoutSec 5
+            if (
+              -not $capabilities.games.beatLane6.available -or
+              $capabilities.games.beatLane6.lanes -ne 6
+            ) {
+              throw "Portable BeatLane6 capability smoke test failed."
             }
 
             $settings = Invoke-RestMethod -Uri "$baseUri/v1/studio/settings" -TimeoutSec 5

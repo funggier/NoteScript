@@ -83,21 +83,27 @@ Evidence:
 
 `docs/development/reports/NOTESCRIPT-20261020-sound-library-expansion.md`
 
-## NTS-007 — BeatLane6 rhythm game
+## NTS-007 — BeatLane6 rhythm game — ACTIVE / LOCAL GREEN
 
-Priority: NEXT after sound-library qualification.
+- [x] Six lanes using `A S D | J K L`.
+- [x] Generate playable chart data from the canonical timeline of a NoteScript Markdown project.
+- [x] Pre-roll / approach highway.
+- [x] Tap notes, simultaneous notes/chords and Hold notes.
+- [x] Web Audio clock as the song/game timing authority.
+- [x] Judgement windows: Perfect / Great / Good / Miss.
+- [x] Combo, multiplier, score, accuracy and max combo.
+- [x] Life/groove gauge, fail state and success result screen.
+- [x] Real NoteScript source sound/instrument playback when notes are hit.
+- [x] Easy / Normal / Hard chart reduction without changing the authoritative Markdown song.
+- [x] Bundled six-lane Starter project.
+- [x] Portable API/Studio integration and local/browser qualification.
+- [ ] Exact-commit CI GREEN.
 
-- Six lanes using `A S D | J K L`.
-- Generate playable chart data from the canonical timeline of a NoteScript Markdown project.
-- Pre-roll / approach highway.
-- Tap notes, simultaneous notes/chords and hold notes.
-- Song-synchronized audio clock as the timing authority.
-- Judgement windows: Perfect / Great / Good / Miss.
-- Combo, multiplier, score, accuracy and max combo.
-- Life/groove gauge, fail state and success result screen.
-- Real NoteScript sound playback when notes are hit.
-- Difficulty/chart reduction layer without changing the authoritative Markdown song.
-- Input/audio timing calibration.
-- Future extension path for slide/drag notes and manual chart editing.
+Deferred follow-up:
+
+- input/audio offset calibration polish
+- slide/drag notes
+- manual chart overrides/editor
+- persistent local high scores
 
 The NoteScript core remains AI-free.

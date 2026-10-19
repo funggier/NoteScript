@@ -33,6 +33,17 @@
       <section class="tab-page active" data-page="play">
         <div class="workspace play-workspace">
           <aside class="sidebar">
+            <section class="panel compact play-mode-panel">
+              <div class="section-title">
+                <h2>Play Mode</h2>
+                <span class="badge">LIVE / GAME</span>
+              </div>
+              <div class="play-mode-switch" role="group" aria-label="Play mode">
+                <button id="livePlayMode" class="mode-button active" type="button">Live</button>
+                <button id="beatLanePlayMode" class="mode-button" type="button">BeatLane6</button>
+              </div>
+            </section>
+
             <section class="panel">
               <div class="section-title">
                 <h2>Play Source</h2>
@@ -99,7 +110,7 @@
           <section class="stage piano-stage game-stage">
             <div class="game-stage-grid"></div>
 
-            <div class="stage-header game-hud">
+            <div id="liveStageHeader" class="stage-header game-hud">
               <div>
                 <div class="eyebrow">PERFORMANCE MODE</div>
                 <div id="selectedName" class="selected-name">No sound selected</div>
@@ -170,13 +181,86 @@
               </div>
             </div>
 
-            <div class="monitor">
+            <div id="beatLaneView" class="instrument-view beatlane-view hidden">
+              <div class="beatlane-shell">
+                <div class="beatlane-titlebar">
+                  <div>
+                    <div class="eyebrow">RHYTHM GAME</div>
+                    <strong>BeatLane6</strong>
+                    <span id="beatLaneSongTitle">Choose a project to start.</span>
+                  </div>
+                  <div class="beatlane-key-hint">A S D <span>|</span> J K L</div>
+                </div>
+
+                <div class="beatlane-scoreboard">
+                  <div><span>SCORE</span><strong id="beatLaneScore">0</strong></div>
+                  <div><span>COMBO</span><strong id="beatLaneCombo">0</strong></div>
+                  <div><span>MULTI</span><strong id="beatLaneMultiplier">x1</strong></div>
+                  <div><span>ACCURACY</span><strong id="beatLaneAccuracy">100.0%</strong></div>
+                  <div><span>LIFE</span><strong id="beatLaneLifeText">100</strong></div>
+                </div>
+
+                <div class="beatlane-life">
+                  <span id="beatLaneLifeBar"></span>
+                </div>
+
+                <div id="beatLaneHighway" class="beatlane-highway" aria-label="BeatLane6 six lane rhythm highway">
+                  <div class="beatlane-lane" data-lane="0"><span>A</span></div>
+                  <div class="beatlane-lane" data-lane="1"><span>S</span></div>
+                  <div class="beatlane-lane" data-lane="2"><span>D</span></div>
+                  <div class="beatlane-lane hand-split" data-lane="3"><span>J</span></div>
+                  <div class="beatlane-lane" data-lane="4"><span>K</span></div>
+                  <div class="beatlane-lane" data-lane="5"><span>L</span></div>
+                  <div id="beatLaneNotes" class="beatlane-notes"></div>
+                  <div class="beatlane-hit-line"></div>
+                  <div id="beatLaneCountdown" class="beatlane-countdown">READY</div>
+                  <div id="beatLaneJudgement" class="beatlane-judgement"></div>
+                </div>
+
+                <div id="beatLaneResult" class="beatlane-result hidden">
+                  <div class="eyebrow">RESULT</div>
+                  <strong id="beatLaneResultTitle">SUCCESS</strong>
+                  <div id="beatLaneResultSummary"></div>
+                </div>
+              </div>
+            </div>
+
+            <div id="liveMonitor" class="monitor">
               <div class="monitor-title">Live monitor</div>
               <div id="monitorText">Ready.</div>
             </div>
           </section>
 
           <aside class="sidebar transport-sidebar">
+            <section id="beatLaneControls" class="panel transport-panel beatlane-controls hidden">
+              <div class="section-title">
+                <h2>BeatLane6</h2>
+                <span class="badge">6 LANES</span>
+              </div>
+
+              <label class="field-label" for="beatLaneProject">Level song</label>
+              <select id="beatLaneProject" aria-label="BeatLane6 project"></select>
+
+              <label class="field-label spaced-label" for="beatLaneDifficulty">Difficulty</label>
+              <select id="beatLaneDifficulty" aria-label="BeatLane6 difficulty">
+                <option value="easy">Easy</option>
+                <option value="normal" selected>Normal</option>
+                <option value="hard">Hard</option>
+              </select>
+
+              <label class="toggle-row">
+                <input id="beatLaneGuide" type="checkbox">
+                <span>Guide track</span>
+              </label>
+
+              <div class="transport-buttons">
+                <button id="beatLaneStart" class="action-button" type="button">Start Game</button>
+                <button id="beatLaneStop" class="action-button secondary" type="button">Stop</button>
+              </div>
+
+              <div id="beatLaneStatus" class="meta">Choose a song. Chart is generated from NoteScript Markdown.</div>
+            </section>
+
             <section class="panel transport-panel">
               <div class="section-title">
                 <h2>Project Transport</h2>

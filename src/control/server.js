@@ -105,6 +105,16 @@ const server = http.createServer(async (req, res) => {
     if (req.method === "GET" && url.pathname === "/v1/live/status") {
       return json(res, 200, service.liveStatus());
     }
+    if (req.method === "GET" && url.pathname === "/v1/game/beatlane6/chart") {
+      return json(
+        res,
+        200,
+        service.getBeatLane6Chart(
+          url.searchParams.get("project"),
+          url.searchParams.get("difficulty") || "normal"
+        )
+      );
+    }
     if (req.method === "GET" && url.pathname === "/v1/transport/audio") {
       const preview = service.getTransportPreview(url.searchParams.get("project"));
       return binary(res, 200, "audio/wav", preview.buffer);
