@@ -119,4 +119,18 @@ The GUI calls stable Control API/service operations instead of duplicating parse
 
 Markdown remains the authoritative editable song representation.
 
-NTS-004 is closed. The next planned milestone is NTS-005 — Musical language expansion.
+NTS-004 is closed.
+
+## Release handoff
+
+The current baseline is prepared for the first public release before NTS-005 begins.
+
+Read first in the next session:
+
+`docs/development/reports/NOTESCRIPT-20261020-full-session-handoff-v0.1.0-release-ready.md`
+
+Release target recommended by the handoff: `v0.1.0`.
+
+Do not start NTS-005 until the release is published and post-publish verification is complete.
+
+The next planned development milestone after release is NTS-005 — Musical language expansion.
