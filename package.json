@@ -1,0 +1,35 @@
+{
+  "name": "notescript",
+  "version": "0.1.0",
+  "description": "Deterministic Markdown-first music composition with modular user-defined sound sources.",
+  "type": "module",
+  "bin": {
+    "notescript": "./src/cli.js"
+  },
+  "scripts": {
+    "demo:sounds": "node scripts/generate-demo-sounds.js",
+    "check": "node scripts/check-syntax.js",
+    "test": "node scripts/generate-demo-sounds.js && node --test test/*.test.js",
+    "validate:example": "node src/cli.js validate examples/evening-walk.md",
+    "validate:pack": "node src/cli.js validate-pack examples/sounds/demo-piano",
+    "render:example": "node src/cli.js render examples/evening-walk.md -o out/evening-walk.wav",
+    "midi:example": "node src/cli.js midi examples/evening-walk.md -o out/evening-walk.mid",
+    "portable": "node scripts/generate-demo-sounds.js && node scripts/build-portable.js",
+    "control": "node src/control/server.js"
+  },
+  "keywords": [
+    "music",
+    "markdown",
+    "audio",
+    "samples",
+    "soundfont",
+    "sfz",
+    "midi",
+    "notation",
+    "dsl"
+  ],
+  "license": "MIT",
+  "engines": {
+    "node": ">=24"
+  }
+}

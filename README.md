@@ -1,0 +1,257 @@
+# NoteScript
+
+NoteScript is a portable, deterministic, Markdown-first music composition system.
+
+The core does not contain AI. A NoteScript song is an ordinary `.md` file that can be authored by a person or an external tool, previewed with local sound/instrument add-ons, and rendered to audio.
+
+**License: MIT**
+
+## Core workflow
+
+1. Create or receive a NoteScript `.md` song.
+2. Validate it.
+3. Preview it with installed sound add-ons.
+4. Edit the Markdown or change add-ons.
+5. Render the accepted version to WAV.
+6. Optionally export MIDI.
+
+This supports the intended ChatGPT workflow without embedding AI in the application: ChatGPT can create/update the `.md`; NoteScript remains the deterministic music engine.
+
+## Portable-first layout
+
+```text
+NoteScript-portable/
+├─ NoteScript.cmd
+├─ Preview-Song.cmd
+├─ Render-Song.cmd
+├─ Start-Control-API.cmd
+├─ runtime/
+├─ app/
+├─ projects/
+├─ exports/
+├─ config/
+├─ sounds/
+│  └─ <SoundPackName>/
+│     ├─ pack.md
+│     └─ audio files...
+└─ instruments/
+   ├─ SFZ/
+   │  └─ <InstrumentName>/
+   │     ├─ instrument.md
+   │     └─ .sfz + samples...
+   ├─ SF2/
+   │  └─ <InstrumentName>/
+   │     ├─ instrument.md
+   │     └─ .sf2
+   └─ SF3/
+      └─ <InstrumentName>/
+         ├─ instrument.md
+         └─ .sf3
+```
+
+No installation database is required for add-ons. Copying a folder in installs it; removing the folder removes it.
+
+## Two separate add-on systems
+
+### 1. `sounds/` — NoteScript sample packs
+
+This is the user-defined format discussed for NoteScript itself.
+
+Example:
+
+```text
+sounds/WarmPiano/
+├─ pack.md
+├─ C3.wav
+├─ C4.wav
+├─ E4.wav
+└─ G4.wav
+```
+
+Song usage:
+
+```text
+sound: WarmPiano
+```
+
+A pitched pack maps notes to files:
+
+```notescript-sound
+name: Warm Piano
+version: 1
+author: Your Name
+license: CC0-1.0
+source: your-source
+type: pitched
+fallback: nearest
+
+sample C3 = C3.wav
+sample C4 = C4.wav
+sample E4 = E4.wav
+sample G4 = G4.wav
+```
+
+A kit maps arbitrary names:
+
+```notescript-sound
+name: Forest Kit
+type: kit
+
+trigger kick = kick.wav
+trigger shaker = shaker.wav
+trigger rain = rain.wav
+```
+
+### 2. `instruments/<FORMAT>/` — standard instrument formats
+
+These are kept separate from NoteScript-native sound packs.
+
+Examples:
+
+```text
+instruments/SFZ/SalamanderGrandPiano/
+instruments/SF2/GeneralUserGS/
+instruments/SF3/MyCompressedSoundFont/
+```
+
+Song syntax is reserved as:
+
+```text
+instrument: SFZ/SalamanderGrandPiano
+```
+
+The add-on manifest must match the parent format folder.
+
+Current baseline can discover and validate SFZ/SF2/SF3 instrument add-ons. Rendering adapters for those formats are a next milestone; v0.1 audio rendering currently uses NoteScript `sounds/` packs.
+
+## Example song
+
+```markdown
+# Evening Walk
+
+```notescript
+tempo: 82
+time: 4/4
+key: C major
+
+track Soft Keys
+sound: demo-piano
+volume: 0.50
+velocity: 78
+bar 1: [C4 E4 G4] h | E4 q | G4 q
+bar 2: [A3 C4 E4] h | C4 q | E4 q
+
+track Light Pulse
+sound: demo-kit
+volume: 0.18
+bar 1: @kick q | R q | @shaker q | R q
+```
+```
+
+## Current v0.1 implementation
+
+Implemented:
+
+- Markdown parser/validator.
+- Tempo, time signature, key metadata, PPQ.
+- Multiple tracks.
+- Notes, chords, rests, named triggers.
+- Whole/half/quarter/eighth/sixteenth and dotted durations.
+- Velocity and track volume.
+- Timeline compilation.
+- Folder-based `sounds/` add-ons.
+- Pitched sample packs with nearest-root pitch shifting.
+- Named sample kits.
+- PCM16 WAV loading and deterministic WAV rendering.
+- MIDI export.
+- Windows preview via the default audio player.
+- Separate SFZ/SF2/SF3 instrument add-on discovery/validation.
+- Portable folder builder with bundled Node runtime.
+- Local Control API intended for GUI, MCP, and ChatGPT Plugin adapters.
+- Automated tests.
+
+Planned:
+
+- GUI editor, piano roll, transport and sound browser.
+- Real-time low-latency audio engine.
+- Stereo/pan processing.
+- SFZ render adapter.
+- SF2/SF3 SoundFont adapter.
+- FLAC/OGG/AIFF decoding through a modular decoder layer.
+- Effects, automation, loops, articulations, velocity layers and round-robin.
+- ChatGPT Plugin/MCP adapter over the Control API.
+
+## Control API
+
+Run:
+
+```powershell
+npm run control
+```
+
+Default endpoint:
+
+```text
+http://127.0.0.1:19427
+```
+
+Current API surface:
+
+- `GET /v1/health`
+- `GET /v1/projects`
+- `GET /v1/sounds`
+- `GET /v1/instruments`
+- `POST /v1/projects` — save a validated NoteScript document into `projects/`
+- `POST /v1/validate`
+- `POST /v1/render`
+- `POST /v1/midi`
+
+The default server binds to loopback. A future ChatGPT Plugin or MCP bridge should call this stable layer rather than reaching into parser/audio internals.
+
+Optional environment variables:
+
+- `NOTESCRIPT_CONTROL_HOST`
+- `NOTESCRIPT_CONTROL_PORT`
+- `NOTESCRIPT_CONTROL_TOKEN`
+- `NOTESCRIPT_ROOT`
+
+## CLI
+
+```powershell
+npm test
+npm run validate:example
+npm run render:example
+npm run midi:example
+npm run portable
+npm run control
+```
+
+Direct commands include:
+
+```powershell
+node src/cli.js validate examples/evening-walk.md
+node src/cli.js list-sounds examples/evening-walk.md
+node src/cli.js list-instruments examples/evening-walk.md
+node src/cli.js validate-pack examples/sounds/demo-piano
+node src/cli.js validate-instrument examples/instruments/SFZ/demo-sfz
+node src/cli.js render examples/evening-walk.md -o out/evening-walk.wav
+node src/cli.js midi examples/evening-walk.md -o out/evening-walk.mid
+```
+
+## Free instrument libraries
+
+The architecture is designed to wrap freely licensed libraries rather than bake them into the core. Candidate sources include CC0 sample collections, SFZ libraries such as Salamander Grand Piano, and SoundFont collections such as FreePats. Each imported add-on keeps its own `author`, `license`, and `source` metadata.
+
+NoteScript source code remains MIT; third-party audio assets retain their original licenses.
+
+## Design rules
+
+- Markdown is the source of truth.
+- Same input + same sound bytes + same renderer settings should be deterministic.
+- AI is external to the NoteScript runtime.
+- `sounds/` and `instruments/` are separate systems.
+- Standard instrument formats are grouped by format folder.
+- GUI, CLI, MCP and ChatGPT Plugin integrations should use stable core/control interfaces.
+- Portable paths are relative wherever possible.
+- External sound licensing metadata must not be silently discarded.
+- MIDI is interoperability, not the primary audio source.

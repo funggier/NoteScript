@@ -1,0 +1,28 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: windows-latest
+    strategy:
+      matrix:
+        node-version: [24.x]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: npm
+      - run: npm ci
+      - run: npm run check
+      - run: npm test
+      - run: npm run portable
+      - name: Portable smoke test
+        shell: cmd
+        run: |
+          out\NoteScript-portable\NoteScript.cmd validate "out\NoteScript-portable\projects\Evening Walk.md"
+          out\NoteScript-portable\NoteScript.cmd list-sounds "out\NoteScript-portable\projects\Evening Walk.md"
+          out\NoteScript-portable\Render-Song.cmd "out\NoteScript-portable\projects\Evening Walk.md"
