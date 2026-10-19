@@ -71,4 +71,33 @@ Exit: local UI qualification GREEN and exact-commit GitHub Actions run `39292575
 - Stable action schema for create/update/validate/render.
 - Authentication guidance for non-loopback integrations.
 
+## Post-v0.1.0 — Built-in sound library expansion — COMPLETE
+
+- Eight deterministic MIT pitched packs: Piano, Electric Piano, Music Box, Organ, Synth Bass, Synth Lead, Warm Pad and Pluck.
+- SoundPad expanded to 16 drum/percussion/effect triggers.
+- Portable discovery updated to require all nine production sound packs.
+- Generated-audio signal/hash qualification.
+- Exact-commit CI GREEN: run `39311308623` for commit `aabed272df0f8b07174f4bc9fde63e7bcb83704b`.
+
+Evidence:
+
+`docs/development/reports/NOTESCRIPT-20261020-sound-library-expansion.md`
+
+## NTS-007 — BeatLane6 rhythm game
+
+Priority: NEXT after sound-library qualification.
+
+- Six lanes using `A S D | J K L`.
+- Generate playable chart data from the canonical timeline of a NoteScript Markdown project.
+- Pre-roll / approach highway.
+- Tap notes, simultaneous notes/chords and hold notes.
+- Song-synchronized audio clock as the timing authority.
+- Judgement windows: Perfect / Great / Good / Miss.
+- Combo, multiplier, score, accuracy and max combo.
+- Life/groove gauge, fail state and success result screen.
+- Real NoteScript sound playback when notes are hit.
+- Difficulty/chart reduction layer without changing the authoritative Markdown song.
+- Input/audio timing calibration.
+- Future extension path for slide/drag notes and manual chart editing.
+
 The NoteScript core remains AI-free.

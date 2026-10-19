@@ -139,4 +139,29 @@ Evidence:
 
 `docs/development/reports/NOTESCRIPT-20261020-v0.1.0-release-qualification.md`
 
-NTS-005 was not started in the release session. It remains the next planned milestone but is not ACTIVE yet.
+NTS-005 was not started in the release session. It remains planned but is not ACTIVE.
+
+## Post-v0.1.0 sound library expansion
+
+Status: **COMPLETE / EXACT-COMMIT CI GREEN**
+
+Commit:
+
+`aabed272df0f8b07174f4bc9fde63e7bcb83704b`
+
+Exact-commit CI:
+
+- run `39311308623`
+- result: **SUCCESS**
+
+Production library now contains eight pitched packs plus a 16-trigger SoundPad.
+
+Evidence:
+
+`docs/development/reports/NOTESCRIPT-20261020-sound-library-expansion.md`
+
+## Next requested work — NTS-007 BeatLane6
+
+Status: **PLANNED / NOT YET ACTIVE**
+
+BeatLane6 is the next user-prioritized feature. It must use NoteScript Markdown songs as level/chart sources and retain Markdown as the authoritative music representation.
