@@ -69,3 +69,15 @@ Not yet claimed:
 - ChatGPT Plugin/MCP adapter itself.
 
 The Control API is the intended stable boundary for those future integrations.
+
+## GitHub exact-commit evidence
+
+Repository: `funggier/NoteScript` (private).
+
+Bootstrap code commit: `9104450bedd6834a1dcbad804a3c9b9ddd04014c`.
+
+GitHub Actions run: `39251875169` (`CI`, run #1).
+
+Result: `completed / success`.
+
+Observed successful workflow steps included `npm ci`, `npm run check`, `npm test`, `npm run portable`, and the portable smoke test.

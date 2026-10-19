@@ -1,6 +1,6 @@
 # NoteScript Roadmap
 
-## NTS-001 — Bootstrap core — ACTIVE
+## NTS-001 — Bootstrap core — COMPLETE
 
 - Markdown language v0.1.
 - Parser/validator.

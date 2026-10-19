@@ -2,7 +2,7 @@
 
 ## NTS-001 — Bootstrap core
 
-Status: QUALIFIED LOCALLY / GITHUB PUBLISH PENDING
+Status: COMPLETE / GREEN
 
 Goal: establish the first executable NoteScript repository at `T:\Space\Projects\ProjectsProgram\NoteScript`.
 
@@ -23,8 +23,8 @@ Acceptance:
 - [x] Tests GREEN: 6/6.
 - [x] Portable runtime qualification GREEN.
 - [x] Portable Control API health GREEN.
-- [ ] Git repository initialized/committed.
-- [ ] GitHub repository created/pushed.
-- [ ] CI exact commit GREEN.
+- [x] Git repository initialized/committed.
+- [x] GitHub repository created/pushed: `funggier/NoteScript` (private).
+- [x] Bootstrap code commit CI GREEN: `9104450bedd6834a1dcbad804a3c9b9ddd04014c`, Actions run `39251875169`.
 
 Evidence: `docs/development/reports/NOTESCRIPT-20261019-bootstrap-qualification.md`.
