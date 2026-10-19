@@ -11,11 +11,24 @@ The Control API is the stable automation boundary for:
 
 It does not add AI to NoteScript.
 
-## Local default
+## Network configuration
 
-`127.0.0.1:19427`
+Host and port have one authoritative source:
 
-The default should remain loopback-only.
+`config/network.json`
+
+Default:
+
+```json
+{
+  "host": "127.0.0.1",
+  "port": 19427
+}
+```
+
+The Control API reads this file at startup. Portable `NoteScript-Studio.cmd` reads the same file before opening the browser, so IP/port values are not duplicated in launchers.
+
+The default should remain loopback-only. If a non-loopback host such as a LAN address or `0.0.0.0` is used, authentication/network exposure must be considered explicitly.
 
 A token can be enabled with `NOTESCRIPT_CONTROL_TOKEN`.
 

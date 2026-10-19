@@ -4,14 +4,15 @@ import http from "node:http";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { createControlService } from "./service.js";
+import { loadNetworkConfig, resolveProgramRoot } from "./network-config.js";
 import { NoteScriptError } from "../error.js";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
-const sourceRoot = path.resolve(here, "..", "..");
 const uiRoot = path.join(here, "ui");
-const programRoot = process.env.NOTESCRIPT_ROOT ? path.resolve(process.env.NOTESCRIPT_ROOT) : sourceRoot;
-const host = process.env.NOTESCRIPT_CONTROL_HOST || "127.0.0.1";
-const port = Number.parseInt(process.env.NOTESCRIPT_CONTROL_PORT || "19427", 10);
+const programRoot = resolveProgramRoot(here, process.env.NOTESCRIPT_ROOT || "");
+const network = loadNetworkConfig(programRoot);
+const host = network.host;
+const port = network.port;
 const token = process.env.NOTESCRIPT_CONTROL_TOKEN || "";
 const service = createControlService(programRoot);
 
@@ -245,5 +246,6 @@ server.listen(port, host, () => {
   console.log("NoteScript Control API listening on http://" + host + ":" + port);
   console.log("NoteScript Studio: http://" + host + ":" + port + "/");
   console.log("Portable root: " + programRoot);
+  console.log("Network config: " + network.file);
   if (!token) console.log("Control token: disabled (loopback-only default recommended).");
 });

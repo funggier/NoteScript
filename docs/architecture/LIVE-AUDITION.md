@@ -11,13 +11,15 @@ The feature serves two purposes:
 
 ## Current prototype
 
-The Control API serves a local Audition Keyboard at:
+The Control API serves NoteScript Studio at the host/port defined by:
 
-`http://127.0.0.1:19427/`
+`config/network.json`
 
 Portable users can launch it with:
 
-`Audition-Keyboard.cmd`
+`NoteScript-Studio.cmd`
+
+The compatibility launcher `Audition-Keyboard.cmd` uses the same network configuration.
 
 ### Native sound packs
 

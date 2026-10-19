@@ -33,6 +33,10 @@ fs.copyFileSync(process.execPath, path.join(runtimeDir, runtimeName));
 for (const dir of ["sounds", "projects", "exports", "config", "templates", "tools"]) {
   fs.mkdirSync(path.join(out, dir), { recursive: true });
 }
+fs.copyFileSync(
+  path.join(root, "config", "network.json"),
+  path.join(out, "config", "network.json")
+);
 for (const format of ["SFZ", "SF2", "SF3"]) {
   fs.mkdirSync(path.join(out, "instruments", format), { recursive: true });
 }
@@ -103,9 +107,14 @@ const audition = [
   "setlocal",
   "set ROOT=%~dp0",
   "set NOTESCRIPT_ROOT=%ROOT%",
+  'for /f "delims=" %%U in (\'"%ROOT%runtime\\node.exe" "%ROOT%app\\src\\control\\network-cli.js" url\') do set "STUDIO_URL=%%U"',
+  'if not defined STUDIO_URL (',
+  '  echo Unable to read config\\network.json',
+  '  exit /b 2',
+  ')',
   'start "NoteScript Control API" /min "%ROOT%runtime\\node.exe" "%ROOT%app\\src\\control\\server.js"',
   'powershell -NoProfile -Command "Start-Sleep -Milliseconds 700"',
-  'start "" "http://127.0.0.1:19427/"'
+  'start "" "%STUDIO_URL%"'
 ].join("\r\n") + "\r\n";
 fs.writeFileSync(path.join(out, "NoteScript-Studio.cmd"), audition);
 fs.writeFileSync(path.join(out, "Audition-Keyboard.cmd"), audition);

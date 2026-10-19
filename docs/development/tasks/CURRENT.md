@@ -76,9 +76,13 @@ Transport checkpoint:
 - [x] Separate Sound Pack browser.
 - [x] Separate Instrument browser.
 - [x] Portable build includes `NoteScript-Studio.cmd`.
+- [x] Portable build includes `Start-Control-API.cmd` and `Stop-Control-API.cmd`.
+- [x] Control API host/port are defined only in `config/network.json`.
+- [x] Studio launcher reads the same network config before opening the browser.
+- [x] Custom-port qualification passed by changing only `config/network.json` from 19427 to 19428.
 - [x] Local browser/UI qualification.
-- [x] Automated tests GREEN: 20/20.
-- [x] Source syntax check GREEN: 23 JavaScript files.
+- [x] Automated tests GREEN: 21/21.
+- [x] Source syntax check GREEN: 25 JavaScript files.
 - [x] Portable qualification.
 - [x] Temporary qualification project removed; portable examples restored to baseline.
 - [ ] Exact-commit GitHub CI GREEN.

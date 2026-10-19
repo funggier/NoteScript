@@ -16,6 +16,7 @@ import { getFluidSynthCapabilities } from "../src/instrument/fluidsynth.js";
 import { buildFluidSynthLiveArgs, FluidSynthLiveSession } from "../src/playback/fluidsynth-live.js";
 import { LivePlaybackManager } from "../src/playback/manager.js";
 import { createControlService } from "../src/control/service.js";
+import { loadNetworkConfig, resolveProgramRoot, studioUrl } from "../src/control/network-config.js";
 import { decodeAudioFile, getDecoderCapabilities } from "../src/audio/decoder.js";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -226,6 +227,37 @@ test("FFmpeg adapter decodes FLAC when FFmpeg is available", (t) => {
   assert.equal(decoded.decoder, "ffmpeg");
   assert.equal(decoded.sampleRate, 44100);
   assert.ok(decoded.samples.length > 1000);
+});
+
+test("network host and port come from one network.json file", () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "notescript-network-"));
+  fs.mkdirSync(path.join(dir, "config"), { recursive: true });
+  fs.writeFileSync(
+    path.join(dir, "config", "network.json"),
+    JSON.stringify({ host: "0.0.0.0", port: 20555 }, null, 2)
+  );
+
+  const nested = path.join(dir, "app", "src", "control");
+  fs.mkdirSync(nested, { recursive: true });
+  assert.equal(resolveProgramRoot(nested), dir);
+
+  const config = loadNetworkConfig(dir);
+  assert.equal(config.host, "0.0.0.0");
+  assert.equal(config.port, 20555);
+  assert.equal(studioUrl(config), "http://127.0.0.1:20555/");
+
+  fs.writeFileSync(
+    path.join(dir, "config", "network.json"),
+    JSON.stringify({ host: "192.168.1.25", port: 20556 }, null, 2)
+  );
+  const lan = loadNetworkConfig(dir);
+  assert.equal(studioUrl(lan), "http://192.168.1.25:20556/");
+
+  fs.writeFileSync(
+    path.join(dir, "config", "network.json"),
+    JSON.stringify({ host: "127.0.0.1", port: 70000 }, null, 2)
+  );
+  assert.throws(() => loadNetworkConfig(dir), /1 to 65535/);
 });
 
 test("control service saves and validates a project inside portable workspace", () => {

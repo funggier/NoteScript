@@ -33,6 +33,7 @@ NoteScript-portable/
 ├─ projects/
 ├─ exports/
 ├─ config/
+│  └─ network.json            # single source of truth for Control API host/port
 ├─ tools/
 │  ├─ ffmpeg/                 # optional portable decoder tool
 │  └─ fluidsynth/             # optional SF2/SF3 backend
@@ -221,11 +222,20 @@ Run:
 npm run control
 ```
 
-Default endpoint:
+Network binding is configured in exactly one file:
 
-```text
-http://127.0.0.1:19427
+`config/network.json`
+
+Default:
+
+```json
+{
+  "host": "127.0.0.1",
+  "port": 19427
+}
 ```
+
+The Control API and `NoteScript-Studio.cmd` both read this same file. Change the IP or port there only; the launcher opens the corresponding URL automatically. If `host` is `0.0.0.0` or `::`, the server binds broadly while the local Studio launcher uses the matching loopback address for the browser.
 
 Current API surface:
 

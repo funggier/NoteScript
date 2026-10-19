@@ -42,6 +42,15 @@ jobs:
           }
 
           $env:NOTESCRIPT_ROOT = $root
+          $network = Get-Content -Raw -LiteralPath (Join-Path $root "config\network.json") | ConvertFrom-Json
+          $requestHost = [string]$network.host
+          if ($requestHost -eq "0.0.0.0") { $requestHost = "127.0.0.1" }
+          if ($requestHost -eq "::") { $requestHost = "::1" }
+          if ($requestHost.Contains(":") -and -not $requestHost.StartsWith("[")) {
+            $requestHost = "[" + $requestHost + "]"
+          }
+          $baseUri = "http://" + $requestHost + ":" + [string]$network.port
+
           $node = Join-Path $root "runtime\node.exe"
           $serverFile = Join-Path $root "app\src\control\server.js"
           $proc = Start-Process -FilePath $node -ArgumentList @($serverFile) -WorkingDirectory $root -PassThru -WindowStyle Hidden
@@ -49,7 +58,7 @@ jobs:
             $ready = $false
             for ($i = 0; $i -lt 24; $i++) {
               try {
-                $health = Invoke-RestMethod -Uri "http://127.0.0.1:19427/v1/health" -TimeoutSec 2
+                $health = Invoke-RestMethod -Uri "$baseUri/v1/health" -TimeoutSec 2
                 if ($health.ok) {
                   $ready = $true
                   break
@@ -62,7 +71,7 @@ jobs:
               throw "Portable Control API did not become ready."
             }
 
-            $page = Invoke-WebRequest -UseBasicParsing -Uri "http://127.0.0.1:19427/" -TimeoutSec 5
+            $page = Invoke-WebRequest -UseBasicParsing -Uri "$baseUri/" -TimeoutSec 5
             if (
               $page.StatusCode -ne 200 -or
               $page.Content -notmatch "NOTESCRIPT STUDIO" -or
@@ -80,18 +89,18 @@ jobs:
               throw "Portable Studio HTML smoke test failed."
             }
 
-            $project = Invoke-RestMethod -Uri "http://127.0.0.1:19427/v1/project?project=Evening%20Walk.md" -TimeoutSec 5
+            $project = Invoke-RestMethod -Uri "$baseUri/v1/project?project=Evening%20Walk.md" -TimeoutSec 5
             if (-not $project.valid -or $project.song.tracks.Count -ne 2) {
               throw "Portable project API smoke test failed."
             }
 
-            $settings = Invoke-RestMethod -Uri "http://127.0.0.1:19427/v1/studio/settings" -TimeoutSec 5
+            $settings = Invoke-RestMethod -Uri "$baseUri/v1/studio/settings" -TimeoutSec 5
             if ($settings.workspaceMode -ne "basic" -or $settings.editorMode -ne "text") {
               throw "Portable Studio settings smoke test failed."
             }
 
             $preview = Join-Path $env:RUNNER_TEMP "notescript-transport-preview.wav"
-            Invoke-WebRequest -UseBasicParsing -Uri "http://127.0.0.1:19427/v1/transport/audio?project=Evening%20Walk.md" -OutFile $preview -TimeoutSec 15
+            Invoke-WebRequest -UseBasicParsing -Uri "$baseUri/v1/transport/audio?project=Evening%20Walk.md" -OutFile $preview -TimeoutSec 15
             $bytes = [System.IO.File]::ReadAllBytes($preview)
             if ($bytes.Length -le 44 -or [System.Text.Encoding]::ASCII.GetString($bytes, 0, 4) -ne "RIFF") {
               throw "Portable transport preview is not a valid WAV."
@@ -99,8 +108,8 @@ jobs:
 
             $stem0 = Join-Path $env:RUNNER_TEMP "notescript-track-0.wav"
             $stem1 = Join-Path $env:RUNNER_TEMP "notescript-track-1.wav"
-            Invoke-WebRequest -UseBasicParsing -Uri "http://127.0.0.1:19427/v1/transport/track-audio?project=Evening%20Walk.md&track=0" -OutFile $stem0 -TimeoutSec 15
-            Invoke-WebRequest -UseBasicParsing -Uri "http://127.0.0.1:19427/v1/transport/track-audio?project=Evening%20Walk.md&track=1" -OutFile $stem1 -TimeoutSec 15
+            Invoke-WebRequest -UseBasicParsing -Uri "$baseUri/v1/transport/track-audio?project=Evening%20Walk.md&track=0" -OutFile $stem0 -TimeoutSec 15
+            Invoke-WebRequest -UseBasicParsing -Uri "$baseUri/v1/transport/track-audio?project=Evening%20Walk.md&track=1" -OutFile $stem1 -TimeoutSec 15
 
             foreach ($stem in @($stem0, $stem1)) {
               $stemBytes = [System.IO.File]::ReadAllBytes($stem)
