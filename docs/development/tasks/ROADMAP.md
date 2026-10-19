@@ -24,7 +24,7 @@ Exit: source tests GREEN, example WAV renders, portable build runs from its own 
 - SF2/SF3 SoundFont adapter.
 - Preserve per-add-on licensing metadata.
 
-## NTS-003 — Playback engine — ACTIVE
+## NTS-003 — Playback engine — COMPLETE
 
 - Real-time transport.
 - Play/pause/stop/seek/loop.
@@ -34,7 +34,7 @@ Exit: source tests GREEN, example WAV renders, portable build runs from its own 
 - Shared note-on/note-off audition engine for native sound packs and supported instruments.
 - Polyphonic live playing, sustain, velocity and future MIDI-input support.
 
-## NTS-004 — Desktop GUI portable
+## NTS-004 — Desktop GUI portable — ACTIVE
 
 - Markdown editor.
 - Syntax diagnostics.

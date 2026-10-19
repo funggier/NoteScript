@@ -194,10 +194,18 @@ Transport uses:
 
 It does not invoke the system default media player for preview.
 
-## Conclusion before CI
+## GitHub exact-commit evidence
 
-The NTS-003 transport baseline is locally GREEN.
+- repository: `funggier/NoteScript` (public)
+- transport implementation commit: `8bda4a9a84cc9fea25d0cee80588ac4a41558c77`
+- GitHub Actions run: `39265689109` (CI run #6)
+- result: `completed / success`
+- successful steps include the new **Portable Control API transport smoke test**, which launches the built portable server, verifies the Project Transport UI, downloads an `Evening Walk` preview, and validates its RIFF/WAV header.
 
-Together with the already-CI-green persistent-live checkpoint, NTS-003 now covers the playback/transport scope needed before the desktop GUI milestone.
+## Conclusion
 
-Exact-commit GitHub CI for this transport implementation remains the final qualification gate.
+NTS-003 transport is GREEN locally and on exact-commit GitHub CI.
+
+Together with the persistent-live checkpoint, NTS-003 now satisfies the playback-engine roadmap scope and is COMPLETE.
+
+NTS-004 — Desktop GUI portable is the active milestone.
