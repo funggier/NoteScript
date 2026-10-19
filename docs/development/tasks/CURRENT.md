@@ -121,16 +121,22 @@ Markdown remains the authoritative editable song representation.
 
 NTS-004 is closed.
 
-## Release handoff
+## v0.1.0 release
 
-The current baseline is prepared for the first public release before NTS-005 begins.
+Status: **COMPLETE / PUBLISHED / POST-PUBLISH VERIFIED**
 
-Read first in the next session:
+Release: `v0.1.0`
 
-`docs/development/reports/NOTESCRIPT-20261020-full-session-handoff-v0.1.0-release-ready.md`
+Release commit: `38ac635f63e1e1da21c69c4331e0026ac4125b79`
 
-Release target recommended by the handoff: `v0.1.0`.
+Exact-commit CI: run `39297369709` — SUCCESS.
 
-Do not start NTS-005 until the release is published and post-publish verification is complete.
+Portable asset SHA-256:
 
-The next planned development milestone after release is NTS-005 — Musical language expansion.
+`19360903d4f8b1dc58a78fbda87f485e43e6cdd7ab3060274c6eb0647998e697`
+
+Evidence:
+
+`docs/development/reports/NOTESCRIPT-20261020-v0.1.0-release-qualification.md`
+
+NTS-005 was not started in the release session. It remains the next planned milestone but is not ACTIVE yet.
