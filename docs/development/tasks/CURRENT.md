@@ -1,41 +1,40 @@
 # Current Task
 
-## NTS-002 — Audio source adapters
+## NTS-003 — Playback engine
 
-Status: QUALIFIED LOCALLY / GITHUB CI PENDING
+Status: ACTIVE
 
-Goal: expand NoteScript beyond the original PCM16 WAV-only baseline while keeping the core portable, modular and AI-free.
+Goal: turn the NTS-002 audition foundation into a persistent low-latency playback engine suitable for serious live playing.
 
-Acceptance:
+NTS-002 status: COMPLETE / GREEN
 
-- [x] Decoder abstraction.
-- [x] Native dependency-free PCM16 WAV path retained.
-- [x] Optional FFmpeg decode path for FLAC/OGG/OPUS/AIFF/MP3/M4A.
-- [x] Portable `tools/ffmpeg/` discovery.
-- [x] Baseline SFZ parser/renderer.
-- [x] SFZ song rendering.
-- [x] SFZ audition-note rendering.
-- [x] Optional FluidSynth backend.
-- [x] SF2 song rendering with real CC0 SoundFont evidence.
-- [x] SF2 audition-note rendering.
-- [x] SF3 song rendering with real upstream SF3 evidence.
-- [x] SF3 audition-note rendering.
-- [x] Portable `tools/fluidsynth/` discovery verified without environment override.
-- [x] Sound/instrument metadata and license/source fields preserved.
-- [x] Browser-based Audition Keyboard foundation.
-- [x] Mouse + computer-keyboard note input.
-- [x] Polyphony / velocity / octave shift / sustain.
-- [x] Kit trigger pads.
-- [x] Capability reporting for optional backends.
-- [x] Source syntax check GREEN: 21 JavaScript files.
-- [x] Local tests GREEN: 14/14.
-- [x] Final clean portable rebuild after temporary third-party qualification assets.
+- implementation commit: `78c9e6510c518b6e74110ab0ecbacf30392bc49a`
+- GitHub Actions run: `39259150920`
+- exact-commit CI: SUCCESS
+- repository visibility: PUBLIC
+- evidence: `docs/development/reports/NOTESCRIPT-20261019-nts002-audio-adapters-live-audition.md`
+
+## NTS-003 current acceptance
+
+- [ ] Persistent note-on/note-off engine for SoundFont instruments.
+- [ ] Avoid per-note fast-render/WAV round trip during serious live playing.
+- [ ] Select/change live instrument safely.
+- [ ] Polyphonic note state.
+- [ ] Sustain CC.
+- [ ] All-notes-off/panic.
+- [ ] Browser Audition Keyboard uses persistent live backend when available.
+- [ ] Keep native sound-pack/SFZ audition paths functional.
+- [ ] Optional MIDI-controller input should feed the same note interface.
+- [ ] Live-engine status/capabilities exposed through Control API.
+- [ ] Process cleanup on source switch/server shutdown.
+- [ ] Local real-audio qualification on Windows.
+- [ ] Automated tests.
+- [ ] Portable qualification.
 - [ ] Exact-commit GitHub CI GREEN.
 
-Evidence:
+Later NTS-003 work:
 
-`docs/development/reports/NOTESCRIPT-20261019-nts002-audio-adapters-live-audition.md`
-
-## Next after NTS-002
-
-NTS-003 will turn the audition foundation into a persistent low-latency playback engine suitable for serious live playing and future MIDI-controller input.
+- song transport: play/pause/stop/seek/loop;
+- low-latency output-device selection;
+- persistent SFZ/native sample voice engine outside the browser where beneficial;
+- recording/capture of live performance into NoteScript events as an explicit opt-in feature.

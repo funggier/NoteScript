@@ -194,6 +194,14 @@ For serious low-latency performance, NTS-003 should move instrument synthesis to
 
 Per-note HTTP/fast-render should not be considered the final performance architecture.
 
+## GitHub exact-commit evidence
+
+- Repository: `funggier/NoteScript` (public).
+- NTS-002 implementation commit: `78c9e6510c518b6e74110ab0ecbacf30392bc49a`.
+- GitHub Actions run: `39259150920` (CI run #3).
+- Result: `completed / success`.
+- Successful steps included `npm ci`, `npm run check`, `npm test`, `npm run portable`, and expanded portable smoke tests including SFZ validation/render.
+
 ## Repository licensing boundary
 
 - NoteScript source: MIT.

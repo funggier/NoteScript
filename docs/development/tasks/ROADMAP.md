@@ -16,7 +16,7 @@
 
 Exit: source tests GREEN, example WAV renders, portable build runs from its own runtime, repository pushed.
 
-## NTS-002 — Audio source adapters — ACTIVE
+## NTS-002 — Audio source adapters — COMPLETE
 
 - Decoder abstraction.
 - FLAC/OGG/AIFF support.
@@ -24,7 +24,7 @@ Exit: source tests GREEN, example WAV renders, portable build runs from its own 
 - SF2/SF3 SoundFont adapter.
 - Preserve per-add-on licensing metadata.
 
-## NTS-003 — Playback engine
+## NTS-003 — Playback engine — ACTIVE
 
 - Real-time transport.
 - Play/pause/stop/seek/loop.
