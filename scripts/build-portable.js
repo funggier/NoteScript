@@ -89,6 +89,15 @@ const control = [
 ].join("\r\n") + "\r\n";
 fs.writeFileSync(path.join(out, "Start-Control-API.cmd"), control);
 
+const stopControl = [
+  "@echo off",
+  "setlocal",
+  "set ROOT=%~dp0",
+  "set SERVER=%ROOT%app\\src\\control\\server.js",
+  'powershell -NoProfile -ExecutionPolicy Bypass -Command "$server=$env:SERVER; $items=@(Get-CimInstance Win32_Process | Where-Object { $_.Name -ieq \'node.exe\' -and $_.CommandLine -and $_.CommandLine.IndexOf($server, [StringComparison]::OrdinalIgnoreCase) -ge 0 }); if ($items.Count -eq 0) { Write-Host \'NoteScript Control API is not running.\'; exit 0 }; foreach ($p in $items) { Stop-Process -Id $p.ProcessId -Force -ErrorAction SilentlyContinue; Write-Host (\'Stopped NoteScript Control API PID \' + $p.ProcessId) }"'
+].join("\r\n") + "\r\n";
+fs.writeFileSync(path.join(out, "Stop-Control-API.cmd"), stopControl);
+
 const audition = [
   "@echo off",
   "setlocal",

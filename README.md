@@ -25,6 +25,7 @@ NoteScript-portable/
 ├─ Preview-Song.cmd
 ├─ Render-Song.cmd
 ├─ Start-Control-API.cmd
+├─ Stop-Control-API.cmd
 ├─ NoteScript-Studio.cmd
 ├─ Audition-Keyboard.cmd
 ├─ runtime/
@@ -196,6 +197,7 @@ Implemented:
 - Persistent SF2/SF3 live playback through one FluidSynth process with direct WASAPI output on Windows.
 - Safe SoundFont switching, live status, sustain CC and process cleanup.
 - Portable `NoteScript-Studio.cmd` launcher plus compatibility `Audition-Keyboard.cmd`.
+- Portable `Start-Control-API.cmd` / `Stop-Control-API.cmd` pair; Stop targets only the NoteScript server whose command line belongs to that portable folder.
 - Portable folder builder with bundled Node runtime.
 - Local Control API intended for GUI, MCP, and ChatGPT Plugin adapters.
 - Automated tests.
