@@ -46,7 +46,8 @@ Exit: source tests GREEN, example WAV renders, portable build runs from its own 
 - Render/export.
 - Project management.
 - Game-style remappable piano hotkeys.
-- SoundPad hotkeys and per-pad volume mixing.
+- SoundPad hotkeys, per-pad volume mixing and persistent mix lock.
+- Explicit left-to-right project preview pan semantics.
 - Advanced multi-track stem playback with live track Mute/Unmute.
 - Single portable command entry point plus thin BAT shortcuts.
 - Single-file network host/port configuration.

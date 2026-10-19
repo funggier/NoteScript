@@ -102,13 +102,23 @@ export function createControlService(programRoot) {
     return result;
   }
 
+  function normalizeSoundPadMixLocks(value) {
+    const result = {};
+    if (!value || typeof value !== "object") return result;
+    for (const [packId, locked] of Object.entries(value)) {
+      result[packId] = locked === true;
+    }
+    return result;
+  }
+
   function defaultStudioSettings() {
     return {
-      version: 2,
+      version: 3,
       workspaceMode: "basic",
       editorMode: "text",
       soundPadHotkeys: {},
       soundPadVolumes: {},
+      soundPadMixLocks: {},
       hotkeys: {
         note0: "a",
         note1: "w",
@@ -153,18 +163,24 @@ export function createControlService(programRoot) {
         ? parsed.soundPadVolumes
         : {}
     );
+    const soundPadMixLocks = normalizeSoundPadMixLocks(
+      parsed && typeof parsed.soundPadMixLocks === "object"
+        ? parsed.soundPadMixLocks
+        : {}
+    );
 
     const { kitHotkeys: _legacyKitHotkeys, ...rest } = parsed || {};
     return {
       ...defaults,
       ...rest,
-      version: 2,
+      version: 3,
       hotkeys: {
         ...defaults.hotkeys,
         ...(parsed && typeof parsed.hotkeys === "object" ? parsed.hotkeys : {})
       },
       soundPadHotkeys,
-      soundPadVolumes
+      soundPadVolumes,
+      soundPadMixLocks
     };
   }
 
@@ -343,6 +359,14 @@ export function createControlService(programRoot) {
             : {}),
           ...(input.soundPadVolumes && typeof input.soundPadVolumes === "object"
             ? input.soundPadVolumes
+            : {})
+        }),
+        soundPadMixLocks: normalizeSoundPadMixLocks({
+          ...(current.soundPadMixLocks && typeof current.soundPadMixLocks === "object"
+            ? current.soundPadMixLocks
+            : {}),
+          ...(input.soundPadMixLocks && typeof input.soundPadMixLocks === "object"
+            ? input.soundPadMixLocks
             : {})
         })
       };

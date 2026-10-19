@@ -324,6 +324,7 @@ test("control service supports Studio project CRUD, analysis and settings", () =
   assert.equal(defaults.workspaceMode, "basic");
   assert.equal(defaults.editorMode, "text");
   assert.equal(defaults.hotkeys.note0, "a");
+  assert.deepEqual(defaults.soundPadMixLocks, {});
 
   const settings = service.saveStudioSettings({
     workspaceMode: "advanced",
@@ -350,14 +351,27 @@ test("control service supports Studio project CRUD, analysis and settings", () =
         kick: 1,
         shaker: 0.45
       }
+    },
+    soundPadMixLocks: {
+      soundpad: true
     }
   });
   assert.equal(soundPadSettings.soundPadHotkeys.soundpad.kick, "1");
   assert.equal(soundPadSettings.soundPadHotkeys.soundpad.shaker, "2");
   assert.equal(soundPadSettings.soundPadVolumes.soundpad.kick, 1);
   assert.equal(soundPadSettings.soundPadVolumes.soundpad.shaker, 0.45);
+  assert.equal(soundPadSettings.soundPadMixLocks.soundpad, true);
   assert.equal(service.getStudioSettings().soundPadHotkeys.soundpad.kick, "1");
   assert.equal(service.getStudioSettings().soundPadVolumes.soundpad.shaker, 0.45);
+  assert.equal(service.getStudioSettings().soundPadMixLocks.soundpad, true);
+
+  const unlockedMix = service.saveStudioSettings({
+    soundPadMixLocks: {
+      soundpad: false
+    }
+  });
+  assert.equal(unlockedMix.soundPadMixLocks.soundpad, false);
+  assert.equal(service.getStudioSettings().soundPadMixLocks.soundpad, false);
 
   const clampedMix = service.saveStudioSettings({
     soundPadVolumes: {
@@ -492,7 +506,10 @@ test("Studio UI exposes tabbed game piano, compose modes, advanced tracks and re
   assert.match(html, /id="soundPadHotkeyPanel"/);
   assert.match(html, /id="soundPadHotkeySave"/);
   assert.match(html, /id="soundPadHotkeyCancel"/);
+  assert.match(html, /id="soundPadMixLock"/);
   assert.match(html, /id="soundPadResetMix"/);
+  assert.match(html, /class="pan-scale"/);
+  assert.match(html, /left speaker to right speaker/);
   assert.match(html, /id="soundPads"/);
   assert.match(html, /class="piano game-piano"/);
   assert.match(html, /id="panic"/);
@@ -523,7 +540,12 @@ test("Studio UI exposes tabbed game piano, compose modes, advanced tracks and re
   assert.match(app, /soundPadHotkeys/);
   assert.match(app, /soundPadVolumes/);
   assert.match(app, /soundPadVolume/);
+  assert.match(app, /soundPadMixLocked/);
+  assert.match(app, /hasOwnProperty\.call\(locks, pack\.id\)[\s\S]*?: true;/);
+  assert.match(app, /toggleSoundPadMixLock/);
   assert.match(app, /resetSoundPadMix/);
+  assert.match(app, /transportPanLabel/);
+  assert.match(app, /Left .*Right|Left |Right /);
   assert.match(app, /soundpad-hotkey-editing/);
   assert.match(app, /hotkeyEditSnapshot/);
   assert.match(app, /piano-hotkey-editing/);
@@ -535,6 +557,10 @@ test("Studio UI exposes tabbed game piano, compose modes, advanced tracks and re
   assert.match(css, /\.pad-hotkey/);
   assert.match(css, /\.pad-volume/);
   assert.match(css, /\.pad-mixer/);
+  assert.match(css, /\.mix-locked/);
+  assert.match(css, /#soundPadMixLock\.active[\s\S]*?box-shadow:\s*none;/);
+  assert.match(css, /\.deck-button:disabled[\s\S]*?box-shadow:\s*none;/);
+  assert.match(css, /#transportPan\s*\{[^}]*direction:\s*ltr;/s);
 });
 
 test("parser rejects a track with both sound and instrument sources", () => {

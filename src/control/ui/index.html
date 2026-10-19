@@ -150,6 +150,7 @@
                 <div class="piano-deck-topline">
                   <span id="soundPadDeckMode">SOUNDPAD LIVE INPUT</span>
                   <div class="piano-deck-actions">
+                    <button id="soundPadMixLock" class="deck-button" type="button" aria-pressed="false">LOCK MIX</button>
                     <button id="soundPadResetMix" class="deck-button" type="button">RESET MIX</button>
                     <button id="soundPadHotkeyEdit" class="deck-button" type="button">EDIT HOTKEYS</button>
                     <span class="deck-signal"><i></i> READY</span>
@@ -210,9 +211,14 @@
 
               <div class="control-row spaced">
                 <label for="transportPan">Preview pan</label>
-                <output id="transportPanValue">0</output>
+                <output id="transportPanValue">C</output>
               </div>
-              <input id="transportPan" type="range" min="-100" max="100" value="0">
+              <input id="transportPan" type="range" min="-100" max="100" value="0" aria-label="Preview pan, left speaker to right speaker">
+              <div class="pan-scale" aria-hidden="true">
+                <span>L</span>
+                <span>C</span>
+                <span>R</span>
+              </div>
 
               <div class="control-row spaced">
                 <label for="outputDevice">Browser output</label>

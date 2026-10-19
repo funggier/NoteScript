@@ -99,6 +99,7 @@ const ui = {
   soundPadHotkeyStatus: document.querySelector("#soundPadHotkeyStatus"),
   soundPadHotkeySave: document.querySelector("#soundPadHotkeySave"),
   soundPadHotkeyCancel: document.querySelector("#soundPadHotkeyCancel"),
+  soundPadMixLock: document.querySelector("#soundPadMixLock"),
   soundPadResetMix: document.querySelector("#soundPadResetMix"),
   selectedDetails: document.querySelector("#selectedDetails"),
   voiceCount: document.querySelector("#voiceCount"),
@@ -262,8 +263,79 @@ function soundPadVolume(trigger, pack = state.selected) {
   return soundPadVolumes(pack)[trigger] ?? 1;
 }
 
+function soundPadMixLocked(pack = state.selected) {
+  if (!pack || pack.type !== "soundpad") return false;
+  const locks = state.studio.settings?.soundPadMixLocks || {};
+  return Object.prototype.hasOwnProperty.call(locks, pack.id)
+    ? locks[pack.id] === true
+    : true;
+}
+
+function setSoundPadMixLockLocal(pack, locked) {
+  if (!pack || pack.type !== "soundpad") return false;
+  const next = Boolean(locked);
+  state.studio.settings = {
+    ...(state.studio.settings || {}),
+    soundPadMixLocks: {
+      ...(state.studio.settings?.soundPadMixLocks || {}),
+      [pack.id]: next
+    }
+  };
+  return next;
+}
+
+async function persistSoundPadMixLock(pack = state.selected) {
+  if (!pack || pack.type !== "soundpad") return;
+  const settings = await post("/v1/studio/settings", {
+    soundPadMixLocks: state.studio.settings?.soundPadMixLocks || {}
+  });
+  state.studio.settings = settings;
+}
+
+function updateSoundPadMixLockUi(pack = state.selected) {
+  const available = Boolean(pack && pack.type === "soundpad");
+  const locked = available ? soundPadMixLocked(pack) : false;
+
+  ui.soundPadMixLock.disabled = !available;
+  ui.soundPadMixLock.textContent = locked ? "UNLOCK MIX" : "LOCK MIX";
+  ui.soundPadMixLock.classList.toggle("active", locked);
+  ui.soundPadMixLock.setAttribute("aria-pressed", String(locked));
+  ui.soundPadMixLock.title = locked
+    ? "Unlock SoundPad volume controls"
+    : "Lock SoundPad volume controls";
+
+  ui.soundPadResetMix.disabled = !available || locked;
+  ui.soundPads.classList.toggle("mix-locked", locked);
+  ui.soundPads.querySelectorAll(".pad-volume").forEach((input) => {
+    input.disabled = locked;
+    input.setAttribute("aria-disabled", String(locked));
+  });
+}
+
+async function toggleSoundPadMixLock() {
+  const pack = state.selected;
+  if (!pack || pack.type !== "soundpad") return;
+
+  const previous = soundPadMixLocked(pack);
+  const next = setSoundPadMixLockLocal(pack, !previous);
+  updateSoundPadMixLockUi(pack);
+
+  try {
+    await persistSoundPadMixLock(pack);
+    updateSoundPadMixLockUi(pack);
+    setMonitor(next
+      ? "SoundPad mix locked. Pads remain playable; volume controls are protected."
+      : "SoundPad mix unlocked. Volume controls are editable.");
+  } catch (error) {
+    setSoundPadMixLockLocal(pack, previous);
+    updateSoundPadMixLockUi(pack);
+    setMonitor("SoundPad mix lock save failed: " + error.message);
+  }
+}
+
 function setSoundPadVolumeLocal(pack, trigger, value) {
   if (!pack || pack.type !== "soundpad") return 1;
+  if (soundPadMixLocked(pack)) return soundPadVolume(trigger, pack);
   const next = {
     ...soundPadVolumes(pack),
     [trigger]: clampSoundPadVolume(value)
@@ -302,6 +374,10 @@ function updateSoundPadVolumeUi(pack = state.selected) {
 async function resetSoundPadMix() {
   const pack = state.selected;
   if (!pack || pack.type !== "soundpad") return;
+  if (soundPadMixLocked(pack)) {
+    setMonitor("SoundPad mix is locked. Unlock it before resetting volume.");
+    return;
+  }
   const reset = {};
   for (const trigger of pack.triggers) reset[trigger] = 1;
   state.studio.settings = {
@@ -670,9 +746,22 @@ function updateTransportGain() {
   if (state.transport.gain) state.transport.gain.gain.value = value;
 }
 
+function transportPanLabel(value) {
+  const amount = Math.round(Math.abs(value) * 100);
+  if (amount === 0) return "C";
+  return (value < 0 ? "L " : "R ") + amount;
+}
+
+function transportPanAriaText(value) {
+  const amount = Math.round(Math.abs(value) * 100);
+  if (amount === 0) return "Center";
+  return (value < 0 ? "Left " : "Right ") + amount + " percent";
+}
+
 function updateTransportPan() {
   const value = transportPanValue();
-  ui.transportPanValue.textContent = String(Math.round(value * 100));
+  ui.transportPanValue.textContent = transportPanLabel(value);
+  ui.transportPan.setAttribute("aria-valuetext", transportPanAriaText(value));
   if (state.transport.panner) state.transport.panner.pan.value = value;
 }
 
@@ -1423,6 +1512,7 @@ function buildPads(pack) {
 
   updateSoundPadHotkeyCaps(pack);
   updateSoundPadVolumeUi(pack);
+  updateSoundPadMixLockUi(pack);
 }
 
 function describePack(pack) {
@@ -2963,12 +3053,14 @@ async function saveStudioSettings() {
     editorMode: ui.editorModeSetting.value,
     hotkeys: hotkeys(),
     soundPadHotkeys: state.studio.settings?.soundPadHotkeys || {},
-    soundPadVolumes: state.studio.settings?.soundPadVolumes || {}
+    soundPadVolumes: state.studio.settings?.soundPadVolumes || {},
+    soundPadMixLocks: state.studio.settings?.soundPadMixLocks || {}
   });
   state.studio.settings = settings;
   renderHotkeyEditor();
   updatePianoHotkeyCaps();
   updateSoundPadHotkeyCaps();
+  updateSoundPadMixLockUi();
   ui.settingsStatus.textContent = "Settings saved.";
 }
 
@@ -3069,6 +3161,7 @@ function wireStudioUi() {
   ui.soundPadHotkeyEdit.addEventListener("click", beginSoundPadHotkeyEdit);
   ui.soundPadHotkeySave.addEventListener("click", saveSoundPadHotkeys);
   ui.soundPadHotkeyCancel.addEventListener("click", cancelSoundPadHotkeyEdit);
+  ui.soundPadMixLock.addEventListener("click", toggleSoundPadMixLock);
   ui.soundPadResetMix.addEventListener("click", resetSoundPadMix);
   wireNodePalette();
 }

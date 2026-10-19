@@ -45,6 +45,10 @@ Transport checkpoint:
 - [x] SoundPad supports per-pad volume mixing from 0–100%.
 - [x] SoundPad volume persists per sound-pack ID / trigger.
 - [x] RESET MIX restores all pads in the selected SoundPad to 100%.
+- [x] SoundPad mixer is locked by default for new/unconfigured SoundPads.
+- [x] Locked SoundPad disables per-pad volume sliders and RESET MIX while preserving pad/hotkey playback.
+- [x] Locked mixer visuals are subdued without persistent glow.
+- [x] Project preview pan moves left-to-right as left speaker -> center -> right speaker.
 - [x] Production sound IDs/names use Piano, SoundPad and Basic SFZ throughout.
 - [x] New SoundPad manifests use `type: soundpad`.
 - [x] Legacy `type: kit` manifests remain accepted and canonicalize to SoundPad.

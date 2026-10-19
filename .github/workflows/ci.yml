@@ -136,7 +136,10 @@ jobs:
               $page.Content -notmatch 'id="soundPadHotkeyEdit"' -or
               $page.Content -notmatch 'id="soundPadHotkeySave"' -or
               $page.Content -notmatch 'id="soundPadHotkeyCancel"' -or
-              $page.Content -notmatch 'id="soundPadResetMix"'
+              $page.Content -notmatch 'id="soundPadMixLock"' -or
+              $page.Content -notmatch 'id="soundPadResetMix"' -or
+              $page.Content -notmatch 'id="transportPan"' -or
+              $page.Content -notmatch 'class="pan-scale"'
             ) {
               throw "Portable Studio HTML smoke test failed."
             }
@@ -147,7 +150,12 @@ jobs:
             }
 
             $settings = Invoke-RestMethod -Uri "$baseUri/v1/studio/settings" -TimeoutSec 5
-            if ($settings.workspaceMode -ne "basic" -or $settings.editorMode -ne "text") {
+            if (
+              $settings.workspaceMode -ne "basic" -or
+              $settings.editorMode -ne "text" -or
+              [int]$settings.version -lt 3 -or
+              $null -eq $settings.soundPadMixLocks
+            ) {
               throw "Portable Studio settings smoke test failed."
             }
 

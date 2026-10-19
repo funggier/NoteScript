@@ -419,6 +419,59 @@ Portable Control API discovery returned exactly the built-in production sound so
 - `piano`, type `pitched`;
 - `soundpad`, type `soundpad`.
 
+## Post-qualification UI polish — Pan direction and SoundPad mix lock
+
+Additional portable qualification after the NTS-004 close:
+
+### Project preview pan
+
+The pan control now communicates speaker direction explicitly rather than signed numeric values.
+
+Observed on the portable Studio:
+
+- slider at the left edge: `L 100`;
+- center: `C`;
+- slider at the right edge: `R 100`.
+
+The implementation keeps the standard Web Audio mapping:
+
+- left -> `StereoPannerNode.pan = -1`;
+- center -> `0`;
+- right -> `+1`.
+
+The slider is forced to left-to-right direction so moving the control left/right matches the physical speaker side.
+
+### SoundPad mix lock
+
+SoundPad mix protection is persistent per sound-pack ID.
+
+Default semantics:
+
+- no saved entry -> **locked**;
+- `true` -> locked;
+- `false` -> unlocked.
+
+A fresh portable build was qualified with `soundPadMixLocks: {}`. Selecting SoundPad immediately showed:
+
+- `UNLOCK MIX`;
+- `kick volume` disabled;
+- `shaker volume` disabled;
+- `RESET MIX` disabled.
+
+While locked, clicking the kick pad still produced:
+
+`SoundPad: kick · volume 100%`
+
+This verifies the lock protects mixer controls only and does not block musical performance.
+
+The locked visual state is intentionally subdued:
+
+- no persistent glow/shadow on the lock button;
+- disabled mixer controls remain dim;
+- disabled controls do not gain hover/focus glow.
+
+Reload/persistence was also qualified: an explicit locked state remained locked after Studio reload.
+
 ## Exact-commit gate — GREEN
 
 Qualified commit:

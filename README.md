@@ -176,7 +176,7 @@ Implemented:
 - Windows preview via the default audio player for the legacy CLI preview command.
 - In-browser Project Transport preview with Play/Pause/Stop/Seek/Loop and no external player.
 - In-memory/cached project preview rendering through the Control API.
-- Non-destructive preview volume and stereo pan controls.
+- Non-destructive preview volume and stereo pan controls; pan is explicitly left-to-right (`L 100 -> C -> R 100`) and maps to Web Audio `-1 -> 0 -> +1`.
 - Browser audio-output selection when the browser exposes Web Audio `setSinkId`.
 - Separate SFZ/SF2/SF3 instrument add-on discovery/validation.
 - SFZ offline song rendering and SFZ audition-note rendering.
@@ -188,6 +188,7 @@ Implemented:
 - Direct piano hotkey edit mode: click a mapped piano key, press its new keyboard binding, then Save or Cancel; current bindings remain visible as faint keycaps beside note names.
 - SoundPad controls use the same game-style hotkey model: each pad shows its trigger name plus a faint current hotkey, keyboard hotkeys can trigger pads directly, and Edit Hotkeys works from the pad itself.
 - SoundPad has per-pad volume mixing from 0–100%, persisted per sound-pack ID, plus RESET MIX to return the current SoundPad to 100%.
+- SoundPad MIX LOCK is enabled by default for every SoundPad. It persists per sound-pack ID and protects all pad-volume sliders plus RESET MIX while keeping pad playback and hotkeys active.
 - Piano note/hotkey labels are centered inside the actual white/black key bounds rather than relying on browser static-position behavior.
 - Optional Web MIDI input for note on/off, velocity, sustain and all-notes-off.
 - Project create/open/save/rename/delete flow inside the portable workspace.

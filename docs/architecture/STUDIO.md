@@ -183,6 +183,23 @@ The volume setting is stored independently at:
 
 Volume range is 0–100%. The value multiplies the normal velocity-derived gain in the browser audio path, so a quieter shaker can be balanced against a stronger kick without changing the whole track. Slider input updates the active mix immediately for subsequent hits; releasing/changing the slider persists the mix. **RESET MIX** restores all triggers in the current SoundPad to 100%.
 
+Each SoundPad also has a persistent **LOCK MIX** state stored at:
+
+`studio.json -> soundPadMixLocks -> <sound-pack-id>`
+
+The default is **locked**. If a SoundPad has no entry yet, Studio treats it as locked. An explicit `false` entry means unlocked.
+
+When locked:
+
+- every per-pad volume slider is disabled;
+- **RESET MIX** is disabled;
+- pad playback remains active;
+- computer hotkeys remain active;
+- **EDIT HOTKEYS** remains independent from the mixer lock;
+- reloading/reopening Studio restores the locked state.
+
+The lock button changes to **UNLOCK MIX** while active. Unlocking re-enables the mixer without changing saved pad volumes.
+
 In SoundPad mode the displayed hotkeys trigger pads directly from the computer keyboard. **EDIT HOTKEYS** switches pad clicks from sound triggering to binding selection; Save persists the per-pack mapping, while Cancel restores the snapshot from before editing.
 
 The preferred manifest token is `type: soundpad`. Legacy `type: kit` manifests remain accepted and canonicalize to SoundPad.
@@ -199,6 +216,16 @@ Baseline actions include:
 - project preview stop.
 
 The same bindings drive both keyboard behavior and the keycaps drawn on the game-style piano.
+
+## Project preview pan semantics
+
+Project Transport pan follows the standard Web Audio stereo convention:
+
+- slider left: `-100` -> `StereoPannerNode.pan = -1` -> left speaker;
+- center: `0` -> center;
+- slider right: `+100` -> `StereoPannerNode.pan = +1` -> right speaker.
+
+Studio forces the pan slider to left-to-right direction and displays `L n`, `C`, or `R n` instead of ambiguous signed numbers.
 
 ## Sound and Instrument tabs
 

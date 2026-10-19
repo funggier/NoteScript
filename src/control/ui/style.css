@@ -160,6 +160,20 @@ input[type="range"] {
   accent-color: #6c79e8;
 }
 
+#transportPan {
+  direction: ltr;
+}
+
+.pan-scale {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 2px;
+  color: #6f7a90;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: .08em;
+}
+
 .stepper {
   display: flex;
   align-items: center;
@@ -449,9 +463,22 @@ input[type="range"] {
   color: #f2f4ff;
 }
 
-.deck-button:disabled {
+.deck-button:disabled,
+.deck-button:disabled:hover {
   cursor: default;
-  opacity: .78;
+  opacity: .46;
+  border-color: #3b455d;
+  background: #171d29;
+  color: #7f899b;
+  box-shadow: none;
+}
+
+#soundPadMixLock.active,
+#soundPadMixLock.active:hover {
+  border-color: #3b455d;
+  background: #171d29;
+  color: #8f9aae;
+  box-shadow: none;
 }
 
 .piano-hotkey-panel {
@@ -727,6 +754,27 @@ input[type="range"] {
   font-size: 10px;
   font-variant-numeric: tabular-nums;
   text-align: right;
+}
+
+.mix-locked .pad-mixer {
+  opacity: .46;
+}
+
+.mix-locked .pad-mixer:hover {
+  background: rgba(8, 11, 17, .48);
+}
+
+.mix-locked .pad-volume,
+.mix-locked .pad-volume:hover,
+.mix-locked .pad-volume:focus {
+  cursor: not-allowed;
+  filter: none;
+  box-shadow: none;
+}
+
+.mix-locked .pad-volume-label::after {
+  content: " · LOCKED";
+  color: #8d98ae;
 }
 
 .pad.active {
