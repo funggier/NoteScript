@@ -32,7 +32,7 @@ For pitched `sounds/<Pack>/` add-ons:
 - sustain delays note release;
 - mouse and computer keyboard input share the same note-on/note-off path.
 
-For kit add-ons the UI displays named trigger pads.
+For SoundPad add-ons the UI displays named trigger pads. New manifests use `type: soundpad`; legacy `type: kit` remains accepted.
 
 ### Standard instrument formats
 

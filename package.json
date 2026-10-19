@@ -7,14 +7,14 @@
     "notescript": "./src/cli.js"
   },
   "scripts": {
-    "demo:sounds": "node scripts/generate-demo-sounds.js",
+    "generate:sounds": "node scripts/generate-core-sounds.js",
     "check": "node scripts/check-syntax.js",
-    "test": "node scripts/generate-demo-sounds.js && node --test test/*.test.js",
+    "test": "node scripts/generate-core-sounds.js && node --test test/*.test.js",
     "validate:example": "node src/cli.js validate examples/evening-walk.md",
-    "validate:pack": "node src/cli.js validate-pack examples/sounds/demo-piano",
+    "validate:pack": "node src/cli.js validate-pack examples/sounds/piano",
     "render:example": "node src/cli.js render examples/evening-walk.md -o out/evening-walk.wav",
     "midi:example": "node src/cli.js midi examples/evening-walk.md -o out/evening-walk.mid",
-    "portable": "node scripts/generate-demo-sounds.js && node scripts/build-portable.js",
+    "portable": "node scripts/generate-core-sounds.js && node scripts/build-portable.js",
     "control": "node src/control/server.js"
   },
   "keywords": [

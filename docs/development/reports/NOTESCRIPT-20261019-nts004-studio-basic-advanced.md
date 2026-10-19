@@ -136,7 +136,7 @@ After Save, direct disk inspection showed:
 The temporary project was deleted after qualification. Portable project list returned to:
 
 - Evening Walk.md
-- SFZ Demo.md
+- SFZ Basic.md
 
 ## Hotkey remapping qualification
 
@@ -158,7 +158,7 @@ A second workflow is now available directly on the Play piano.
 
 Qualified sequence:
 
-1. choose Demo Piano;
+1. choose Piano;
 2. click **EDIT HOTKEYS**;
 3. click the mapped C4 piano key;
 4. UI reports `C4 · current A · press a new keyboard key.`;
@@ -207,47 +207,50 @@ Fix:
 - the fix applies to both white and black keys;
 - hotkey keycaps remain centered with `left: 50%` + `translateX(-50%)`.
 
-### Kit hotkeys
+### SoundPad hotkeys and per-pad mix
 
-Kit pads now use the same game-style binding workflow.
+SoundPad controls use the same game-style binding workflow as the piano and add an independent volume mixer per trigger.
 
-Portable qualification with Demo Kit:
+Portable qualification with the built-in SoundPad:
 
 Initial pad labels:
 
 - `kick 1`
 - `shaker 2`
 
-Pressing computer key `1` produced live monitor evidence:
+Each SoundPad control exposes a dedicated `VOL` slider and percentage.
 
-`Trigger: kick`
-
-Direct-edit Cancel path:
+Hotkey qualification retained the previous behavior:
 
 1. click **EDIT HOTKEYS**;
 2. select `kick 1`;
 3. press virtual-key `Q`;
 4. pad accessibility label changes to `kick Q`;
-5. choose **CANCEL**;
-6. settings API still reports `kitHotkeys: {}`.
+5. **CANCEL** restores the pre-edit mapping without persistence;
+6. **SAVE** persists through `soundPadHotkeys`.
 
-Direct-edit Save path:
+Per-pad mixer qualification:
 
-1. repeat `kick 1 -> Q`;
-2. choose **SAVE**;
-3. settings API reports:
-   - `demo-kit.kick: "q"`
-   - `demo-kit.shaker: "2"`.
+1. selected SoundPad;
+2. moved the `shaker volume` slider from 100% to 44%;
+3. UI monitor reported `SoundPad mix: shaker = 44%`;
+4. settings API persisted:
+   - `soundPadVolumes.soundpad.kick: 1`
+   - `soundPadVolumes.soundpad.shaker: 0.44`;
+5. clicked `shaker 2`;
+6. live monitor reported `SoundPad: shaker · volume 44%`, confirming the trigger path consumes the stored per-pad gain;
+7. clicked **RESET MIX**;
+8. UI showed both pad values at 100%;
+9. settings API returned:
+   - `soundPadVolumes.soundpad.kick: 1`
+   - `soundPadVolumes.soundpad.shaker: 1`;
+10. monitor reported `SoundPad mix reset to 100%.`.
 
-Cleanup then used the same direct UI flow to restore `kick` to `1` and Save.
+Control-service tests additionally verify mixer input is clamped to 0–1.
 
-Final portable settings:
+SoundPad mappings and mix values are stored per sound-pack ID, so each installed SoundPad can maintain an independent layout and balance.
 
-- `demo-kit.kick: "1"`
-- `demo-kit.shaker: "2"`
-- piano bindings remain at defaults.
-
-Kit mappings are stored per sound-pack ID so a future add-on can maintain its own trigger layout independently.
+New manifests use `type: soundpad`; legacy `type: kit` remains accepted and canonicalizes to SoundPad.
 
 One initial qualification attempt using synthesized text input produced an incorrect `J` event; repeating with an actual virtual-key `Q` produced the expected result. This was isolated to the Windows automation input method, not NoteScript's capture or persistence logic.
 
@@ -389,6 +392,32 @@ Verified in one run:
 - track 0 stem is RIFF/WAV;
 - track 1 stem is RIFF/WAV;
 - track stem hashes differ.
+
+## Production naming / SoundPad canonicalization
+
+Production asset IDs and visible names are now:
+
+- `piano` / **Piano**
+- `soundpad` / **SoundPad**
+- `SFZ/basic-sfz` / **Basic SFZ**
+- portable project `SFZ Basic.md`
+
+New SoundPad manifests use:
+
+`type: soundpad`
+
+The parser still accepts legacy `type: kit` and canonicalizes it to `soundpad`; automated tests cover that compatibility path.
+
+A full source + portable scan reported:
+
+- no obsolete prototype naming in file/folder names;
+- no obsolete prototype naming in text assets;
+- no mojibake/replacement characters.
+
+Portable Control API discovery returned exactly the built-in production sound sources:
+
+- `piano`, type `pitched`;
+- `soundpad`, type `soundpad`.
 
 ## Exact-commit gate
 

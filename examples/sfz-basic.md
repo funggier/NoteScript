@@ -1,14 +1,14 @@
-# SFZ Demo
+# SFZ Basic
 
-A compact project used to qualify the first standard-format instrument adapter.
+A compact project using the built-in SFZ instrument.
 
 ```notescript
 tempo: 90
 time: 4/4
 key: C major
 
-track Demo SFZ
-instrument: SFZ/demo-sfz
+track Basic SFZ
+instrument: SFZ/basic-sfz
 volume: 0.42
 velocity: 92
 bar 1: C4 q | E4 q | G4 q | C5 q

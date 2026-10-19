@@ -54,16 +54,16 @@ function shaker(seconds = 0.16) {
   return out;
 }
 
-const pianoDir = path.join(root, "examples", "sounds", "demo-piano");
+const pianoDir = path.join(root, "examples", "sounds", "piano");
 for (const note of ["C3", "C4", "E4", "G4", "C5"]) {
   write(path.join(pianoDir, note + ".wav"), pitched(note));
 }
 
-const kitDir = path.join(root, "examples", "sounds", "demo-kit");
-write(path.join(kitDir, "kick.wav"), kick());
-write(path.join(kitDir, "shaker.wav"), shaker());
+const soundPadDir = path.join(root, "examples", "sounds", "soundpad");
+write(path.join(soundPadDir, "kick.wav"), kick());
+write(path.join(soundPadDir, "shaker.wav"), shaker());
 
-const sfzDemo = path.join(root, "examples", "instruments", "SFZ", "demo-sfz", "placeholder.wav");
-write(sfzDemo, pitched("C4"));
+const sfzSample = path.join(root, "examples", "instruments", "SFZ", "basic-sfz", "placeholder.wav");
+write(sfzSample, pitched("C4"));
 
-console.log("Generated deterministic demo sound packs and SFZ fixture.");
+console.log("Generated deterministic core sound sources and SFZ baseline.");

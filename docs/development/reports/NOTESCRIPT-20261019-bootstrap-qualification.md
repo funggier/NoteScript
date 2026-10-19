@@ -25,7 +25,7 @@ Portable root:
 Observed:
 
 - portable `NoteScript.cmd validate`: PASS.
-- portable sound discovery: PASS; found `demo-piano` and `demo-kit`.
+- portable sound discovery: PASS; found `piano` and `soundpad`.
 - portable `Render-Song.cmd`: PASS.
 - rendered file: `exports\Evening Walk.wav`.
 - duration reported: 23.66 seconds.

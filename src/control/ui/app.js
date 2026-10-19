@@ -93,18 +93,19 @@ const ui = {
   pianoHotkeyStatus: document.querySelector("#pianoHotkeyStatus"),
   pianoHotkeySave: document.querySelector("#pianoHotkeySave"),
   pianoHotkeyCancel: document.querySelector("#pianoHotkeyCancel"),
-  kitDeckMode: document.querySelector("#kitDeckMode"),
-  kitHotkeyEdit: document.querySelector("#kitHotkeyEdit"),
-  kitHotkeyPanel: document.querySelector("#kitHotkeyPanel"),
-  kitHotkeyStatus: document.querySelector("#kitHotkeyStatus"),
-  kitHotkeySave: document.querySelector("#kitHotkeySave"),
-  kitHotkeyCancel: document.querySelector("#kitHotkeyCancel"),
+  soundPadDeckMode: document.querySelector("#soundPadDeckMode"),
+  soundPadHotkeyEdit: document.querySelector("#soundPadHotkeyEdit"),
+  soundPadHotkeyPanel: document.querySelector("#soundPadHotkeyPanel"),
+  soundPadHotkeyStatus: document.querySelector("#soundPadHotkeyStatus"),
+  soundPadHotkeySave: document.querySelector("#soundPadHotkeySave"),
+  soundPadHotkeyCancel: document.querySelector("#soundPadHotkeyCancel"),
+  soundPadResetMix: document.querySelector("#soundPadResetMix"),
   selectedDetails: document.querySelector("#selectedDetails"),
   voiceCount: document.querySelector("#voiceCount"),
   pianoView: document.querySelector("#pianoView"),
-  kitView: document.querySelector("#kitView"),
+  soundPadView: document.querySelector("#soundPadView"),
   keyboard: document.querySelector("#keyboard"),
-  pads: document.querySelector("#pads"),
+  soundPads: document.querySelector("#soundPads"),
   monitorText: document.querySelector("#monitorText")
 };
 
@@ -217,7 +218,7 @@ const HOTKEY_LABELS = {
   transportStop: "Transport Stop"
 };
 
-const KIT_DEFAULT_KEYS = [
+const SOUNDPAD_DEFAULT_KEYS = [
   "1", "2", "3", "4", "5", "6", "7", "8",
   "9", "0", "-", "=", "[", "]", ";", "'"
 ];
@@ -229,19 +230,99 @@ function hotkeys() {
   };
 }
 
-function kitHotkeys(pack = state.selected) {
-  if (!pack || pack.type !== "kit") return {};
-  const saved = state.studio.settings?.kitHotkeys?.[pack.id] || {};
+function soundPadHotkeys(pack = state.selected) {
+  if (!pack || pack.type !== "soundpad") return {};
+  const saved = state.studio.settings?.soundPadHotkeys?.[pack.id] || {};
   const result = {};
   pack.triggers.forEach((trigger, index) => {
-    result[trigger] = saved[trigger] || KIT_DEFAULT_KEYS[index] || "";
+    result[trigger] = saved[trigger] || SOUNDPAD_DEFAULT_KEYS[index] || "";
   });
   return result;
 }
 
-function kitComputerKeyMap(pack = state.selected) {
+function clampSoundPadVolume(value) {
+  const number = Number(value);
+  if (!Number.isFinite(number)) return 1;
+  return Math.max(0, Math.min(1, number));
+}
+
+function soundPadVolumes(pack = state.selected) {
+  if (!pack || pack.type !== "soundpad") return {};
+  const saved = state.studio.settings?.soundPadVolumes?.[pack.id] || {};
+  const result = {};
+  for (const trigger of pack.triggers) {
+    result[trigger] = clampSoundPadVolume(
+      Object.prototype.hasOwnProperty.call(saved, trigger) ? saved[trigger] : 1
+    );
+  }
+  return result;
+}
+
+function soundPadVolume(trigger, pack = state.selected) {
+  return soundPadVolumes(pack)[trigger] ?? 1;
+}
+
+function setSoundPadVolumeLocal(pack, trigger, value) {
+  if (!pack || pack.type !== "soundpad") return 1;
+  const next = {
+    ...soundPadVolumes(pack),
+    [trigger]: clampSoundPadVolume(value)
+  };
+  state.studio.settings = {
+    ...(state.studio.settings || {}),
+    soundPadVolumes: {
+      ...(state.studio.settings?.soundPadVolumes || {}),
+      [pack.id]: next
+    }
+  };
+  return next[trigger];
+}
+
+async function persistSoundPadMix(pack = state.selected) {
+  if (!pack || pack.type !== "soundpad") return;
+  const settings = await post("/v1/studio/settings", {
+    soundPadVolumes: state.studio.settings?.soundPadVolumes || {}
+  });
+  state.studio.settings = settings;
+}
+
+function updateSoundPadVolumeUi(pack = state.selected) {
+  if (!pack || pack.type !== "soundpad") return;
+  const volumes = soundPadVolumes(pack);
+  ui.soundPads.querySelectorAll(".pad[data-trigger]").forEach((card) => {
+    const trigger = card.dataset.trigger;
+    const volume = volumes[trigger] ?? 1;
+    const input = card.querySelector(".pad-volume");
+    const output = card.querySelector(".pad-volume-value");
+    if (input) input.value = String(Math.round(volume * 100));
+    if (output) output.textContent = Math.round(volume * 100) + "%";
+  });
+}
+
+async function resetSoundPadMix() {
+  const pack = state.selected;
+  if (!pack || pack.type !== "soundpad") return;
+  const reset = {};
+  for (const trigger of pack.triggers) reset[trigger] = 1;
+  state.studio.settings = {
+    ...(state.studio.settings || {}),
+    soundPadVolumes: {
+      ...(state.studio.settings?.soundPadVolumes || {}),
+      [pack.id]: reset
+    }
+  };
+  updateSoundPadVolumeUi(pack);
+  try {
+    await persistSoundPadMix(pack);
+    setMonitor("SoundPad mix reset to 100%.");
+  } catch (error) {
+    setMonitor("SoundPad mix save failed: " + error.message);
+  }
+}
+
+function soundPadComputerKeyMap(pack = state.selected) {
   const map = new Map();
-  const bindings = kitHotkeys(pack);
+  const bindings = soundPadHotkeys(pack);
   for (const [trigger, binding] of Object.entries(bindings)) {
     const key = String(binding || "").toLowerCase();
     if (key) map.set(key, trigger);
@@ -916,20 +997,24 @@ async function panicAll() {
 }
 
 async function triggerPad(trigger, element) {
-  if (!state.selected || state.selected.type !== "kit") return;
+  if (!state.selected || state.selected.type !== "soundpad") return;
   try {
     const context = ensureAudio();
     const buffer = await loadTriggerBuffer(state.selected.id, trigger);
     const source = context.createBufferSource();
     const gain = context.createGain();
     source.buffer = buffer;
-    gain.gain.value = Math.max(0.0001, Math.pow(state.velocity / 127, 1.35));
+    const velocityGain = Math.max(0.0001, Math.pow(state.velocity / 127, 1.35));
+    const padGain = soundPadVolume(trigger);
+    gain.gain.value = velocityGain * padGain;
     source.connect(gain);
     gain.connect(context.destination);
     element.classList.add("active");
     source.onended = () => element.classList.remove("active");
     source.start();
-    setMonitor("Trigger: " + trigger);
+    setMonitor(
+      "SoundPad: " + trigger + " · volume " + Math.round(soundPadVolume(trigger) * 100) + "%"
+    );
   } catch (error) {
     setMonitor("Audio error: " + error.message);
   }
@@ -1048,7 +1133,7 @@ function beginPianoHotkeyEdit() {
   state.studio.hotkeyEditTarget = "piano";
   state.studio.hotkeyEditSnapshot = {
     hotkeys: { ...hotkeys() },
-    kitHotkeys: JSON.parse(JSON.stringify(state.studio.settings?.kitHotkeys || {}))
+    soundPadHotkeys: JSON.parse(JSON.stringify(state.studio.settings?.soundPadHotkeys || {}))
   };
   state.studio.pendingHotkeyAction = null;
 
@@ -1120,87 +1205,88 @@ function cancelPianoHotkeyEdit() {
     state.studio.settings = {
       ...(state.studio.settings || {}),
       hotkeys: { ...state.studio.hotkeyEditSnapshot.hotkeys },
-      kitHotkeys: JSON.parse(JSON.stringify(state.studio.hotkeyEditSnapshot.kitHotkeys || {}))
+      soundPadHotkeys: JSON.parse(JSON.stringify(state.studio.hotkeyEditSnapshot.soundPadHotkeys || {}))
     };
   }
 
   renderHotkeyEditor();
-  updateKitHotkeyCaps();
+  updateSoundPadHotkeyCaps();
   finishPianoHotkeyEdit("Piano hotkey changes cancelled.");
 }
 
-function clearKitHotkeySelection() {
-  ui.pads.querySelectorAll(".pad.hotkey-selected").forEach((element) => {
+function clearSoundPadHotkeySelection() {
+  ui.soundPads.querySelectorAll(".pad.hotkey-selected").forEach((element) => {
     element.classList.remove("hotkey-selected");
   });
 }
 
-function updateKitHotkeyCaps(pack = state.selected) {
-  if (!pack || pack.type !== "kit") return;
-  const bindings = kitHotkeys(pack);
-  ui.pads.querySelectorAll(".pad[data-trigger]").forEach((button) => {
-    const trigger = button.dataset.trigger;
-    const cap = button.querySelector(".pad-hotkey");
+function updateSoundPadHotkeyCaps(pack = state.selected) {
+  if (!pack || pack.type !== "soundpad") return;
+  const bindings = soundPadHotkeys(pack);
+  ui.soundPads.querySelectorAll(".pad[data-trigger]").forEach((card) => {
+    const trigger = card.dataset.trigger;
+    const cap = card.querySelector(".pad-hotkey");
+    const hit = card.querySelector(".pad-hit");
     if (!cap) return;
     const binding = bindings[trigger] || "";
     cap.textContent = displayBinding(binding);
-    button.setAttribute(
+    hit?.setAttribute(
       "aria-label",
       trigger + (binding ? " " + displayBinding(binding) : "")
     );
   });
 }
 
-function beginKitHotkeyEdit() {
-  if (state.studio.hotkeyEditMode || state.selected?.type !== "kit") return;
+function beginSoundPadHotkeyEdit() {
+  if (state.studio.hotkeyEditMode || state.selected?.type !== "soundpad") return;
   panicAll();
 
   state.studio.hotkeyEditMode = true;
-  state.studio.hotkeyEditTarget = "kit";
+  state.studio.hotkeyEditTarget = "soundpad";
   state.studio.hotkeyEditSnapshot = {
     hotkeys: { ...hotkeys() },
-    kitHotkeys: JSON.parse(JSON.stringify(state.studio.settings?.kitHotkeys || {}))
+    soundPadHotkeys: JSON.parse(JSON.stringify(state.studio.settings?.soundPadHotkeys || {}))
   };
   state.studio.pendingHotkeyAction = null;
 
-  ui.pads.classList.add("kit-hotkey-editing");
-  ui.kitHotkeyPanel.classList.remove("hidden");
-  ui.kitHotkeyEdit.classList.add("active");
-  ui.kitHotkeyEdit.disabled = true;
-  ui.kitDeckMode.textContent = "KIT HOTKEY EDIT";
-  ui.kitHotkeyStatus.textContent =
+  ui.soundPads.classList.add("soundpad-hotkey-editing");
+  ui.soundPadHotkeyPanel.classList.remove("hidden");
+  ui.soundPadHotkeyEdit.classList.add("active");
+  ui.soundPadHotkeyEdit.disabled = true;
+  ui.soundPadDeckMode.textContent = "SOUNDPAD HOTKEY EDIT";
+  ui.soundPadHotkeyStatus.textContent =
     "Click a pad, then press the keyboard key you want.";
-  clearKitHotkeySelection();
-  updateKitHotkeyCaps();
+  clearSoundPadHotkeySelection();
+  updateSoundPadHotkeyCaps();
 }
 
-function finishKitHotkeyEdit(message) {
+function finishSoundPadHotkeyEdit(message) {
   state.studio.pendingHotkeyAction = null;
   state.studio.hotkeyEditMode = false;
   state.studio.hotkeyEditTarget = null;
   state.studio.hotkeyEditSnapshot = null;
 
-  ui.pads.classList.remove("kit-hotkey-editing");
-  ui.kitHotkeyPanel.classList.add("hidden");
-  ui.kitHotkeyEdit.classList.remove("active");
-  ui.kitHotkeyEdit.disabled = false;
-  ui.kitDeckMode.textContent = "KIT LIVE INPUT";
-  clearKitHotkeySelection();
-  updateKitHotkeyCaps();
+  ui.soundPads.classList.remove("soundpad-hotkey-editing");
+  ui.soundPadHotkeyPanel.classList.add("hidden");
+  ui.soundPadHotkeyEdit.classList.remove("active");
+  ui.soundPadHotkeyEdit.disabled = false;
+  ui.soundPadDeckMode.textContent = "SOUNDPAD LIVE INPUT";
+  clearSoundPadHotkeySelection();
+  updateSoundPadHotkeyCaps();
   if (message) setMonitor(message);
 }
 
-function selectKitHotkeyTrigger(trigger, element) {
-  if (!state.studio.hotkeyEditMode || state.studio.hotkeyEditTarget !== "kit") {
+function selectSoundPadHotkeyTrigger(trigger, element) {
+  if (!state.studio.hotkeyEditMode || state.studio.hotkeyEditTarget !== "soundpad") {
     return false;
   }
 
-  state.studio.pendingHotkeyAction = "kit:" + trigger;
-  clearKitHotkeySelection();
+  state.studio.pendingHotkeyAction = "soundpad:" + trigger;
+  clearSoundPadHotkeySelection();
   element.classList.add("hotkey-selected");
 
-  const current = kitHotkeys();
-  ui.kitHotkeyStatus.textContent =
+  const current = soundPadHotkeys();
+  ui.soundPadHotkeyStatus.textContent =
     trigger +
     " · current " +
     displayBinding(current[trigger]) +
@@ -1208,34 +1294,34 @@ function selectKitHotkeyTrigger(trigger, element) {
   return true;
 }
 
-async function saveKitHotkeys() {
+async function saveSoundPadHotkeys() {
   try {
     await saveStudioSettings();
-    finishKitHotkeyEdit("Kit hotkeys saved.");
+    finishSoundPadHotkeyEdit("SoundPad hotkeys saved.");
   } catch (error) {
-    ui.kitHotkeyStatus.textContent = "Save failed: " + error.message;
+    ui.soundPadHotkeyStatus.textContent = "Save failed: " + error.message;
   }
 }
 
-function cancelKitHotkeyEdit() {
-  if (!state.studio.hotkeyEditMode || state.studio.hotkeyEditTarget !== "kit") return;
+function cancelSoundPadHotkeyEdit() {
+  if (!state.studio.hotkeyEditMode || state.studio.hotkeyEditTarget !== "soundpad") return;
 
   if (state.studio.hotkeyEditSnapshot) {
     state.studio.settings = {
       ...(state.studio.settings || {}),
       hotkeys: { ...state.studio.hotkeyEditSnapshot.hotkeys },
-      kitHotkeys: JSON.parse(JSON.stringify(state.studio.hotkeyEditSnapshot.kitHotkeys || {}))
+      soundPadHotkeys: JSON.parse(JSON.stringify(state.studio.hotkeyEditSnapshot.soundPadHotkeys || {}))
     };
   }
 
   renderHotkeyEditor();
-  updateKitHotkeyCaps();
-  finishKitHotkeyEdit("Kit hotkey changes cancelled.");
+  updateSoundPadHotkeyCaps();
+  finishSoundPadHotkeyEdit("SoundPad hotkey changes cancelled.");
 }
 
 function cancelActiveHotkeyEdit() {
   if (!state.studio.hotkeyEditMode) return;
-  if (state.studio.hotkeyEditTarget === "kit") cancelKitHotkeyEdit();
+  if (state.studio.hotkeyEditTarget === "soundpad") cancelSoundPadHotkeyEdit();
   else cancelPianoHotkeyEdit();
 }
 
@@ -1268,30 +1354,75 @@ function attachPointerKey(element, midi) {
 }
 
 function buildPads(pack) {
-  ui.pads.innerHTML = "";
-  const bindings = kitHotkeys(pack);
+  ui.soundPads.innerHTML = "";
+  const bindings = soundPadHotkeys(pack);
+  const volumes = soundPadVolumes(pack);
 
   for (const trigger of pack.triggers) {
-    const button = document.createElement("button");
-    button.type = "button";
-    button.className = "pad";
-    button.dataset.trigger = trigger;
-    button.innerHTML =
+    const card = document.createElement("div");
+    card.className = "pad";
+    card.dataset.trigger = trigger;
+
+    const hit = document.createElement("button");
+    hit.type = "button";
+    hit.className = "pad-hit";
+    hit.innerHTML =
       '<span class="pad-name">' + escapeHtml(trigger) + '</span>' +
       '<span class="pad-hotkey">' + escapeHtml(displayBinding(bindings[trigger])) + '</span>';
-    button.setAttribute(
+    hit.setAttribute(
       "aria-label",
       trigger + (bindings[trigger] ? " " + displayBinding(bindings[trigger]) : "")
     );
-    button.addEventListener("pointerdown", (event) => {
+    hit.addEventListener("pointerdown", (event) => {
       event.preventDefault();
-      if (selectKitHotkeyTrigger(trigger, button)) return;
-      triggerPad(trigger, button);
+      if (selectSoundPadHotkeyTrigger(trigger, card)) return;
+      triggerPad(trigger, card);
     });
-    ui.pads.appendChild(button);
+
+    const mixer = document.createElement("div");
+    mixer.className = "pad-mixer";
+
+    const volumeLabel = document.createElement("span");
+    volumeLabel.className = "pad-volume-label";
+    volumeLabel.textContent = "VOL";
+
+    const volume = document.createElement("input");
+    volume.type = "range";
+    volume.className = "pad-volume";
+    volume.min = "0";
+    volume.max = "100";
+    volume.step = "1";
+    volume.value = String(Math.round((volumes[trigger] ?? 1) * 100));
+    volume.setAttribute("aria-label", trigger + " volume");
+
+    const output = document.createElement("output");
+    output.className = "pad-volume-value";
+    output.textContent = volume.value + "%";
+
+    volume.addEventListener("pointerdown", (event) => event.stopPropagation());
+    volume.addEventListener("input", () => {
+      const next = setSoundPadVolumeLocal(pack, trigger, Number(volume.value) / 100);
+      output.textContent = Math.round(next * 100) + "%";
+    });
+    volume.addEventListener("change", async () => {
+      try {
+        await persistSoundPadMix(pack);
+        setMonitor(
+          "SoundPad mix: " + trigger + " = " +
+          Math.round(soundPadVolume(trigger, pack) * 100) + "%"
+        );
+      } catch (error) {
+        setMonitor("SoundPad mix save failed: " + error.message);
+      }
+    });
+
+    mixer.append(volumeLabel, volume, output);
+    card.append(hit, mixer);
+    ui.soundPads.appendChild(card);
   }
 
-  updateKitHotkeyCaps(pack);
+  updateSoundPadHotkeyCaps(pack);
+  updateSoundPadVolumeUi(pack);
 }
 
 function describePack(pack) {
@@ -1343,11 +1474,11 @@ async function selectSound(id) {
 
   if (pack.type === "pitched") {
     ui.pianoView.classList.remove("hidden");
-    ui.kitView.classList.add("hidden");
+    ui.soundPadView.classList.add("hidden");
     setMonitor("Ready. Play with mouse, computer keyboard, or MIDI.");
   } else {
     ui.pianoView.classList.add("hidden");
-    ui.kitView.classList.remove("hidden");
+    ui.soundPadView.classList.remove("hidden");
     buildPads(pack);
     setMonitor("Ready. Click a pad or use its displayed hotkey.");
   }
@@ -1411,7 +1542,7 @@ async function selectInstrument(id) {
   if (!item) return;
 
   ui.pianoView.classList.remove("hidden");
-  ui.kitView.classList.add("hidden");
+  ui.soundPadView.classList.add("hidden");
 
   if (!item.playable) {
     updateInstrumentMeta();
@@ -1588,7 +1719,7 @@ function defaultProjectMarkdown(title = "Untitled") {
     "key: C major",
     "",
     "track Piano",
-    "sound: demo-piano",
+    "sound: piano",
     "volume: 0.7",
     "pan: 0",
     "velocity: 96",
@@ -1969,7 +2100,7 @@ function formBodyLines() {
     const name = row.querySelector(".form-track-name").value.trim() || ("Track " + (index + 1));
     const sourceType = row.querySelector(".form-track-source-type").value;
     const source = row.querySelector(".form-track-source").value.trim() ||
-      (sourceType === "sound" ? "demo-piano" : "SFZ/demo-sfz");
+      (sourceType === "sound" ? "piano" : "SFZ/basic-sfz");
 
     lines.push("track " + name);
     lines.push(sourceType + ": " + source);
@@ -2004,7 +2135,7 @@ function applyFormToMarkdown() {
 function addFormTrack() {
   const fallback = {
     name: "Track " + (ui.formTracks.querySelectorAll(".track-form-row").length + 1),
-    sound: state.sounds[0]?.id || "demo-piano",
+    sound: state.sounds[0]?.id || "piano",
     instrument: null,
     volume: 0.8,
     pan: 0,
@@ -2223,7 +2354,7 @@ function addNodeKind(kind) {
     appendToNoteScriptBody([
       "",
       "track New Track",
-      "sound: " + (state.sounds[0]?.id || "demo-piano"),
+      "sound: " + (state.sounds[0]?.id || "piano"),
       "volume: 0.8",
       "pan: 0",
       "velocity: 96",
@@ -2757,33 +2888,33 @@ function assignCapturedHotkey(binding) {
   const action = state.studio.pendingHotkeyAction;
   if (!action) return;
 
-  if (action.startsWith("kit:")) {
-    const trigger = action.slice(4);
+  if (action.startsWith("soundpad:")) {
+    const trigger = action.slice(9);
     const pack = state.selected;
-    if (!pack || pack.type !== "kit") return;
+    if (!pack || pack.type !== "soundpad") return;
 
-    const nextKit = { ...kitHotkeys(pack) };
-    for (const key of Object.keys(nextKit)) {
+    const nextSoundPad = { ...soundPadHotkeys(pack) };
+    for (const key of Object.keys(nextSoundPad)) {
       if (
         key !== trigger &&
-        String(nextKit[key]).toLowerCase() === String(binding).toLowerCase()
+        String(nextSoundPad[key]).toLowerCase() === String(binding).toLowerCase()
       ) {
-        nextKit[key] = "";
+        nextSoundPad[key] = "";
       }
     }
-    nextKit[trigger] = binding;
+    nextSoundPad[trigger] = binding;
 
     state.studio.settings = {
       ...(state.studio.settings || {}),
-      kitHotkeys: {
-        ...(state.studio.settings?.kitHotkeys || {}),
-        [pack.id]: nextKit
+      soundPadHotkeys: {
+        ...(state.studio.settings?.soundPadHotkeys || {}),
+        [pack.id]: nextSoundPad
       }
     };
     state.studio.pendingHotkeyAction = null;
-    clearKitHotkeySelection();
-    updateKitHotkeyCaps(pack);
-    ui.kitHotkeyStatus.textContent =
+    clearSoundPadHotkeySelection();
+    updateSoundPadHotkeyCaps(pack);
+    ui.soundPadHotkeyStatus.textContent =
       trigger +
       " -> " +
       displayBinding(binding) +
@@ -2831,12 +2962,13 @@ async function saveStudioSettings() {
     workspaceMode: ui.workspaceModeSetting.value,
     editorMode: ui.editorModeSetting.value,
     hotkeys: hotkeys(),
-    kitHotkeys: state.studio.settings?.kitHotkeys || {}
+    soundPadHotkeys: state.studio.settings?.soundPadHotkeys || {},
+    soundPadVolumes: state.studio.settings?.soundPadVolumes || {}
   });
   state.studio.settings = settings;
   renderHotkeyEditor();
   updatePianoHotkeyCaps();
-  updateKitHotkeyCaps();
+  updateSoundPadHotkeyCaps();
   ui.settingsStatus.textContent = "Settings saved.";
 }
 
@@ -2934,9 +3066,10 @@ function wireStudioUi() {
   ui.pianoHotkeyEdit.addEventListener("click", beginPianoHotkeyEdit);
   ui.pianoHotkeySave.addEventListener("click", savePianoHotkeys);
   ui.pianoHotkeyCancel.addEventListener("click", cancelPianoHotkeyEdit);
-  ui.kitHotkeyEdit.addEventListener("click", beginKitHotkeyEdit);
-  ui.kitHotkeySave.addEventListener("click", saveKitHotkeys);
-  ui.kitHotkeyCancel.addEventListener("click", cancelKitHotkeyEdit);
+  ui.soundPadHotkeyEdit.addEventListener("click", beginSoundPadHotkeyEdit);
+  ui.soundPadHotkeySave.addEventListener("click", saveSoundPadHotkeys);
+  ui.soundPadHotkeyCancel.addEventListener("click", cancelSoundPadHotkeyEdit);
+  ui.soundPadResetMix.addEventListener("click", resetSoundPadMix);
   wireNodePalette();
 }
 
@@ -3166,12 +3299,12 @@ window.addEventListener("keydown", (event) => {
 
   const key = event.key.toLowerCase();
 
-  if (state.sourceMode === "sound" && state.selected?.type === "kit") {
-    const kitMap = kitComputerKeyMap();
+  if (state.sourceMode === "sound" && state.selected?.type === "soundpad") {
+    const kitMap = soundPadComputerKeyMap();
     if (!kitMap.has(key)) return;
     event.preventDefault();
     const trigger = kitMap.get(key);
-    const pad = ui.pads.querySelector('[data-trigger="' + CSS.escape(trigger) + '"]');
+    const pad = ui.soundPads.querySelector('[data-trigger="' + CSS.escape(trigger) + '"]');
     if (pad) triggerPad(trigger, pad);
     return;
   }
@@ -3201,7 +3334,7 @@ window.addEventListener("keyup", (event) => {
     return;
   }
 
-  if (state.sourceMode === "sound" && state.selected?.type === "kit") return;
+  if (state.sourceMode === "sound" && state.selected?.type === "soundpad") return;
 
   const map = computerKeyMap();
   if (!map.has(key)) return;

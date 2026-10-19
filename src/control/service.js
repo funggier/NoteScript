@@ -85,12 +85,30 @@ export function createControlService(programRoot) {
     return base.toLowerCase().endsWith(".md") ? base : base + ".md";
   }
 
+  function normalizeSoundPadVolumes(value) {
+    const result = {};
+    if (!value || typeof value !== "object") return result;
+
+    for (const [packId, triggers] of Object.entries(value)) {
+      if (!triggers || typeof triggers !== "object") continue;
+      const normalized = {};
+      for (const [trigger, raw] of Object.entries(triggers)) {
+        const number = Number(raw);
+        if (!Number.isFinite(number)) continue;
+        normalized[trigger] = Math.max(0, Math.min(1, number));
+      }
+      result[packId] = normalized;
+    }
+    return result;
+  }
+
   function defaultStudioSettings() {
     return {
-      version: 1,
+      version: 2,
       workspaceMode: "basic",
       editorMode: "text",
-      kitHotkeys: {},
+      soundPadHotkeys: {},
+      soundPadVolumes: {},
       hotkeys: {
         note0: "a",
         note1: "w",
@@ -124,16 +142,29 @@ export function createControlService(programRoot) {
     } catch {
       return defaults;
     }
+    const legacyKitHotkeys =
+      parsed && typeof parsed.kitHotkeys === "object" ? parsed.kitHotkeys : {};
+    const soundPadHotkeys =
+      parsed && typeof parsed.soundPadHotkeys === "object"
+        ? parsed.soundPadHotkeys
+        : legacyKitHotkeys;
+    const soundPadVolumes = normalizeSoundPadVolumes(
+      parsed && typeof parsed.soundPadVolumes === "object"
+        ? parsed.soundPadVolumes
+        : {}
+    );
+
+    const { kitHotkeys: _legacyKitHotkeys, ...rest } = parsed || {};
     return {
       ...defaults,
-      ...parsed,
+      ...rest,
+      version: 2,
       hotkeys: {
         ...defaults.hotkeys,
         ...(parsed && typeof parsed.hotkeys === "object" ? parsed.hotkeys : {})
       },
-      kitHotkeys: parsed && typeof parsed.kitHotkeys === "object"
-        ? parsed.kitHotkeys
-        : {}
+      soundPadHotkeys,
+      soundPadVolumes
     };
   }
 
@@ -295,10 +326,25 @@ export function createControlService(programRoot) {
           ...current.hotkeys,
           ...(input.hotkeys && typeof input.hotkeys === "object" ? input.hotkeys : {})
         },
-        kitHotkeys: {
-          ...(current.kitHotkeys && typeof current.kitHotkeys === "object" ? current.kitHotkeys : {}),
-          ...(input.kitHotkeys && typeof input.kitHotkeys === "object" ? input.kitHotkeys : {})
-        }
+        soundPadHotkeys: {
+          ...(current.soundPadHotkeys && typeof current.soundPadHotkeys === "object"
+            ? current.soundPadHotkeys
+            : {}),
+          ...(input.soundPadHotkeys && typeof input.soundPadHotkeys === "object"
+            ? input.soundPadHotkeys
+            : {}),
+          ...(input.kitHotkeys && typeof input.kitHotkeys === "object"
+            ? input.kitHotkeys
+            : {})
+        },
+        soundPadVolumes: normalizeSoundPadVolumes({
+          ...(current.soundPadVolumes && typeof current.soundPadVolumes === "object"
+            ? current.soundPadVolumes
+            : {}),
+          ...(input.soundPadVolumes && typeof input.soundPadVolumes === "object"
+            ? input.soundPadVolumes
+            : {})
+        })
       };
 
       if (!["basic", "advanced"].includes(next.workspaceMode)) {
@@ -359,7 +405,7 @@ export function createControlService(programRoot) {
         }
         file = pack.samples.get(midi);
       } else if (selector.trigger) {
-        if (pack.type !== "kit") {
+        if (pack.type !== "soundpad") {
           throw new NoteScriptError("Selected add-on is not a named kit.");
         }
         const trigger = String(selector.trigger);

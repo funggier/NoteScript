@@ -167,16 +167,25 @@ Each mapped piano key keeps two visual labels:
 
 Both white and black piano labels are explicitly anchored to the key's own left/right bounds. This avoids browser static-position drift that previously made note labels appear near key boundaries.
 
-Kit sound packs use the same interaction pattern. Studio derives a default trigger-key sequence for a kit (number row first), then overlays any saved per-pack mapping from:
+SoundPad sound packs use the same interaction pattern. Studio derives a default trigger-key sequence (number row first), then overlays any saved per-pack mapping from:
 
-`studio.json -> kitHotkeys -> <sound-pack-id> -> <trigger>`
+`studio.json -> soundPadHotkeys -> <sound-pack-id> -> <trigger>`
 
-A Kit pad shows:
+A SoundPad control shows:
 
 - trigger name;
-- current hotkey as a subdued keycap.
+- current hotkey as a subdued keycap;
+- per-pad volume slider and percentage.
 
-In Kit mode the displayed hotkeys trigger pads directly from the computer keyboard. **EDIT HOTKEYS** switches pad clicks from sound triggering to binding selection; Save persists the per-pack mapping, while Cancel restores the snapshot from before editing.
+The volume setting is stored independently at:
+
+`studio.json -> soundPadVolumes -> <sound-pack-id> -> <trigger>`
+
+Volume range is 0–100%. The value multiplies the normal velocity-derived gain in the browser audio path, so a quieter shaker can be balanced against a stronger kick without changing the whole track. Slider input updates the active mix immediately for subsequent hits; releasing/changing the slider persists the mix. **RESET MIX** restores all triggers in the current SoundPad to 100%.
+
+In SoundPad mode the displayed hotkeys trigger pads directly from the computer keyboard. **EDIT HOTKEYS** switches pad clicks from sound triggering to binding selection; Save persists the per-pack mapping, while Cancel restores the snapshot from before editing.
+
+The preferred manifest token is `type: soundpad`. Legacy `type: kit` manifests remain accepted and canonicalize to SoundPad.
 
 Duplicate bindings remain conflict-free: assigning a key already used by another action clears the old action before applying the new one.
 

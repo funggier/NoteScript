@@ -55,8 +55,8 @@ fs.copyFileSync(
   path.join(out, "projects", "Evening Walk.md")
 );
 fs.copyFileSync(
-  path.join(root, "examples", "sfz-demo.md"),
-  path.join(out, "projects", "SFZ Demo.md")
+  path.join(root, "examples", "sfz-basic.md"),
+  path.join(out, "projects", "SFZ Basic.md")
 );
 
 const cmd = [

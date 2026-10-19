@@ -30,7 +30,7 @@ Transport checkpoint:
 - [x] Tabbed Play / Project / Compose / Tracks / Sounds / Settings layout.
 - [x] Play is the default first tab.
 - [x] Game-style piano/performance HUD.
-- [x] Existing playable on-screen piano/kit pads retained.
+- [x] Existing playable on-screen piano/SoundPad controls retained.
 - [x] Mouse/computer-keyboard/Web MIDI audition retained.
 - [x] Remappable game-style hotkeys.
 - [x] Piano keycaps reflect current hotkey bindings.
@@ -38,10 +38,16 @@ Transport checkpoint:
 - [x] Direct hotkey Cancel restores the pre-edit snapshot without persistence.
 - [x] Direct hotkey Save persists through Studio settings.
 - [x] White-key and black-key note/hotkey labels are centered to their actual key bounds.
-- [x] Kit pads display trigger name + faint current hotkey.
-- [x] Kit hotkeys trigger pads from the computer keyboard.
-- [x] Kit direct edit mode: click pad -> press key -> Save/Cancel.
-- [x] Kit hotkeys persist per sound-pack ID in Studio settings.
+- [x] SoundPad controls display trigger name + faint current hotkey.
+- [x] SoundPad hotkeys trigger pads from the computer keyboard.
+- [x] SoundPad direct edit mode: click pad -> press key -> Save/Cancel.
+- [x] SoundPad hotkeys persist per sound-pack ID in Studio settings.
+- [x] SoundPad supports per-pad volume mixing from 0–100%.
+- [x] SoundPad volume persists per sound-pack ID / trigger.
+- [x] RESET MIX restores all pads in the selected SoundPad to 100%.
+- [x] Production sound IDs/names use Piano, SoundPad and Basic SFZ throughout.
+- [x] New SoundPad manifests use `type: soundpad`.
+- [x] Legacy `type: kit` manifests remain accepted and canonicalize to SoundPad.
 - [x] Existing Project Transport retained.
 
 ### Project / Compose

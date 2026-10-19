@@ -25,11 +25,11 @@ jobs:
         run: |
           out\NoteScript-portable\NoteScript.cmd capabilities
           out\NoteScript-portable\NoteScript.cmd validate "out\NoteScript-portable\projects\Evening Walk.md"
-          out\NoteScript-portable\NoteScript.cmd validate "out\NoteScript-portable\projects\SFZ Demo.md"
+          out\NoteScript-portable\NoteScript.cmd validate "out\NoteScript-portable\projects\SFZ Basic.md"
           out\NoteScript-portable\NoteScript.cmd list-sounds "out\NoteScript-portable\projects\Evening Walk.md"
-          out\NoteScript-portable\NoteScript.cmd list-instruments "out\NoteScript-portable\projects\SFZ Demo.md"
+          out\NoteScript-portable\NoteScript.cmd list-instruments "out\NoteScript-portable\projects\SFZ Basic.md"
           out\NoteScript-portable\NoteScript.cmd render "out\NoteScript-portable\projects\Evening Walk.md" -o "out\NoteScript-portable\exports\Evening Walk.wav"
-          out\NoteScript-portable\NoteScript.cmd render "out\NoteScript-portable\projects\SFZ Demo.md" -o "out\NoteScript-portable\exports\SFZ Demo.wav"
+          out\NoteScript-portable\NoteScript.cmd render "out\NoteScript-portable\projects\SFZ Basic.md" -o "out\NoteScript-portable\exports\SFZ Basic.wav"
       - name: Portable Studio and Control API smoke test
         shell: pwsh
         run: |
@@ -133,9 +133,10 @@ jobs:
               $page.Content -notmatch 'id="pianoHotkeyEdit"' -or
               $page.Content -notmatch 'id="pianoHotkeySave"' -or
               $page.Content -notmatch 'id="pianoHotkeyCancel"' -or
-              $page.Content -notmatch 'id="kitHotkeyEdit"' -or
-              $page.Content -notmatch 'id="kitHotkeySave"' -or
-              $page.Content -notmatch 'id="kitHotkeyCancel"'
+              $page.Content -notmatch 'id="soundPadHotkeyEdit"' -or
+              $page.Content -notmatch 'id="soundPadHotkeySave"' -or
+              $page.Content -notmatch 'id="soundPadHotkeyCancel"' -or
+              $page.Content -notmatch 'id="soundPadResetMix"'
             ) {
               throw "Portable Studio HTML smoke test failed."
             }
@@ -148,6 +149,13 @@ jobs:
             $settings = Invoke-RestMethod -Uri "$baseUri/v1/studio/settings" -TimeoutSec 5
             if ($settings.workspaceMode -ne "basic" -or $settings.editorMode -ne "text") {
               throw "Portable Studio settings smoke test failed."
+            }
+
+            $sounds = Invoke-RestMethod -Uri "$baseUri/v1/sounds?details=1" -TimeoutSec 5
+            $piano = @($sounds.sounds | Where-Object { $_.id -eq "piano" })
+            $soundPad = @($sounds.sounds | Where-Object { $_.id -eq "soundpad" })
+            if ($sounds.sounds.Count -ne 2 -or $piano.Count -ne 1 -or $soundPad.Count -ne 1 -or $soundPad[0].type -ne "soundpad") {
+              throw "Portable production sound naming / SoundPad discovery smoke test failed."
             }
 
             $preview = Join-Path $env:RUNNER_TEMP "notescript-transport-preview.wav"

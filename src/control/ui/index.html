@@ -145,26 +145,27 @@
               </div>
             </div>
 
-            <div id="kitView" class="instrument-view hidden">
-              <div class="piano-deck kit-deck">
+            <div id="soundPadView" class="instrument-view hidden">
+              <div class="piano-deck soundpad-deck">
                 <div class="piano-deck-topline">
-                  <span id="kitDeckMode">KIT LIVE INPUT</span>
+                  <span id="soundPadDeckMode">SOUNDPAD LIVE INPUT</span>
                   <div class="piano-deck-actions">
-                    <button id="kitHotkeyEdit" class="deck-button" type="button">EDIT HOTKEYS</button>
+                    <button id="soundPadResetMix" class="deck-button" type="button">RESET MIX</button>
+                    <button id="soundPadHotkeyEdit" class="deck-button" type="button">EDIT HOTKEYS</button>
                     <span class="deck-signal"><i></i> READY</span>
                   </div>
                 </div>
-                <div id="kitHotkeyPanel" class="piano-hotkey-panel hidden">
+                <div id="soundPadHotkeyPanel" class="piano-hotkey-panel hidden">
                   <div>
                     <strong>HOTKEY EDIT</strong>
-                    <span id="kitHotkeyStatus">Click a pad, then press the keyboard key you want.</span>
+                    <span id="soundPadHotkeyStatus">Click a pad, then press the keyboard key you want.</span>
                   </div>
                   <div class="piano-hotkey-actions">
-                    <button id="kitHotkeySave" class="deck-button primary" type="button">SAVE</button>
-                    <button id="kitHotkeyCancel" class="deck-button" type="button">CANCEL</button>
+                    <button id="soundPadHotkeySave" class="deck-button primary" type="button">SAVE</button>
+                    <button id="soundPadHotkeyCancel" class="deck-button" type="button">CANCEL</button>
                   </div>
                 </div>
-                <div id="pads" class="pads"></div>
+                <div id="soundPads" class="pads"></div>
               </div>
             </div>
 

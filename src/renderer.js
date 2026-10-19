@@ -249,7 +249,7 @@ function renderSongSamples(song, songFile, options = {}) {
         const pitchRatio = Math.pow(2, (event.note - mapped.rootNote) / 12);
         renderResampled(source, output, startFrame, durationFrames, pitchRatio, gain, sampleRate);
       } else if (event.kind === "trigger") {
-        if (pack.type !== "kit") {
+        if (pack.type !== "soundpad") {
           throw new NoteScriptError(
             'Track "' + track.name + '" uses @trigger events with non-kit pack "' + pack.name + '".',
             event.line

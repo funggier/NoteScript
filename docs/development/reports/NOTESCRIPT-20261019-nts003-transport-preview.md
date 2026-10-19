@@ -63,7 +63,7 @@ Second unchanged request:
 
 The second result confirms the in-memory preview cache path.
 
-### SFZ Demo
+### SFZ Basic
 
 `GET /v1/transport/audio?project=SFZ%20Demo.md`
 

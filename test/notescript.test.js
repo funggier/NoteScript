@@ -28,31 +28,50 @@ test("parses the example song", () => {
   assert.equal(song.title, "Evening Walk");
   assert.equal(song.config.tempo, 82);
   assert.equal(song.tracks.length, 2);
-  assert.equal(song.tracks[0].sound, "demo-piano");
+  assert.equal(song.tracks[0].sound, "piano");
   assert.equal(song.tracks[0].bars.length, 8);
 });
 
-test("loads pitched and kit sound add-ons", () => {
-  const piano = loadSoundPack(path.join(root, "examples", "sounds", "demo-piano"));
-  const kit = loadSoundPack(path.join(root, "examples", "sounds", "demo-kit"));
+test("loads pitched and SoundPad sound add-ons", () => {
+  const piano = loadSoundPack(path.join(root, "examples", "sounds", "piano"));
+  const soundPad = loadSoundPack(path.join(root, "examples", "sounds", "soundpad"));
   assert.equal(piano.type, "pitched");
   assert.equal(piano.samples.size, 5);
-  assert.equal(kit.type, "kit");
-  assert.equal(kit.triggers.size, 2);
+  assert.equal(soundPad.type, "soundpad");
+  assert.equal(soundPad.triggers.size, 2);
+
+  const legacyDir = fs.mkdtempSync(path.join(os.tmpdir(), "notescript-legacy-soundpad-"));
+  fs.copyFileSync(
+    path.join(root, "examples", "sounds", "soundpad", "kick.wav"),
+    path.join(legacyDir, "kick.wav")
+  );
+  fs.writeFileSync(
+    path.join(legacyDir, "pack.md"),
+    [
+      "# Legacy SoundPad",
+      "",
+      "```notescript-sound",
+      "name: Legacy SoundPad",
+      "type: kit",
+      "trigger kick = kick.wav",
+      "```"
+    ].join("\n")
+  );
+  assert.equal(loadSoundPack(legacyDir).type, "soundpad");
 });
 
 test("validates format-grouped instrument add-ons", () => {
-  const dir = path.join(root, "examples", "instruments", "SFZ", "demo-sfz");
+  const dir = path.join(root, "examples", "instruments", "SFZ", "basic-sfz");
   const addon = loadInstrumentAddon(dir);
-  assert.equal(addon.id, "SFZ/demo-sfz");
+  assert.equal(addon.id, "SFZ/basic-sfz");
   assert.equal(addon.format, "SFZ");
 
   const found = listInstrumentAddons([path.join(root, "examples", "instruments")]);
-  assert.ok(found.some((item) => item.id === "SFZ/demo-sfz"));
+  assert.ok(found.some((item) => item.id === "SFZ/basic-sfz"));
 });
 
 test("parses and selects the first SFZ adapter regions", () => {
-  const sfz = parseSfzFile(path.join(root, "examples", "instruments", "SFZ", "demo-sfz", "demo.sfz"));
+  const sfz = parseSfzFile(path.join(root, "examples", "instruments", "SFZ", "basic-sfz", "basic.sfz"));
   assert.equal(sfz.regionCount, 1);
   const regions = selectSfzRegions(sfz, 72, 96);
   assert.equal(regions.length, 1);
@@ -80,7 +99,7 @@ test("renders an in-memory WAV preview without writing a file", () => {
 });
 
 test("renders a NoteScript project through the SFZ instrument adapter", () => {
-  const file = path.join(root, "examples", "sfz-demo.md");
+  const file = path.join(root, "examples", "sfz-basic.md");
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "notescript-sfz-render-"));
   const out = path.join(dir, "sfz.wav");
   const song = parseSong(fs.readFileSync(file, "utf8"));
@@ -91,7 +110,7 @@ test("renders a NoteScript project through the SFZ instrument adapter", () => {
 });
 
 test("builds format-0 MIDI for isolated instrument rendering", () => {
-  const file = path.join(root, "examples", "sfz-demo.md");
+  const file = path.join(root, "examples", "sfz-basic.md");
   const song = parseSong(fs.readFileSync(file, "utf8"));
   const timeline = compileTimeline(song);
   const midi = buildSingleTrackMidiBuffer(song.config, timeline.tracks[0], {
@@ -175,7 +194,7 @@ test("live playback manager stays idle and rejects unsupported persistent format
   const sfzDir = path.join(dir, "instruments", "SFZ", "Test");
   fs.mkdirSync(sfzDir, { recursive: true });
   fs.writeFileSync(path.join(sfzDir, "sample.wav"), fs.readFileSync(
-    path.join(root, "examples", "sounds", "demo-piano", "C4.wav")
+    path.join(root, "examples", "sounds", "piano", "C4.wav")
   ));
   fs.writeFileSync(path.join(sfzDir, "test.sfz"), "<region> sample=sample.wav key=60\n");
   const fence = String.fromCharCode(96).repeat(3);
@@ -202,7 +221,7 @@ test("decoder abstraction always exposes native PCM16 WAV", () => {
   const caps = getDecoderCapabilities();
   assert.equal(caps.native.wavPcm16, true);
 
-  const decoded = decodeAudioFile(path.join(root, "examples", "sounds", "demo-piano", "C4.wav"));
+  const decoded = decodeAudioFile(path.join(root, "examples", "sounds", "piano", "C4.wav"));
   assert.equal(decoded.sampleRate, 44100);
   assert.ok(decoded.samples.length > 1000);
   assert.equal(decoded.decoder, "native-wav-pcm16");
@@ -216,7 +235,7 @@ test("FFmpeg adapter decodes FLAC when FFmpeg is available", (t) => {
   }
 
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "notescript-flac-"));
-  const source = path.join(root, "examples", "sounds", "demo-piano", "C4.wav");
+  const source = path.join(root, "examples", "sounds", "piano", "C4.wav");
   const flac = path.join(dir, "C4.flac");
   const encoded = spawnSync(caps.ffmpeg.command, ["-y", "-v", "error", "-i", source, flac], {
     windowsHide: true
@@ -319,17 +338,37 @@ test("control service supports Studio project CRUD, analysis and settings", () =
   assert.equal(settings.hotkeys.note0, "q");
   assert.equal(service.getStudioSettings().hotkeys.note0, "q");
 
-  const kitSettings = service.saveStudioSettings({
-    kitHotkeys: {
-      "demo-kit": {
+  const soundPadSettings = service.saveStudioSettings({
+    soundPadHotkeys: {
+      soundpad: {
         kick: "1",
         shaker: "2"
       }
+    },
+    soundPadVolumes: {
+      soundpad: {
+        kick: 1,
+        shaker: 0.45
+      }
     }
   });
-  assert.equal(kitSettings.kitHotkeys["demo-kit"].kick, "1");
-  assert.equal(kitSettings.kitHotkeys["demo-kit"].shaker, "2");
-  assert.equal(service.getStudioSettings().kitHotkeys["demo-kit"].kick, "1");
+  assert.equal(soundPadSettings.soundPadHotkeys.soundpad.kick, "1");
+  assert.equal(soundPadSettings.soundPadHotkeys.soundpad.shaker, "2");
+  assert.equal(soundPadSettings.soundPadVolumes.soundpad.kick, 1);
+  assert.equal(soundPadSettings.soundPadVolumes.soundpad.shaker, 0.45);
+  assert.equal(service.getStudioSettings().soundPadHotkeys.soundpad.kick, "1");
+  assert.equal(service.getStudioSettings().soundPadVolumes.soundpad.shaker, 0.45);
+
+  const clampedMix = service.saveStudioSettings({
+    soundPadVolumes: {
+      soundpad: {
+        kick: 1.5,
+        shaker: -0.2
+      }
+    }
+  });
+  assert.equal(clampedMix.soundPadVolumes.soundpad.kick, 1);
+  assert.equal(clampedMix.soundPadVolumes.soundpad.shaker, 0);
 
   const deleted = service.deleteProject("Studio Renamed.md");
   assert.equal(deleted.deleted, "Studio Renamed.md");
@@ -391,26 +430,26 @@ test("control service exposes sound details and audition WAV", () => {
 
   const service = createControlService(dir);
   const sounds = service.listPortableSoundsDetailed();
-  const piano = sounds.find((item) => item.id === "demo-piano");
-  const kit = sounds.find((item) => item.id === "demo-kit");
+  const piano = sounds.find((item) => item.id === "piano");
+  const soundPad = sounds.find((item) => item.id === "soundpad");
 
   assert.ok(piano);
   assert.equal(piano.type, "pitched");
   assert.ok(piano.samples.some((sample) => sample.note === "C4"));
 
-  assert.ok(kit);
-  assert.ok(kit.triggers.includes("kick"));
+  assert.ok(soundPad);
+  assert.ok(soundPad.triggers.includes("kick"));
 
-  const audio = service.getAuditionAudio("demo-piano", { note: 60 });
+  const audio = service.getAuditionAudio("piano", { note: 60 });
   assert.equal(audio.buffer.toString("ascii", 0, 4), "RIFF");
   assert.ok(audio.buffer.length > 44);
 
   const instruments = service.listInstruments();
-  const sfz = instruments.find((item) => item.id === "SFZ/demo-sfz");
+  const sfz = instruments.find((item) => item.id === "SFZ/basic-sfz");
   assert.ok(sfz);
   assert.equal(sfz.playable, true);
 
-  const instrumentAudio = service.getInstrumentAuditionAudio("SFZ/demo-sfz", 64, 96);
+  const instrumentAudio = service.getInstrumentAuditionAudio("SFZ/basic-sfz", 64, 96);
   assert.equal(instrumentAudio.buffer.toString("ascii", 0, 4), "RIFF");
   assert.ok(instrumentAudio.buffer.length > 44);
 });
@@ -449,10 +488,12 @@ test("Studio UI exposes tabbed game piano, compose modes, advanced tracks and re
   assert.match(html, /id="pianoHotkeyPanel"/);
   assert.match(html, /id="pianoHotkeySave"/);
   assert.match(html, /id="pianoHotkeyCancel"/);
-  assert.match(html, /id="kitHotkeyEdit"/);
-  assert.match(html, /id="kitHotkeyPanel"/);
-  assert.match(html, /id="kitHotkeySave"/);
-  assert.match(html, /id="kitHotkeyCancel"/);
+  assert.match(html, /id="soundPadHotkeyEdit"/);
+  assert.match(html, /id="soundPadHotkeyPanel"/);
+  assert.match(html, /id="soundPadHotkeySave"/);
+  assert.match(html, /id="soundPadHotkeyCancel"/);
+  assert.match(html, /id="soundPadResetMix"/);
+  assert.match(html, /id="soundPads"/);
   assert.match(html, /class="piano game-piano"/);
   assert.match(html, /id="panic"/);
   assert.match(html, /id="enableMidi"/);
@@ -477,10 +518,13 @@ test("Studio UI exposes tabbed game piano, compose modes, advanced tracks and re
   assert.match(app, /selectPianoHotkeyAction/);
   assert.match(app, /savePianoHotkeys/);
   assert.match(app, /cancelPianoHotkeyEdit/);
-  assert.match(app, /beginKitHotkeyEdit/);
-  assert.match(app, /selectKitHotkeyTrigger/);
-  assert.match(app, /kitHotkeys/);
-  assert.match(app, /kit-hotkey-editing/);
+  assert.match(app, /beginSoundPadHotkeyEdit/);
+  assert.match(app, /selectSoundPadHotkeyTrigger/);
+  assert.match(app, /soundPadHotkeys/);
+  assert.match(app, /soundPadVolumes/);
+  assert.match(app, /soundPadVolume/);
+  assert.match(app, /resetSoundPadMix/);
+  assert.match(app, /soundpad-hotkey-editing/);
   assert.match(app, /hotkeyEditSnapshot/);
   assert.match(app, /piano-hotkey-editing/);
   assert.match(app, /renderTrackTimeline/);
@@ -489,6 +533,8 @@ test("Studio UI exposes tabbed game piano, compose modes, advanced tracks and re
   assert.match(app, /Node Inspector changed the project/);
   assert.match(css, /\.key \.note-label\s*\{[^}]*left:\s*0;[^}]*right:\s*0;/s);
   assert.match(css, /\.pad-hotkey/);
+  assert.match(css, /\.pad-volume/);
+  assert.match(css, /\.pad-mixer/);
 });
 
 test("parser rejects a track with both sound and instrument sources", () => {

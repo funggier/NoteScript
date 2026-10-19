@@ -33,19 +33,21 @@ sample G4 = G4.wav
 
 `fallback: nearest` permits pitch shifting from the nearest mapped root sample.
 
-## Named kit
+## SoundPad
 
 ```notescript-sound
-name: Forest Kit
+name: Forest SoundPad
 version: 1
 license: CC0-1.0
-type: kit
+type: soundpad
 
 trigger kick = kick.wav
 trigger rain = rain.wav
 ```
 
-Named triggers can represent percussion, ambience, effects or arbitrary one-shots.
+SoundPad triggers can represent percussion, ambience, effects or arbitrary one-shots.
+
+The preferred manifest token is `type: soundpad`. Legacy `type: kit` manifests remain accepted and are canonicalized to SoundPad.
 
 ## Current decoder
 

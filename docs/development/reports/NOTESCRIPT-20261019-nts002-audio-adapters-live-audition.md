@@ -138,7 +138,7 @@ Verified:
 - full SF2 song render from the portable package: PASS.
 - Control API portable root: correct.
 - `SF2/LatelyBass`: `playable: true`.
-- `SFZ/demo-sfz`: `playable: true`.
+- `SFZ/basic-sfz`: `playable: true`.
 - SF2 audition endpoint: HTTP 200, `audio/wav`, 211,724 bytes.
 
 Qualification-only third-party binaries/assets were removed again by a final clean portable rebuild and are not part of the normal NoteScript repository/package.
@@ -149,10 +149,10 @@ Final clean portable verification:
 - qualification `SF2/LatelyBass`: absent as expected.
 - `NoteScript.cmd capabilities`: PASS; FluidSynth unavailable in the clean package unless separately installed/copied.
 - `Evening Walk.md`: validate + render PASS.
-- `SFZ Demo.md`: validate + render PASS.
+- `SFZ Basic.md`: validate + render PASS.
 - clean portable Control API root: correct.
 - Audition Keyboard HTTP page: served.
-- clean portable `SFZ/demo-sfz`: `playable: true`.
+- clean portable `SFZ/basic-sfz`: `playable: true`.
 - clean portable SFZ audition endpoint: HTTP 200, `audio/wav`, 211,724 bytes.
 
 ## Audition Keyboard
@@ -172,7 +172,7 @@ Implemented foundation:
 - velocity.
 - octave shift.
 - sustain.
-- named kit trigger pads.
+- named SoundPad trigger controls.
 - native sound-pack real-time Web Audio pitch shifting.
 - SFZ/SF2/SF3 instrument audition through the local engine when the relevant backend is available.
 

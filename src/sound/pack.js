@@ -61,10 +61,13 @@ export function loadSoundPack(packDir) {
       else if (key === "source") pack.source = value;
       else if (key === "description") pack.description = value;
       else if (key === "type") {
-        if (!["pitched", "kit"].includes(value)) {
-          throw new NoteScriptError("pack type must be pitched or kit.", source.line);
+        if (!["pitched", "soundpad", "kit"].includes(value)) {
+          throw new NoteScriptError(
+            "pack type must be pitched or soundpad (legacy kit is also accepted).",
+            source.line
+          );
         }
-        pack.type = value;
+        pack.type = value === "kit" ? "soundpad" : value;
       } else if (key === "fallback") {
         if (!["nearest", "none"].includes(value)) {
           throw new NoteScriptError("fallback must be nearest or none.", source.line);
@@ -94,8 +97,8 @@ export function loadSoundPack(packDir) {
   if (pack.type === "pitched" && pack.samples.size === 0) {
     throw new NoteScriptError("Pitched pack has no sample mappings.");
   }
-  if (pack.type === "kit" && pack.triggers.size === 0) {
-    throw new NoteScriptError("Kit pack has no trigger mappings.");
+  if (pack.type === "soundpad" && pack.triggers.size === 0) {
+    throw new NoteScriptError("SoundPad pack has no trigger mappings.");
   }
 
   for (const file of [...pack.samples.values(), ...pack.triggers.values()]) {

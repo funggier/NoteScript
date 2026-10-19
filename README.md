@@ -98,11 +98,11 @@ sample E4 = E4.wav
 sample G4 = G4.wav
 ```
 
-A kit maps arbitrary names:
+A SoundPad maps arbitrary trigger names:
 
 ```notescript-sound
-name: Forest Kit
-type: kit
+name: Forest SoundPad
+type: soundpad
 
 trigger kick = kick.wav
 trigger shaker = shaker.wav
@@ -142,14 +142,14 @@ time: 4/4
 key: C major
 
 track Soft Keys
-sound: demo-piano
+sound: piano
 volume: 0.50
 velocity: 78
 bar 1: [C4 E4 G4] h | E4 q | G4 q
 bar 2: [A3 C4 E4] h | C4 q | E4 q
 
 track Light Pulse
-sound: demo-kit
+sound: soundpad
 volume: 0.18
 bar 1: @kick q | R q | @shaker q | R q
 ```
@@ -168,7 +168,7 @@ Implemented:
 - Timeline compilation.
 - Folder-based `sounds/` add-ons.
 - Pitched sample packs with nearest-root pitch shifting.
-- Named sample kits.
+- SoundPad named-trigger sample packs.
 - PCM16 WAV loading and deterministic WAV rendering.
 - Decoder abstraction with optional FFmpeg support for FLAC/OGG/OPUS/AIFF/MP3/M4A.
 - First SFZ subset parser/renderer with key/velocity regions, pitch center, tune/transpose, gain and simple envelope handling.
@@ -183,10 +183,11 @@ Implemented:
 - Optional FluidSynth backend for SF2/SF3 offline rendering and audition-note rendering.
 - SoundFont bank/preset selection through `instrument.md`.
 - NoteScript Studio with tabbed Play / Project / Compose / Tracks / Sounds / Settings workspaces.
-- Game-style Play page with performance HUD, on-key hotkey caps and playable piano/kit pads.
+- Game-style Play page with performance HUD, on-key hotkey caps and playable piano/SoundPad controls.
 - Browser-based live playing: mouse keys, remappable computer-keyboard controls, polyphony, velocity, octave shift, sustain and panic.
 - Direct piano hotkey edit mode: click a mapped piano key, press its new keyboard binding, then Save or Cancel; current bindings remain visible as faint keycaps beside note names.
-- Kit pads use the same game-style hotkey model: each pad shows its trigger name plus a faint current hotkey, keyboard hotkeys can trigger pads directly, and Edit Hotkeys works from the pad itself.
+- SoundPad controls use the same game-style hotkey model: each pad shows its trigger name plus a faint current hotkey, keyboard hotkeys can trigger pads directly, and Edit Hotkeys works from the pad itself.
+- SoundPad has per-pad volume mixing from 0–100%, persisted per sound-pack ID, plus RESET MIX to return the current SoundPad to 100%.
 - Piano note/hotkey labels are centered inside the actual white/black key bounds rather than relying on browser static-position behavior.
 - Optional Web MIDI input for note on/off, velocity, sustain and all-notes-off.
 - Project create/open/save/rename/delete flow inside the portable workspace.
@@ -322,10 +323,10 @@ node src/cli.js capabilities
 node src/cli.js validate examples/evening-walk.md
 node src/cli.js list-sounds examples/evening-walk.md
 node src/cli.js list-instruments examples/evening-walk.md
-node src/cli.js validate-pack examples/sounds/demo-piano
-node src/cli.js validate-instrument examples/instruments/SFZ/demo-sfz
+node src/cli.js validate-pack examples/sounds/piano
+node src/cli.js validate-instrument examples/instruments/SFZ/basic-sfz
 node src/cli.js render examples/evening-walk.md -o out/evening-walk.wav
-node src/cli.js render examples/sfz-demo.md -o out/sfz-demo.wav
+node src/cli.js render examples/sfz-basic.md -o out/sfz-basic.wav
 node src/cli.js midi examples/evening-walk.md -o out/evening-walk.mid
 ```
 
