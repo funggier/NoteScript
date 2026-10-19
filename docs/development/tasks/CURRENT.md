@@ -2,7 +2,7 @@
 
 ## NTS-003 — Playback engine
 
-Status: ACTIVE
+Status: ACTIVE — PERSISTENT LIVE BASELINE QUALIFIED LOCALLY / CI PENDING
 
 Goal: turn the NTS-002 audition foundation into a persistent low-latency playback engine suitable for serious live playing.
 
@@ -14,27 +14,46 @@ NTS-002 status: COMPLETE / GREEN
 - repository visibility: PUBLIC
 - evidence: `docs/development/reports/NOTESCRIPT-20261019-nts002-audio-adapters-live-audition.md`
 
-## NTS-003 current acceptance
+## NTS-003 acceptance
 
-- [ ] Persistent note-on/note-off engine for SoundFont instruments.
-- [ ] Avoid per-note fast-render/WAV round trip during serious live playing.
-- [ ] Select/change live instrument safely.
-- [ ] Polyphonic note state.
-- [ ] Sustain CC.
-- [ ] All-notes-off/panic.
-- [ ] Browser Audition Keyboard uses persistent live backend when available.
-- [ ] Keep native sound-pack/SFZ audition paths functional.
-- [ ] Optional MIDI-controller input should feed the same note interface.
-- [ ] Live-engine status/capabilities exposed through Control API.
-- [ ] Process cleanup on source switch/server shutdown.
-- [ ] Local real-audio qualification on Windows.
-- [ ] Automated tests.
-- [ ] Portable qualification.
+- [x] Persistent note-on/note-off engine for SoundFont instruments.
+- [x] Avoid per-note fast-render/WAV round trip during serious live playing.
+- [x] Select/change live instrument safely.
+- [x] Polyphonic note state.
+- [x] Sustain CC.
+- [x] All-notes-off/panic.
+- [x] Browser Audition Keyboard routes SF2/SF3 to the persistent live backend when available.
+- [x] Native sound-pack/SFZ audition paths remain functional.
+- [x] Optional Web MIDI input feeds the same note interface.
+- [x] Live-engine status/capabilities exposed through Control API.
+- [x] Process cleanup on source switch.
+- [x] Process cleanup on service/server shutdown path.
+- [x] Local real-audio qualification on Windows WASAPI.
+- [x] Automated tests.
+- [x] Portable qualification with backend under `tools/fluidsynth/`.
+- [x] Clean portable fallback qualification without FluidSynth.
 - [ ] Exact-commit GitHub CI GREEN.
 
-Later NTS-003 work:
+Evidence:
 
-- song transport: play/pause/stop/seek/loop;
-- low-latency output-device selection;
-- persistent SFZ/native sample voice engine outside the browser where beneficial;
-- recording/capture of live performance into NoteScript events as an explicit opt-in feature.
+`docs/development/reports/NOTESCRIPT-20261019-nts003-persistent-live-playback.md`
+
+Qualification notes:
+
+- Web MIDI integration is implemented and regression-tested structurally.
+- A physical MIDI controller was not attached for this local qualification.
+- Observed API/control-path timings are not laboratory end-to-end audio latency measurements.
+- Managed DOM/browser automation remains unavailable because GeckoDriver/ChromeDriver is not installed.
+
+## Remaining NTS-003 work after this checkpoint
+
+The persistent live-note engine is the first NTS-003 checkpoint. NTS-003 remains ACTIVE until the playback/transport scope in the roadmap is addressed:
+
+- song play / pause / stop;
+- seek and loop;
+- timeline/playhead state;
+- output-device selection and latency tuning;
+- stereo pan/gain path where applicable;
+- preview through the playback engine rather than the external default player.
+
+NTS-004 remains the desktop GUI milestone built on top of the completed NTS-003 playback layer.

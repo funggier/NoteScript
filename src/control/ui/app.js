@@ -10,6 +10,9 @@ const ui = {
   octaveUp: document.querySelector("#octaveUp"),
   octaveValue: document.querySelector("#octaveValue"),
   sustain: document.querySelector("#sustain"),
+  panic: document.querySelector("#panic"),
+  enableMidi: document.querySelector("#enableMidi"),
+  midiStatus: document.querySelector("#midiStatus"),
   selectedName: document.querySelector("#selectedName"),
   selectedDetails: document.querySelector("#selectedDetails"),
   voiceCount: document.querySelector("#voiceCount"),
@@ -24,16 +27,24 @@ const state = {
   audioContext: null,
   sounds: [],
   instruments: [],
+  capabilities: null,
   selected: null,
   selectedInstrument: null,
   sourceMode: "sound",
+  instrumentPlaybackMode: "buffered",
   octaveShift: 0,
   velocity: 96,
   spaceSustain: false,
+  midiSustain: false,
   voices: new Map(),
   sustained: new Set(),
+  liveVoices: new Map(),
+  liveMidiRefs: new Map(),
+  liveQueue: Promise.resolve(),
+  liveReady: false,
   buffers: new Map(),
-  keyHeld: new Set()
+  keyHeld: new Set(),
+  midiAccess: null
 };
 
 const COMPUTER_KEYS = new Map([
@@ -50,7 +61,7 @@ function noteName(midi) {
 }
 
 function currentSustain() {
-  return ui.sustain.checked || state.spaceSustain;
+  return ui.sustain.checked || state.spaceSustain || state.midiSustain;
 }
 
 function setMonitor(text) {
@@ -58,11 +69,22 @@ function setMonitor(text) {
 }
 
 function setVoiceCount() {
-  ui.voiceCount.textContent = state.voices.size + (state.voices.size === 1 ? " voice" : " voices");
+  const count = state.instrumentPlaybackMode === "live"
+    ? state.liveVoices.size
+    : state.voices.size;
+  ui.voiceCount.textContent = count + (count === 1 ? " voice" : " voices");
 }
 
-async function api(path) {
-  const response = await fetch(path, { cache: "no-store" });
+async function requestJson(path, options = {}) {
+  const response = await fetch(path, {
+    cache: "no-store",
+    ...options,
+    headers: {
+      "content-type": "application/json",
+      ...(options.headers || {})
+    }
+  });
+
   if (!response.ok) {
     let message = response.statusText;
     try {
@@ -71,7 +93,26 @@ async function api(path) {
     } catch {}
     throw new Error(message);
   }
+
   return response.json();
+}
+
+function api(path) {
+  return requestJson(path);
+}
+
+function post(path, payload = {}) {
+  return requestJson(path, {
+    method: "POST",
+    body: JSON.stringify(payload)
+  });
+}
+
+function queueLive(path, payload = {}) {
+  state.liveQueue = state.liveQueue
+    .catch(() => {})
+    .then(() => post(path, payload));
+  return state.liveQueue;
 }
 
 function ensureAudio() {
@@ -173,10 +214,80 @@ function cleanupVoice(id, voice) {
   if (state.voices.get(id) === voice) state.voices.delete(id);
   state.sustained.delete(voice);
   setVoiceCount();
-  document.querySelectorAll('[data-midi="' + voice.midi + '"]').forEach((el) => el.classList.remove("active"));
+  if (!hasActiveMidi(voice.midi)) setKeyActive(voice.midi, false);
+}
+
+function setKeyActive(midi, active) {
+  document.querySelectorAll('[data-midi="' + midi + '"]')
+    .forEach((el) => el.classList.toggle("active", active));
+}
+
+function hasActiveMidi(midi) {
+  if ([...state.voices.values()].some((voice) => voice.midi === midi && !voice.releasing)) return true;
+  return (state.liveMidiRefs.get(midi) || 0) > 0;
+}
+
+function isLiveSoundFont() {
+  return (
+    state.sourceMode === "instrument" &&
+    state.selectedInstrument &&
+    ["SF2", "SF3"].includes(state.selectedInstrument.format) &&
+    state.instrumentPlaybackMode === "live" &&
+    state.liveReady
+  );
+}
+
+function registerLiveVoice(id, midi) {
+  state.liveVoices.set(id, midi);
+  state.liveMidiRefs.set(midi, (state.liveMidiRefs.get(midi) || 0) + 1);
+  setKeyActive(midi, true);
+  setVoiceCount();
+}
+
+function unregisterLiveVoice(id) {
+  const midi = state.liveVoices.get(id);
+  if (midi === undefined) return null;
+
+  state.liveVoices.delete(id);
+  const next = Math.max(0, (state.liveMidiRefs.get(midi) || 1) - 1);
+  if (next === 0) state.liveMidiRefs.delete(midi);
+  else state.liveMidiRefs.set(midi, next);
+
+  if (!hasActiveMidi(midi)) setKeyActive(midi, false);
+  setVoiceCount();
+  return { midi, remaining: next };
+}
+
+async function liveNoteOn(midi, id) {
+  if (state.liveVoices.has(id)) return;
+
+  const alreadyActive = (state.liveMidiRefs.get(midi) || 0) > 0;
+  registerLiveVoice(id, midi);
+
+  if (!alreadyActive) {
+    try {
+      await queueLive("/v1/live/note-on", { note: midi, velocity: state.velocity });
+      setMonitor("Live " + noteName(midi) + " · " + state.selectedInstrument.name + ".");
+    } catch (error) {
+      unregisterLiveVoice(id);
+      setMonitor("Live engine error: " + error.message);
+    }
+  }
+}
+
+function liveNoteOff(id) {
+  const result = unregisterLiveVoice(id);
+  if (!result || result.remaining > 0) return;
+
+  queueLive("/v1/live/note-off", { note: result.midi })
+    .catch((error) => setMonitor("Live engine error: " + error.message));
 }
 
 async function noteOn(midi, id) {
+  if (isLiveSoundFont()) {
+    return liveNoteOn(midi, id);
+  }
+
   if (state.voices.has(id)) return;
 
   try {
@@ -222,7 +333,7 @@ async function noteOn(midi, id) {
     source.onended = () => cleanupVoice(id, voice);
     source.start();
 
-    document.querySelectorAll('[data-midi="' + midi + '"]').forEach((el) => el.classList.add("active"));
+    setKeyActive(midi, true);
     setVoiceCount();
     setMonitor(description);
   } catch (error) {
@@ -231,6 +342,11 @@ async function noteOn(midi, id) {
 }
 
 function noteOff(id) {
+  if (state.liveVoices.has(id)) {
+    liveNoteOff(id);
+    return;
+  }
+
   const voice = state.voices.get(id);
   if (!voice) return;
   if (currentSustain()) {
@@ -244,6 +360,35 @@ function releaseSustained() {
   if (currentSustain()) return;
   for (const voice of [...state.sustained]) releaseVoice(voice);
   state.sustained.clear();
+}
+
+function syncSustain() {
+  if (isLiveSoundFont()) {
+    queueLive("/v1/live/sustain", { enabled: currentSustain() })
+      .catch((error) => setMonitor("Live sustain error: " + error.message));
+  } else {
+    releaseSustained();
+  }
+}
+
+async function panicAll() {
+  state.keyHeld.clear();
+  stopAllVoices(true);
+
+  if (state.liveReady) {
+    try {
+      await queueLive("/v1/live/all-notes-off", {});
+    } catch (error) {
+      setMonitor("Panic warning: " + error.message);
+    }
+  }
+
+  state.liveVoices.clear();
+  state.liveMidiRefs.clear();
+  document.querySelectorAll(".key.active, .pad.active")
+    .forEach((el) => el.classList.remove("active"));
+  setVoiceCount();
+  setMonitor("All notes off.");
 }
 
 async function triggerPad(trigger, element) {
@@ -303,21 +448,25 @@ function buildPiano() {
 }
 
 function attachPointerKey(element, midi) {
-  const pointerId = () => "pointer:" + midi;
+  let activePointerId = null;
+
   element.addEventListener("pointerdown", (event) => {
     event.preventDefault();
+    activePointerId = event.pointerId;
     element.setPointerCapture?.(event.pointerId);
-    noteOn(midi, pointerId());
+    noteOn(midi, "pointer:" + event.pointerId + ":" + midi);
   });
+
   const release = (event) => {
+    if (activePointerId === null) return;
     event.preventDefault();
-    noteOff(pointerId());
+    noteOff("pointer:" + activePointerId + ":" + midi);
+    activePointerId = null;
   };
+
   element.addEventListener("pointerup", release);
   element.addEventListener("pointercancel", release);
-  element.addEventListener("pointerleave", (event) => {
-    if (event.buttons === 0) release(event);
-  });
+  element.addEventListener("lostpointercapture", release);
 }
 
 function buildPads(pack) {
@@ -343,9 +492,25 @@ function describePack(pack) {
   return count + " · " + license;
 }
 
-function selectSound(id) {
+async function stopLiveEngine() {
+  if (!state.liveReady && state.instrumentPlaybackMode !== "live") return;
+
+  try {
+    await queueLive("/v1/live/stop", {});
+  } catch {}
+
+  state.liveReady = false;
+  state.liveVoices.clear();
+  state.liveMidiRefs.clear();
+  setVoiceCount();
+}
+
+async function selectSound(id) {
   stopAllVoices(true);
+  await stopLiveEngine();
+
   state.sourceMode = "sound";
+  state.instrumentPlaybackMode = "buffered";
   state.selectedInstrument = null;
   state.selected = state.sounds.find((item) => item.id === id) || null;
   state.buffers.clear();
@@ -368,7 +533,7 @@ function selectSound(id) {
   if (pack.type === "pitched") {
     ui.pianoView.classList.remove("hidden");
     ui.kitView.classList.add("hidden");
-    setMonitor("Ready. Play with mouse or A/W/S/E/D/F/T/G/Y/H/U/J/K.");
+    setMonitor("Ready. Play with mouse, computer keyboard, or MIDI.");
   } else {
     ui.pianoView.classList.add("hidden");
     ui.kitView.classList.remove("hidden");
@@ -413,45 +578,146 @@ function populateInstruments() {
   updateInstrumentMeta();
 }
 
-function selectInstrument(id) {
+function livePlaybackAvailableFor(item) {
+  if (!item || !["SF2", "SF3"].includes(item.format)) return false;
+  return Boolean(state.capabilities?.livePlayback?.soundfont);
+}
+
+async function selectInstrument(id) {
   stopAllVoices(true);
+  await stopLiveEngine();
+
   state.sourceMode = "instrument";
   state.selected = null;
   state.selectedInstrument = state.instruments.find((x) => x.id === id) || null;
+  state.instrumentPlaybackMode = "buffered";
   state.buffers.clear();
 
   const item = state.selectedInstrument;
   if (!item) return;
 
-  ui.instrumentMeta.textContent = [
-    item.name,
-    item.license && item.license !== "unspecified" ? item.license : null,
-    item.playable ? "Live audition adapter ready" : "Discovered; playback adapter not enabled yet"
-  ].filter(Boolean).join(" · ");
-
-  ui.selectedName.textContent = item.name;
-  ui.selectedDetails.textContent =
-    item.id + " · " +
-    (item.playable ? "playable" : "adapter pending");
-
   ui.pianoView.classList.remove("hidden");
   ui.kitView.classList.add("hidden");
 
-  if (item.playable) {
-    setMonitor("Ready. Instrument notes are rendered locally and cached per note/velocity.");
-  } else {
+  if (!item.playable) {
+    updateInstrumentMeta();
+    ui.selectedName.textContent = item.name;
+    ui.selectedDetails.textContent = item.id + " · adapter pending";
     setMonitor(item.format + " is installed but its playback adapter is not enabled yet.");
+    return;
   }
+
+  if (livePlaybackAvailableFor(item)) {
+    setMonitor("Starting persistent " + item.format + " live engine…");
+    try {
+      const live = await post("/v1/live/select", { instrument: item.id });
+      state.liveReady = live.state === "ready";
+      state.instrumentPlaybackMode = state.liveReady ? "live" : "buffered";
+      if (state.liveReady) {
+        setMonitor("Live engine ready · " + (live.session?.audioDriver || "audio") + ".");
+        syncSustain();
+      }
+    } catch (error) {
+      state.liveReady = false;
+      state.instrumentPlaybackMode = "buffered";
+      setMonitor("Live engine unavailable; using rendered audition fallback. " + error.message);
+    }
+  }
+
+  updateInstrumentMeta();
+  ui.selectedName.textContent = item.name;
+  ui.selectedDetails.textContent =
+    item.id + " · " +
+    (state.instrumentPlaybackMode === "live"
+      ? "persistent live"
+      : "buffered audition");
 }
 
 function updateInstrumentMeta() {
   const item = state.instruments.find((x) => x.id === ui.instrumentSelect.value);
   if (!item) return;
+
+  let playback = "Discovered; playback adapter not enabled yet";
+  if (item.playable && state.selectedInstrument?.id === item.id && state.instrumentPlaybackMode === "live") {
+    playback = "Persistent low-latency live backend";
+  } else if (item.playable && ["SF2", "SF3"].includes(item.format) && livePlaybackAvailableFor(item)) {
+    playback = "Persistent live backend available";
+  } else if (item.playable) {
+    playback = "Buffered audition adapter ready";
+  }
+
   ui.instrumentMeta.textContent = [
     item.name,
     item.license && item.license !== "unspecified" ? item.license : null,
-    item.playable ? "Live audition adapter ready" : "Discovered; playback adapter not enabled yet"
+    playback
   ].filter(Boolean).join(" · ");
+}
+
+function midiInputLabel(input) {
+  return input.name || input.manufacturer || input.id || "MIDI input";
+}
+
+function attachMidiInputs() {
+  if (!state.midiAccess) return;
+  const inputs = [...state.midiAccess.inputs.values()];
+
+  for (const input of inputs) {
+    input.onmidimessage = (event) => handleMidiMessage(input, event);
+  }
+
+  if (inputs.length === 0) {
+    ui.midiStatus.textContent = "MIDI enabled; no input device detected.";
+  } else {
+    ui.midiStatus.textContent = inputs.length + " input" + (inputs.length === 1 ? "" : "s") +
+      ": " + inputs.map(midiInputLabel).join(", ");
+  }
+}
+
+function handleMidiMessage(input, event) {
+  const [status, data1 = 0, data2 = 0] = event.data;
+  const command = status & 0xf0;
+  const channel = status & 0x0f;
+  const id = "midi:" + input.id + ":" + channel + ":" + data1;
+
+  if (command === 0x90 && data2 > 0) {
+    noteOn(data1, id);
+    return;
+  }
+
+  if (command === 0x80 || (command === 0x90 && data2 === 0)) {
+    noteOff(id);
+    return;
+  }
+
+  if (command === 0xb0 && data1 === 64) {
+    state.midiSustain = data2 >= 64;
+    syncSustain();
+    return;
+  }
+
+  if (command === 0xb0 && (data1 === 120 || data1 === 123)) {
+    panicAll();
+  }
+}
+
+async function enableMidiInput() {
+  if (!navigator.requestMIDIAccess) {
+    ui.midiStatus.textContent = "Web MIDI is not supported by this browser.";
+    ui.enableMidi.disabled = true;
+    return;
+  }
+
+  try {
+    ui.enableMidi.disabled = true;
+    ui.midiStatus.textContent = "Requesting MIDI access…";
+    state.midiAccess = await navigator.requestMIDIAccess({ sysex: false });
+    state.midiAccess.onstatechange = attachMidiInputs;
+    attachMidiInputs();
+    ui.enableMidi.textContent = "MIDI Input Enabled";
+  } catch (error) {
+    ui.enableMidi.disabled = false;
+    ui.midiStatus.textContent = "MIDI access failed: " + error.message;
+  }
 }
 
 async function initialize() {
@@ -472,7 +738,9 @@ async function initialize() {
     updateOctave();
   });
 
-  ui.sustain.addEventListener("change", releaseSustained);
+  ui.sustain.addEventListener("change", syncSustain);
+  ui.panic?.addEventListener("click", panicAll);
+  ui.enableMidi?.addEventListener("click", enableMidiInput);
   ui.instrumentSelect.addEventListener("change", () => selectInstrument(ui.instrumentSelect.value));
 
   try {
@@ -483,17 +751,21 @@ async function initialize() {
       api("/v1/instruments")
     ]);
 
+    state.capabilities = capabilities;
     state.sounds = soundsData.sounds || [];
     state.instruments = instrumentsData.instruments || [];
 
     ui.engineStatus.textContent = health.coreVersion + " · ready";
     ui.engineStatus.classList.add("ok");
 
+    const engineHints = [];
     if (capabilities.decoders.ffmpeg.available) {
-      ui.engineStatus.title = capabilities.decoders.ffmpeg.version || "FFmpeg decoder available";
-    } else {
-      ui.engineStatus.title = "Native WAV decoder active; FFmpeg decoder not found.";
+      engineHints.push(capabilities.decoders.ffmpeg.version || "FFmpeg decoder available");
     }
+    if (capabilities.livePlayback?.soundfont) {
+      engineHints.push("Persistent SoundFont live engine available");
+    }
+    ui.engineStatus.title = engineHints.join("\n") || "Native WAV playback ready.";
 
     ui.soundSelect.innerHTML = "";
     for (const sound of state.sounds) {
@@ -512,10 +784,15 @@ async function initialize() {
       ui.engineStatus.classList.add("warn");
     } else {
       ui.soundSelect.addEventListener("change", () => selectSound(ui.soundSelect.value));
-      selectSound(state.sounds[0].id);
+      await selectSound(state.sounds[0].id);
     }
 
     populateInstruments();
+
+    if (!navigator.requestMIDIAccess) {
+      ui.enableMidi.disabled = true;
+      ui.midiStatus.textContent = "Web MIDI is not supported by this browser.";
+    }
   } catch (error) {
     ui.engineStatus.textContent = "Connection error";
     ui.engineStatus.classList.add("warn");
@@ -544,6 +821,7 @@ window.addEventListener("keydown", (event) => {
   if (event.code === "Space") {
     event.preventDefault();
     state.spaceSustain = true;
+    syncSustain();
     return;
   }
 
@@ -560,7 +838,7 @@ window.addEventListener("keyup", (event) => {
   if (event.code === "Space") {
     event.preventDefault();
     state.spaceSustain = false;
-    releaseSustained();
+    syncSustain();
     return;
   }
 
@@ -573,7 +851,14 @@ window.addEventListener("keyup", (event) => {
 window.addEventListener("blur", () => {
   state.keyHeld.clear();
   state.spaceSustain = false;
-  stopAllVoices(true);
+  syncSustain();
+  panicAll();
+});
+
+window.addEventListener("pagehide", () => {
+  if (state.liveReady) {
+    navigator.sendBeacon?.("/v1/live/all-notes-off", new Blob(["{}"], { type: "application/json" }));
+  }
 });
 
 initialize();

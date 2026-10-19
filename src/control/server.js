@@ -95,6 +95,9 @@ const server = http.createServer(async (req, res) => {
     if (req.method === "GET" && url.pathname === "/v1/instruments") {
       return json(res, 200, { instruments: service.listInstruments(url.searchParams.get("project")) });
     }
+    if (req.method === "GET" && url.pathname === "/v1/live/status") {
+      return json(res, 200, service.liveStatus());
+    }
     if (req.method === "GET" && url.pathname === "/v1/audition/audio") {
       const pack = url.searchParams.get("pack");
       const note = url.searchParams.has("note") ? url.searchParams.get("note") : null;
@@ -108,6 +111,29 @@ const server = http.createServer(async (req, res) => {
       const velocity = url.searchParams.get("velocity") || "96";
       const audio = service.getInstrumentAuditionAudio(instrument, note, velocity);
       return binary(res, 200, "audio/wav", audio.buffer);
+    }
+
+    if (req.method === "POST" && url.pathname === "/v1/live/select") {
+      const input = await body(req);
+      return json(res, 200, await service.liveSelectInstrument(input.instrument));
+    }
+    if (req.method === "POST" && url.pathname === "/v1/live/note-on") {
+      const input = await body(req);
+      return json(res, 200, service.liveNoteOn(input.note, input.velocity));
+    }
+    if (req.method === "POST" && url.pathname === "/v1/live/note-off") {
+      const input = await body(req);
+      return json(res, 200, service.liveNoteOff(input.note));
+    }
+    if (req.method === "POST" && url.pathname === "/v1/live/sustain") {
+      const input = await body(req);
+      return json(res, 200, service.liveSustain(input.enabled));
+    }
+    if (req.method === "POST" && url.pathname === "/v1/live/all-notes-off") {
+      return json(res, 200, service.liveAllNotesOff());
+    }
+    if (req.method === "POST" && url.pathname === "/v1/live/stop") {
+      return json(res, 200, await service.liveStop());
     }
 
     if (req.method === "POST" && url.pathname === "/v1/projects") {
@@ -145,6 +171,36 @@ server.on("error", (error) => {
     return;
   }
   throw error;
+});
+
+let shuttingDown = false;
+
+async function shutdown(signal = "shutdown") {
+  if (shuttingDown) return;
+  shuttingDown = true;
+
+  console.log("NoteScript Control API stopping: " + signal);
+  try {
+    await service.shutdown();
+  } catch (error) {
+    console.error("Playback shutdown error:", error.message || String(error));
+  }
+
+  await new Promise((resolve) => {
+    if (!server.listening) return resolve();
+    server.close(() => resolve());
+    setTimeout(resolve, 500);
+  });
+}
+
+process.on("SIGINT", async () => {
+  await shutdown("SIGINT");
+  process.exit(0);
+});
+
+process.on("SIGTERM", async () => {
+  await shutdown("SIGTERM");
+  process.exit(0);
 });
 
 server.listen(port, host, () => {

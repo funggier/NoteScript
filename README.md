@@ -175,7 +175,10 @@ Implemented:
 - SFZ offline song rendering and SFZ audition-note rendering.
 - Optional FluidSynth backend for SF2/SF3 offline rendering and audition-note rendering.
 - SoundFont bank/preset selection through `instrument.md`.
-- Browser-based Audition Keyboard: mouse keys, computer keyboard, polyphony, velocity, octave shift, sustain and kit pads.
+- Browser-based Audition Keyboard: mouse keys, computer keyboard, polyphony, velocity, octave shift, sustain, panic and kit pads.
+- Optional Web MIDI input for note on/off, velocity, sustain and all-notes-off.
+- Persistent SF2/SF3 live playback through one FluidSynth process with direct WASAPI output on Windows.
+- Safe SoundFont switching, live status, sustain CC and process cleanup.
 - Portable `Audition-Keyboard.cmd` launcher.
 - Portable folder builder with bundled Node runtime.
 - Local Control API intended for GUI, MCP, and ChatGPT Plugin adapters.
@@ -184,11 +187,11 @@ Implemented:
 Planned:
 
 - Full desktop GUI editor, piano roll, transport and project browser.
-- Real-time low-latency native playback engine for serious live performance.
-- MIDI-controller input through the same note-on/note-off audition interface.
+- Measured/tuned end-to-end low-latency audio path and selectable output devices.
+- Physical MIDI-controller qualification and richer MIDI mappings.
 - Stereo/pan processing.
 - Broader SFZ opcode/loop/round-robin/articulation compatibility.
-- Persistent low-latency SoundFont synthesis instead of per-note fast-render requests.
+- Persistent server-side SFZ/native sample voice engine where browser playback is insufficient.
 - Effects, automation, loops, articulations, velocity layers and round-robin.
 - ChatGPT Plugin/MCP adapter over the Control API.
 
@@ -217,6 +220,13 @@ Current API surface:
 - `GET /v1/instruments`
 - `GET /v1/audition/audio`
 - `GET /v1/audition/instrument`
+- `GET /v1/live/status`
+- `POST /v1/live/select`
+- `POST /v1/live/note-on`
+- `POST /v1/live/note-off`
+- `POST /v1/live/sustain`
+- `POST /v1/live/all-notes-off`
+- `POST /v1/live/stop`
 - `POST /v1/projects` — save a validated NoteScript document into `projects/`
 - `POST /v1/validate`
 - `POST /v1/render`
@@ -230,6 +240,8 @@ Optional environment variables:
 - `NOTESCRIPT_CONTROL_PORT`
 - `NOTESCRIPT_CONTROL_TOKEN`
 - `NOTESCRIPT_ROOT`
+- `NOTESCRIPT_FFMPEG`
+- `NOTESCRIPT_FLUIDSYNTH`
 
 ## CLI
 

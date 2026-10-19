@@ -28,7 +28,8 @@ Current v1 routes:
 - list/detail sounds
 - list instruments
 - native sound audition audio
-- SFZ instrument audition audio
+- SFZ/SF2/SF3 instrument audition audio
+- persistent SoundFont live status and commands
 - save project
 - validate project
 - render WAV

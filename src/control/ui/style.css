@@ -193,6 +193,38 @@ input[type="range"] {
 
 .toggle-row input { accent-color: #6c79e8; }
 
+.action-button {
+  width: 100%;
+  border: 1px solid #36405a;
+  border-radius: 8px;
+  padding: 9px 10px;
+  background: #192038;
+  color: #dfe5ff;
+  cursor: pointer;
+}
+
+.action-button:hover {
+  border-color: #6676d9;
+  background: #20294a;
+}
+
+.action-button.danger {
+  margin-top: 14px;
+  border-color: #5a3440;
+  background: #2a171d;
+  color: #ffd5df;
+}
+
+.action-button.danger:hover {
+  border-color: #8b4b5c;
+  background: #381d26;
+}
+
+.action-button:disabled {
+  opacity: .45;
+  cursor: not-allowed;
+}
+
 .legend .keymap {
   display: grid;
   grid-template-columns: auto 1fr;

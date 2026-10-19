@@ -11,6 +11,7 @@ import { decodeAudioFile, getDecoderCapabilities } from "../audio/decoder.js";
 import { encodeMonoPcm16 } from "../sound/wav.js";
 import { midiToNote } from "../music.js";
 import { NoteScriptError } from "../error.js";
+import { LivePlaybackManager } from "../playback/manager.js";
 
 function safeName(name) {
   const value = String(name || "").trim();
@@ -55,6 +56,7 @@ export function createControlService(programRoot) {
   const exportsRoot = path.join(root, "exports");
   const soundsRoot = path.join(root, "sounds");
   const instrumentsRoot = path.join(root, "instruments");
+  const livePlayback = new LivePlaybackManager(root);
 
   for (const dir of [projectsRoot, exportsRoot, soundsRoot, instrumentsRoot]) {
     fs.mkdirSync(dir, { recursive: true });
@@ -104,7 +106,15 @@ export function createControlService(programRoot) {
           polyphony: true,
           computerKeyboard: true,
           mouseKeyboard: true,
-          midiInput: false
+          webMidiInput: true
+        },
+        livePlayback: {
+          soundfont: fluidSynth.available,
+          formats: fluidSynth.available ? ["SF2", "SF3"] : [],
+          noteOnOff: fluidSynth.available,
+          sustain: fluidSynth.available,
+          panic: fluidSynth.available,
+          defaultAudioDriver: process.platform === "win32" ? "wasapi" : null
         },
         backends: {
           fluidsynth: fluidSynth
@@ -230,6 +240,38 @@ export function createControlService(programRoot) {
             ((addon.format === "SF2" || addon.format === "SF3") && fluidSynth.available)
         };
       });
+    },
+
+    liveStatus() {
+      return livePlayback.status();
+    },
+
+    async liveSelectInstrument(id) {
+      return livePlayback.selectInstrument(id);
+    },
+
+    liveNoteOn(note, velocity = 96) {
+      return livePlayback.noteOn(note, velocity);
+    },
+
+    liveNoteOff(note) {
+      return livePlayback.noteOff(note);
+    },
+
+    liveSustain(enabled) {
+      return livePlayback.sustain(enabled);
+    },
+
+    liveAllNotesOff() {
+      return livePlayback.allNotesOff();
+    },
+
+    async liveStop() {
+      return livePlayback.stop();
+    },
+
+    async shutdown() {
+      return livePlayback.shutdown();
     },
 
     getInstrumentAuditionAudio(id, note, velocity = 96) {
