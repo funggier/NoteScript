@@ -167,7 +167,7 @@ Studio keeps BeatLane6 state separate from the normal live Piano/SoundPad state:
 - preloaded event audio
 - optional guide source
 
-Switching back to Live mode stops BeatLane6 without affecting the Markdown project.
+Changing Play Source from `GameBeatLane6` back to `SoundPiano` or `SoundPad` stops BeatLane6 without affecting the Markdown project. BeatLane6 is a Play Source option rather than a separate Play Mode control.
 
 ## Bundled starter level
 

@@ -3,8 +3,13 @@ const ui = {
   dirtyState: document.querySelector("#dirtyState"),
   hudOctave: document.querySelector("#hudOctave"),
   hudVelocity: document.querySelector("#hudVelocity"),
-  livePlayMode: document.querySelector("#livePlayMode"),
-  beatLanePlayMode: document.querySelector("#beatLanePlayMode"),
+  playSourceType: document.querySelector("#playSourceType"),
+  pianoVoiceKind: document.querySelector("#pianoVoiceKind"),
+  liveSourceControls: document.querySelector("#liveSourceControls"),
+  pianoVoiceKindRow: document.querySelector("#pianoVoiceKindRow"),
+  soundPackRow: document.querySelector("#soundPackRow"),
+  soundPackLabel: document.querySelector("#soundPackLabel"),
+  instrumentRow: document.querySelector("#instrumentRow"),
   liveStageHeader: document.querySelector("#liveStageHeader"),
   liveMonitor: document.querySelector("#liveMonitor"),
   beatLaneView: document.querySelector("#beatLaneView"),
@@ -48,6 +53,7 @@ const ui = {
   outputDevice: document.querySelector("#outputDevice"),
   refreshOutputs: document.querySelector("#refreshOutputs"),
   transportStatus: document.querySelector("#transportStatus"),
+  transportVoiceSelect: document.querySelector("#transportVoiceSelect"),
   soundSelect: document.querySelector("#soundSelect"),
   soundMeta: document.querySelector("#soundMeta"),
   instrumentSelect: document.querySelector("#instrumentSelect"),
@@ -77,7 +83,11 @@ const ui = {
   analyzeProject: document.querySelector("#analyzeProject"),
   saveProject: document.querySelector("#saveProject"),
   renderProject: document.querySelector("#renderProject"),
+  renderOutputName: document.querySelector("#renderOutputName"),
   exportMidi: document.querySelector("#exportMidi"),
+  composeTrackSelect: document.querySelector("#composeTrackSelect"),
+  composeVoiceSelect: document.querySelector("#composeVoiceSelect"),
+  composeApplyVoice: document.querySelector("#composeApplyVoice"),
   diagnosticBadge: document.querySelector("#diagnosticBadge"),
   diagnostics: document.querySelector("#diagnostics"),
   formTitle: document.querySelector("#formTitle"),
@@ -94,6 +104,8 @@ const ui = {
   nodeInspectorApply: document.querySelector("#nodeInspectorApply"),
   nodeInspectorForm: document.querySelector("#nodeInspectorForm"),
   trackTimeline: document.querySelector("#trackTimeline"),
+  tracksFileInput: document.querySelector("#tracksFileInput"),
+  tracksAddTrack: document.querySelector("#tracksAddTrack"),
   advancedProjectLabel: document.querySelector("#advancedProjectLabel"),
   advancedPlay: document.querySelector("#advancedPlay"),
   advancedPause: document.querySelector("#advancedPause"),
@@ -105,8 +117,7 @@ const ui = {
   advancedStatus: document.querySelector("#advancedStatus"),
   soundBrowser: document.querySelector("#soundBrowser"),
   instrumentBrowser: document.querySelector("#instrumentBrowser"),
-  basicMode: document.querySelector("#basicMode"),
-  advancedMode: document.querySelector("#advancedMode"),
+
   workspaceModeSetting: document.querySelector("#workspaceModeSetting"),
   editorModeSetting: document.querySelector("#editorModeSetting"),
   hotkeyEditor: document.querySelector("#hotkeyEditor"),
@@ -199,6 +210,12 @@ const state = {
     hotkeyEditTarget: null,
     hotkeyEditSnapshot: null,
     selectedNode: null
+  },
+  tracksWorkspace: {
+    fileName: null,
+    markdown: "",
+    analysis: null,
+    dirty: false
   },
   advancedTransport: {
     project: null,
@@ -656,6 +673,42 @@ function stopBeatLaneGame(manual = true) {
   }
 }
 
+function soundPianoPacks() {
+  return state.sounds.filter((item) => item.category === "soundpiano" || item.type === "pitched");
+}
+
+function soundPadPacks() {
+  return state.sounds.filter((item) => item.category === "soundpad" || item.type === "soundpad");
+}
+
+function populatePlaySoundSelect(category) {
+  const packs = category === "soundpad" ? soundPadPacks() : soundPianoPacks();
+  const previous = ui.soundSelect.value;
+  ui.soundSelect.innerHTML = "";
+
+  for (const sound of packs) {
+    const option = document.createElement("option");
+    option.value = sound.id;
+    option.textContent = sound.name;
+    ui.soundSelect.appendChild(option);
+  }
+
+  ui.soundSelect.disabled = packs.length === 0;
+  if (packs.length === 0) {
+    const option = document.createElement("option");
+    option.value = "";
+    option.textContent = category === "soundpad"
+      ? "No SoundPad sets installed"
+      : "No SoundPiano packs installed";
+    ui.soundSelect.appendChild(option);
+    return null;
+  }
+
+  const next = packs.some((item) => item.id === previous) ? previous : packs[0].id;
+  ui.soundSelect.value = next;
+  return next;
+}
+
 function restoreLivePlayView() {
   ui.liveStageHeader.classList.remove("hidden");
   ui.liveMonitor.classList.remove("hidden");
@@ -663,6 +716,7 @@ function restoreLivePlayView() {
   ui.beatLaneControls.classList.add("hidden");
   ui.projectTransportControls?.classList.remove("hidden");
   ui.playWorkspace?.classList.remove("beatlane-mode");
+  ui.liveSourceControls.classList.remove("hidden");
 
   const showSoundPad = state.sourceMode === "sound" && state.selected?.type === "soundpad";
   ui.pianoView.classList.toggle("hidden", showSoundPad);
@@ -676,8 +730,6 @@ function setPlayMode(mode) {
   }
   state.playMode = next;
   const game = next === "beatlane6";
-  ui.livePlayMode.classList.toggle("active", !game);
-  ui.beatLanePlayMode.classList.toggle("active", game);
 
   if (!game) {
     restoreLivePlayView();
@@ -690,6 +742,7 @@ function setPlayMode(mode) {
   ui.liveMonitor.classList.add("hidden");
   ui.pianoView.classList.add("hidden");
   ui.soundPadView.classList.add("hidden");
+  ui.liveSourceControls.classList.add("hidden");
   ui.beatLaneView.classList.remove("hidden");
   ui.beatLaneControls.classList.remove("hidden");
   ui.projectTransportControls?.classList.add("hidden");
@@ -697,6 +750,41 @@ function setPlayMode(mode) {
   ui.beatLaneStatus.textContent = state.beatLane6.chart
     ? "Ready. Press Start Game."
     : "Choose a song. Chart is generated from NoteScript Markdown.";
+}
+
+async function applyPlaySourceSelection() {
+  const type = ui.playSourceType.value;
+
+  if (type === "gamebeatlane6") {
+    setPlayMode("beatlane6");
+    try {
+      if (ui.beatLaneProject.value) await loadBeatLaneChart(false);
+    } catch (error) {
+      ui.beatLaneStatus.textContent = "BeatLane6 chart error: " + error.message;
+    }
+    return;
+  }
+
+  setPlayMode("live");
+  ui.pianoVoiceKindRow.classList.toggle("hidden", type !== "soundpiano");
+  ui.soundPackRow.classList.toggle("hidden", type === "soundpiano" && ui.pianoVoiceKind.value === "instrument");
+  ui.instrumentRow.classList.toggle("hidden", !(type === "soundpiano" && ui.pianoVoiceKind.value === "instrument"));
+
+  if (type === "soundpad") {
+    ui.soundPackLabel.textContent = "SoundPad set";
+    const id = populatePlaySoundSelect("soundpad");
+    if (id) await selectSound(id);
+    return;
+  }
+
+  ui.soundPackLabel.textContent = "SoundPiano pack";
+  if (ui.pianoVoiceKind.value === "instrument") {
+    if (ui.instrumentSelect.value) await selectInstrument(ui.instrumentSelect.value);
+    return;
+  }
+
+  const id = populatePlaySoundSelect("soundpiano");
+  if (id) await selectSound(id);
 }
 
 function buildBeatLaneNoteElements(chart) {
@@ -1264,6 +1352,28 @@ function transportPanValue() {
   return Math.max(-1, Math.min(1, Number(ui.transportPan.value) / 100));
 }
 
+function selectedTransportVoice() {
+  return parseVoiceValue(ui.transportVoiceSelect.value);
+}
+
+function transportAudioUrl(project) {
+  const voice = selectedTransportVoice();
+  let url = "/v1/transport/audio?project=" + encodeURIComponent(project);
+  if (voice) {
+    url += "&sourceType=" + encodeURIComponent(voice.type) +
+      "&sourceId=" + encodeURIComponent(voice.id);
+  }
+  return url;
+}
+
+function populateTransportVoiceSelect() {
+  fillVoiceSelect(ui.transportVoiceSelect, null, {
+    includeOriginal: true,
+    selected: ui.transportVoiceSelect.value || "original"
+  });
+  if (!ui.transportVoiceSelect.value) ui.transportVoiceSelect.value = "original";
+}
+
 async function loadTransportProject(project = ui.projectSelect.value, force = false) {
   const name = String(project || "").trim();
   if (!name) {
@@ -1282,7 +1392,7 @@ async function loadTransportProject(project = ui.projectSelect.value, force = fa
     }
 
     const response = await fetch(
-      "/v1/transport/audio?project=" + encodeURIComponent(name),
+      transportAudioUrl(name),
       { cache: "no-store" }
     );
 
@@ -1369,8 +1479,9 @@ function createTransportSource() {
 
 async function playTransport() {
   if (!state.transport.buffer) {
-    const loaded = await loadTransportProject();
-    if (!loaded) return;
+    ui.transportStatus.textContent =
+      "Preview is not loaded. Choose Project / Preview voice, then press Reload.";
+    return;
   }
 
   const context = ensureAudio();
@@ -2629,6 +2740,7 @@ async function analyzeCurrentMarkdown(updateDerivedViews = true) {
   state.studio.analysis = analysis;
   renderDiagnostics(analysis);
 
+  if (analysis.valid) renderComposeSourceToolbar();
   if (updateDerivedViews && analysis.valid) {
     renderTrackTimeline();
     renderNodeCanvas();
@@ -2645,7 +2757,6 @@ async function openStudioProject(name) {
   }
 
   const data = await api("/v1/project?project=" + encodeURIComponent(name));
-  invalidateAdvancedTransport("Project opened. Advanced stems will load on Play.");
   state.studio.currentProject = data.name;
   state.studio.markdown = data.markdown;
   state.studio.analysis = {
@@ -2669,6 +2780,9 @@ async function openStudioProject(name) {
   renderFormEditor();
   renderNodeCanvas();
   renderTrackTimeline();
+  renderComposeSourceToolbar();
+  const defaultOutput = data.name.replace(/\.md$/i, "");
+  ui.renderOutputName.value = defaultOutput;
   activateMainTab("compose");
 }
 
@@ -2681,7 +2795,6 @@ function createNewProject() {
     filename = base + "-" + suffix + ".md";
   }
 
-  invalidateAdvancedTransport("New project created. Save it before Advanced playback.");
   state.studio.currentProject = filename;
   state.studio.markdown = defaultProjectMarkdown(filename.replace(/\.md$/i, ""));
   state.studio.analysis = null;
@@ -2705,7 +2818,6 @@ async function saveCurrentProject() {
   }
 
   const saved = await post("/v1/projects", { name, markdown });
-  invalidateAdvancedTransport("Project saved. Advanced stems will refresh on Play.");
   state.studio.currentProject = saved.name;
   state.studio.markdown = markdown;
   ui.projectNameInput.value = saved.name;
@@ -2729,7 +2841,6 @@ async function renameCurrentProject() {
     project: state.studio.currentProject,
     name: next
   });
-  invalidateAdvancedTransport("Project renamed. Advanced stems will reload on Play.");
   state.studio.currentProject = result.name;
   ui.projectNameInput.value = result.name;
   await refreshProjects();
@@ -2742,7 +2853,6 @@ async function deleteCurrentProject() {
   if (!window.confirm("Delete " + project + "?")) return;
 
   await post("/v1/projects/delete", { project });
-  invalidateAdvancedTransport("Project deleted.");
   state.studio.currentProject = null;
   state.studio.markdown = "";
   state.studio.analysis = null;
@@ -2788,26 +2898,185 @@ function sourceLabel(track) {
   return track.sound ? "sound:" + track.sound : "instrument:" + track.instrument;
 }
 
+function trackUsesTriggers(track) {
+  return Boolean(track?.bars?.some((bar) =>
+    bar.events?.some((event) => event.kind === "trigger")
+  ));
+}
+
+function voiceChoicesForTrack(track, includeOriginal = false) {
+  const choices = [];
+  if (includeOriginal) {
+    choices.push({ value: "original", label: "Original Project" });
+  }
+
+  if (trackUsesTriggers(track)) {
+    for (const sound of soundPadPacks()) {
+      choices.push({
+        value: "sound:" + sound.id,
+        label: "SoundPad · " + sound.name
+      });
+    }
+    return choices;
+  }
+
+  for (const sound of soundPianoPacks()) {
+    choices.push({
+      value: "sound:" + sound.id,
+      label: "SoundPiano · " + sound.name
+    });
+  }
+  for (const instrument of state.instruments) {
+    choices.push({
+      value: "instrument:" + instrument.id,
+      label: "Instrument · " + instrument.name + (instrument.playable ? "" : " (adapter unavailable)"),
+      disabled: !instrument.playable
+    });
+  }
+  return choices;
+}
+
+function voiceValueForTrack(track) {
+  return track.sound
+    ? "sound:" + track.sound
+    : track.instrument
+      ? "instrument:" + track.instrument
+      : "";
+}
+
+function voiceOptionsHtml(track, selectedValue) {
+  const choices = voiceChoicesForTrack(track);
+  if (
+    selectedValue &&
+    !choices.some((choice) => choice.value === selectedValue)
+  ) {
+    choices.unshift({ value: selectedValue, label: "Current · " + selectedValue });
+  }
+  return choices.map((choice) =>
+    '<option value="' + escapeHtml(choice.value) + '"' +
+    (choice.value === selectedValue ? " selected" : "") +
+    (choice.disabled ? " disabled" : "") +
+    ">" + escapeHtml(choice.label) + "</option>"
+  ).join("");
+}
+
+function fillVoiceSelect(select, track = null, options = {}) {
+  if (!select) return;
+  const includeOriginal = options.includeOriginal === true;
+  const selected = options.selected || "";
+  const choices = track
+    ? voiceChoicesForTrack(track, includeOriginal)
+    : [
+      ...(includeOriginal ? [{ value: "original", label: "Original Project" }] : []),
+      ...soundPianoPacks().map((sound) => ({
+        value: "sound:" + sound.id,
+        label: "SoundPiano · " + sound.name
+      })),
+      ...state.instruments.map((instrument) => ({
+        value: "instrument:" + instrument.id,
+        label: "Instrument · " + instrument.name + (instrument.playable ? "" : " (adapter unavailable)"),
+        disabled: !instrument.playable
+      }))
+    ];
+
+  select.innerHTML = "";
+  for (const choice of choices) {
+    const option = document.createElement("option");
+    option.value = choice.value;
+    option.textContent = choice.label;
+    option.disabled = Boolean(choice.disabled);
+    select.appendChild(option);
+  }
+  if (selected && choices.some((choice) => choice.value === selected && !choice.disabled)) {
+    select.value = selected;
+  }
+}
+
+function parseVoiceValue(value) {
+  const raw = String(value || "");
+  if (!raw || raw === "original") return null;
+  const separator = raw.indexOf(":");
+  if (separator < 1) return null;
+  return {
+    type: raw.slice(0, separator),
+    id: raw.slice(separator + 1)
+  };
+}
+
+async function updateTrackSourceInMarkdown(trackIndex, voiceValue) {
+  const analysis = state.studio.analysis;
+  const track = analysis?.song?.tracks?.[trackIndex];
+  const voice = parseVoiceValue(voiceValue);
+  if (!track || !voice) return false;
+
+  const lines = ui.markdownEditor.value.split(/\r?\n/);
+  const start = Number(track.line) - 1;
+  const nextTrack = analysis.song.tracks[trackIndex + 1];
+  const end = nextTrack ? Number(nextTrack.line) - 1 : lines.length;
+  let sourceLine = -1;
+
+  for (let index = start + 1; index < end; index += 1) {
+    if (/^\s*(sound|instrument)\s*:/i.test(lines[index])) {
+      sourceLine = index;
+      break;
+    }
+    if (/^\s*bar\s+/i.test(lines[index])) break;
+  }
+
+  const replacement = voice.type + ": " + voice.id;
+  if (sourceLine >= 0) lines[sourceLine] = replacement;
+  else lines.splice(start + 1, 0, replacement);
+
+  ui.markdownEditor.value = lines.join("\n");
+  state.studio.markdown = ui.markdownEditor.value;
+  setDirty(true);
+  const nextAnalysis = await analyzeCurrentMarkdown(true);
+  if (nextAnalysis.valid) {
+    renderComposeSourceToolbar();
+    return true;
+  }
+  return false;
+}
+
+function renderComposeSourceToolbar() {
+  const song = state.studio.analysis?.song;
+  if (!song?.tracks?.length) {
+    ui.composeTrackSelect.innerHTML = '<option value="">No tracks</option>';
+    ui.composeVoiceSelect.innerHTML = '<option value="">No voice</option>';
+    ui.composeApplyVoice.disabled = true;
+    return;
+  }
+
+  const previousTrack = Number(ui.composeTrackSelect.value || 0);
+  ui.composeTrackSelect.innerHTML = "";
+  song.tracks.forEach((track, index) => {
+    const option = document.createElement("option");
+    option.value = String(index);
+    option.textContent = track.name;
+    ui.composeTrackSelect.appendChild(option);
+  });
+  const trackIndex = Math.max(0, Math.min(song.tracks.length - 1, previousTrack));
+  ui.composeTrackSelect.value = String(trackIndex);
+  const track = song.tracks[trackIndex];
+  fillVoiceSelect(ui.composeVoiceSelect, track, { selected: voiceValueForTrack(track) });
+  ui.composeApplyVoice.disabled = false;
+}
+
 function buildTrackForm(track, index) {
   const wrapper = document.createElement("div");
   wrapper.className = "track-form-row";
   wrapper.dataset.trackIndex = String(index);
 
-  const sourceType = track.sound ? "sound" : "instrument";
-  const sourceValue = track.sound || track.instrument || "";
+  const sourceValue = voiceValueForTrack(track);
   const barsText = track.bars.map((bar) =>
     "bar " + bar.number + ": " + bar.events.map(eventText).join(" | ")
   ).join("\n");
 
   wrapper.innerHTML =
     '<label>Name<input class="text-input form-track-name" type="text" value="' + escapeHtml(track.name) + '"></label>' +
-    '<label>Source<div class="inline-source">' +
-    '<select class="form-track-source-type">' +
-    '<option value="sound"' + (sourceType === "sound" ? " selected" : "") + '>Sound</option>' +
-    '<option value="instrument"' + (sourceType === "instrument" ? " selected" : "") + '>Instrument</option>' +
-    '</select>' +
-    '<input class="text-input form-track-source" type="text" value="' + escapeHtml(sourceValue) + '">' +
-    '</div></label>' +
+    '<label>Voice<select class="form-track-voice">' +
+    voiceOptionsHtml(track, sourceValue) +
+    '</select></label>' +
     '<label>Volume<input class="text-input form-track-volume" type="number" min="0" max="1" step="0.05" value="' + track.volume + '"></label>' +
     '<label>Pan<input class="text-input form-track-pan" type="number" min="-1" max="1" step="0.1" value="' + track.pan + '"></label>' +
     '<label>Velocity<input class="text-input form-track-velocity" type="number" min="1" max="127" value="' + track.velocity + '"></label>' +
@@ -2895,12 +3164,11 @@ function formBodyLines() {
   const rows = [...ui.formTracks.querySelectorAll(".track-form-row")];
   for (const [index, row] of rows.entries()) {
     const name = row.querySelector(".form-track-name").value.trim() || ("Track " + (index + 1));
-    const sourceType = row.querySelector(".form-track-source-type").value;
-    const source = row.querySelector(".form-track-source").value.trim() ||
-      (sourceType === "sound" ? "piano" : "SFZ/basic-sfz");
+    const voice = parseVoiceValue(row.querySelector(".form-track-voice").value) ||
+      { type: "sound", id: "piano" };
 
     lines.push("track " + name);
-    lines.push(sourceType + ": " + source);
+    lines.push(voice.type + ": " + voice.id);
     lines.push("volume: " + (row.querySelector(".form-track-volume").value || "1"));
     lines.push("pan: " + (row.querySelector(".form-track-pan").value || "0"));
     lines.push("velocity: " + (row.querySelector(".form-track-velocity").value || "96"));
@@ -2923,7 +3191,6 @@ function applyFormToMarkdown() {
   const next = replaceSongCore(ui.markdownEditor.value, title, formBodyLines());
   ui.markdownEditor.value = next;
   state.studio.markdown = next;
-  invalidateAdvancedTransport("Form changed the project. Advanced stems will rebuild on Play.");
   setDirty(true);
   clearTimeout(formAnalyzeTimer);
   formAnalyzeTimer = setTimeout(() => analyzeCurrentMarkdown(false), 180);
@@ -2932,7 +3199,7 @@ function applyFormToMarkdown() {
 function addFormTrack() {
   const fallback = {
     name: "Track " + (ui.formTracks.querySelectorAll(".track-form-row").length + 1),
-    sound: state.sounds[0]?.id || "piano",
+    sound: soundPianoPacks()[0]?.id || "piano",
     instrument: null,
     volume: 0.8,
     pan: 0,
@@ -3011,7 +3278,6 @@ async function applyNodeInspector() {
   lines[lineIndex] = "bar " + bar.number + ": " + body;
   ui.markdownEditor.value = lines.join("\n");
   state.studio.markdown = ui.markdownEditor.value;
-  invalidateAdvancedTransport("Node Inspector changed the project. Advanced stems will rebuild on Play.");
   setDirty(true);
 
   const analysis = await analyzeCurrentMarkdown(true);
@@ -3139,7 +3405,6 @@ function appendToNoteScriptBody(linesToAdd) {
   lines.splice(end, 0, ...linesToAdd);
   ui.markdownEditor.value = lines.join("\n");
   state.studio.markdown = ui.markdownEditor.value;
-  invalidateAdvancedTransport("Node edit changed the project. Advanced stems will rebuild on Play.");
   setDirty(true);
   analyzeCurrentMarkdown(true);
 }
@@ -3553,6 +3818,18 @@ function renderTrackTimeline() {
     const controls = document.createElement("div");
     controls.className = "timeline-track-controls";
 
+    const songTrack = analysis.song.tracks[trackIndex];
+    const voice = document.createElement("select");
+    voice.className = "track-voice-select";
+    fillVoiceSelect(voice, songTrack, { selected: voiceValueForTrack(songTrack) });
+    voice.setAttribute("aria-label", "Voice for " + track.name);
+    voice.addEventListener("change", async () => {
+      const changed = await updateTrackSourceInMarkdown(trackIndex, voice.value);
+      if (changed) {
+        ui.advancedStatus.textContent = "Voice changed for " + track.name + ". Reload stems to hear it.";
+      }
+    });
+
     const mute = document.createElement("button");
     mute.type = "button";
     mute.className = "track-mute";
@@ -3567,7 +3844,7 @@ function renderTrackTimeline() {
     edit.textContent = "EDIT";
     edit.addEventListener("click", () => title.click());
 
-    controls.append(mute, edit);
+    controls.append(voice, mute, edit);
     head.append(title, controls);
 
     const lane = document.createElement("div");
@@ -3614,8 +3891,13 @@ function renderLibraries() {
       "<span>" + escapeHtml(sound.license || "license unspecified") + "</span>";
     card.addEventListener("click", async () => {
       activateMainTab("play");
-      ui.soundSelect.value = sound.id;
-      await selectSound(sound.id);
+      ui.playSourceType.value = sound.type === "soundpad" ? "soundpad" : "soundpiano";
+      if (sound.type !== "soundpad") ui.pianoVoiceKind.value = "sound";
+      await applyPlaySourceSelection();
+      if ([...ui.soundSelect.options].some((option) => option.value === sound.id)) {
+        ui.soundSelect.value = sound.id;
+        await selectSound(sound.id);
+      }
     });
     ui.soundBrowser.appendChild(card);
   }
@@ -3631,6 +3913,9 @@ function renderLibraries() {
       "<span>" + (instrument.playable ? "Playable" : "Adapter/backend required") + "</span>";
     card.addEventListener("click", async () => {
       activateMainTab("play");
+      ui.playSourceType.value = "soundpiano";
+      ui.pianoVoiceKind.value = "instrument";
+      await applyPlaySourceSelection();
       ui.instrumentSelect.value = instrument.id;
       await selectInstrument(instrument.id);
     });
@@ -3801,11 +4086,68 @@ function wireNodePalette() {
   });
 }
 
+function normalizedDownloadName(value, fallback = "NoteScript") {
+  const clean = String(value || "")
+    .trim()
+    .replace(/[\\/:*?"<>|]+/g, "-")
+    .replace(/[. ]+$/g, "");
+  const stem = clean || fallback;
+  return stem.toLowerCase().endsWith(".wav") ? stem : stem + ".wav";
+}
+
 async function renderCurrentProjectToWav() {
   const saved = await saveCurrentProject();
   if (!saved) return;
-  const result = await post("/v1/render", { project: state.studio.currentProject });
-  ui.projectFileMeta.textContent = "WAV rendered: " + result.outputFile;
+
+  const filename = normalizedDownloadName(
+    ui.renderOutputName.value,
+    state.studio.currentProject?.replace(/\.md$/i, "") || "NoteScript"
+  );
+  ui.renderProject.disabled = true;
+  ui.projectFileMeta.textContent = "Rendering WAV for download...";
+
+  try {
+    const response = await fetch(
+      "/v1/render/audio?project=" + encodeURIComponent(state.studio.currentProject),
+      { cache: "no-store" }
+    );
+    if (!response.ok) {
+      let message = response.statusText;
+      try {
+        const data = await response.json();
+        message = data.message || data.error || message;
+      } catch {}
+      throw new Error(message);
+    }
+
+    const blob = await response.blob();
+    const href = URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+    anchor.href = href;
+    anchor.download = filename;
+    document.body.appendChild(anchor);
+    anchor.click();
+    anchor.remove();
+    window.setTimeout(() => URL.revokeObjectURL(href), 2000);
+    ui.renderOutputName.value = filename.replace(/\.wav$/i, "");
+    ui.projectFileMeta.textContent = "Downloaded WAV: " + filename;
+  } catch (error) {
+    ui.projectFileMeta.textContent = "WAV download error: " + error.message;
+  } finally {
+    ui.renderProject.disabled = false;
+  }
+}
+
+async function applyComposeVoice() {
+  const trackIndex = Number(ui.composeTrackSelect.value);
+  if (!Number.isInteger(trackIndex)) return;
+  const changed = await updateTrackSourceInMarkdown(trackIndex, ui.composeVoiceSelect.value);
+  if (changed) {
+    const track = state.studio.analysis?.song?.tracks?.[trackIndex];
+    ui.projectFileMeta.textContent =
+      "Voice updated for " + (track?.name || ("Track " + (trackIndex + 1))) +
+      ". Save or Download WAV when ready.";
+  }
 }
 
 async function exportCurrentProjectMidi() {
@@ -3835,13 +4177,19 @@ function wireStudioUi() {
   ui.analyzeProject.addEventListener("click", () => analyzeCurrentMarkdown(true));
   ui.renderProject.addEventListener("click", renderCurrentProjectToWav);
   ui.exportMidi.addEventListener("click", exportCurrentProjectMidi);
+  ui.composeTrackSelect.addEventListener("change", () => {
+    const track = state.studio.analysis?.song?.tracks?.[Number(ui.composeTrackSelect.value)];
+    if (track) {
+      fillVoiceSelect(ui.composeVoiceSelect, track, { selected: voiceValueForTrack(track) });
+    }
+  });
+  ui.composeApplyVoice.addEventListener("click", applyComposeVoice);
   ui.formAddTrack.addEventListener("click", addFormTrack);
   ui.nodeInspectorApply.addEventListener("click", applyNodeInspector);
   ui.nodeInspectorForm.addEventListener("click", openSelectedNodeInForm);
 
   ui.markdownEditor.addEventListener("input", () => {
     state.studio.markdown = ui.markdownEditor.value;
-    invalidateAdvancedTransport("Text changed. Advanced stems will rebuild on Play.");
     setDirty(true);
   });
 
@@ -3871,15 +4219,8 @@ function wireStudioUi() {
   ui.soundPadMixLock.addEventListener("click", toggleSoundPadMixLock);
   ui.soundPadResetMix.addEventListener("click", resetSoundPadMix);
 
-  ui.livePlayMode.addEventListener("click", () => setPlayMode("live"));
-  ui.beatLanePlayMode.addEventListener("click", async () => {
-    setPlayMode("beatlane6");
-    try {
-      if (ui.beatLaneProject.value) await loadBeatLaneChart(false);
-    } catch (error) {
-      ui.beatLaneStatus.textContent = "BeatLane6 chart error: " + error.message;
-    }
-  });
+  ui.playSourceType.addEventListener("change", applyPlaySourceSelection);
+  ui.pianoVoiceKind.addEventListener("change", applyPlaySourceSelection);
   ui.beatLaneStart.addEventListener("click", startBeatLaneGame);
   ui.beatLaneStop.addEventListener("click", () => stopBeatLaneGame(true));
   ui.beatLaneProject.addEventListener("change", async () => {
@@ -3947,7 +4288,18 @@ async function initialize() {
   ui.sustain.addEventListener("change", syncSustain);
   ui.panic?.addEventListener("click", panicAll);
   ui.enableMidi?.addEventListener("click", enableMidiInput);
-  ui.instrumentSelect.addEventListener("change", () => selectInstrument(ui.instrumentSelect.value));
+  ui.soundSelect.addEventListener("change", () => {
+    if (ui.soundSelect.value) selectSound(ui.soundSelect.value);
+  });
+  ui.instrumentSelect.addEventListener("change", () => {
+    if (
+      ui.playSourceType.value === "soundpiano" &&
+      ui.pianoVoiceKind.value === "instrument" &&
+      ui.instrumentSelect.value
+    ) {
+      selectInstrument(ui.instrumentSelect.value);
+    }
+  });
 
   ui.transportLoad.addEventListener("click", () => loadTransportProject(ui.projectSelect.value, true));
   ui.transportPlay.addEventListener("click", playTransport);
@@ -3984,10 +4336,21 @@ async function initialize() {
     const ratio = Number(ui.advancedSeek.value) / 1000;
     seekAdvancedTransport(state.advancedTransport.duration * ratio);
   });
+  ui.transportVoiceSelect.addEventListener("change", () => {
+    stopTransport();
+    state.transport.buffer = null;
+    state.transport.duration = 0;
+    state.transport.offset = 0;
+    updateTransportDisplay(0);
+    ui.transportStatus.textContent = "Preview voice changed. Press Reload before Play.";
+  });
   ui.projectSelect.addEventListener("change", () => {
-    if (state.transport.project !== ui.projectSelect.value) {
-      ui.transportStatus.textContent = "Project changed. Load preview to refresh audio.";
-    }
+    stopTransport();
+    state.transport.buffer = null;
+    state.transport.duration = 0;
+    state.transport.offset = 0;
+    updateTransportDisplay(0);
+    ui.transportStatus.textContent = "Project changed. Press Reload before Play.";
   });
 
   updateTransportGain();
@@ -4024,7 +4387,7 @@ async function initialize() {
       ui.transportStop.disabled = true;
       ui.transportStatus.textContent = "Create a NoteScript project from the Project tab.";
     } else {
-      ui.transportStatus.textContent = "Select a project and load its preview.";
+      ui.transportStatus.textContent = "Select a project and preview voice, then Reload.";
       ui.projectNameInput.value = state.studio.projects[0];
     }
 
@@ -4048,27 +4411,16 @@ async function initialize() {
     }
     ui.engineStatus.title = engineHints.join("\n") || "Native WAV playback ready.";
 
-    ui.soundSelect.innerHTML = "";
-    for (const sound of state.sounds) {
-      const option = document.createElement("option");
-      option.value = sound.id;
-      option.textContent = sound.name + " [" + sound.type + "]";
-      ui.soundSelect.appendChild(option);
-    }
+    populateInstruments();
+    populateTransportVoiceSelect();
 
     if (state.sounds.length === 0) {
-      const option = document.createElement("option");
-      option.value = "";
-      option.textContent = "No sound add-ons installed";
-      ui.soundSelect.appendChild(option);
-      ui.soundSelect.disabled = true;
       ui.engineStatus.classList.add("warn");
-    } else {
-      ui.soundSelect.addEventListener("change", () => selectSound(ui.soundSelect.value));
-      await selectSound(state.sounds[0].id);
     }
 
-    populateInstruments();
+    ui.playSourceType.value = "soundpiano";
+    ui.pianoVoiceKind.value = "sound";
+    await applyPlaySourceSelection();
     renderLibraries();
 
     if (!navigator.requestMIDIAccess) {

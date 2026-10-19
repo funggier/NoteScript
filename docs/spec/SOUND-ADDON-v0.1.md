@@ -1,13 +1,26 @@
 # Sound Add-on Specification v0.1
 
-A NoteScript-native sound add-on is one folder under `sounds/`.
-
-The folder name is the ID used by `sound:`.
-
-## Pitched pack
+A NoteScript-native sound add-on lives under one of two behavior categories:
 
 ```text
-sounds/WarmPiano/
+sounds/
+├─ soundpiano/<pack>/
+└─ soundpad/<set>/
+```
+
+The pack/set folder name is the ID used by `sound:`. The legacy flat `sounds/<pack>/` layout remains readable for compatibility, but new add-ons should use the category layout.
+
+The category folder is authoritative:
+
+- `soundpiano/<pack>` is treated as `type: pitched`.
+- `soundpad/<set>` is treated as `type: soundpad`.
+
+This prevents a folder placed in the wrong behavioral category from silently acting as another type.
+
+## Pitched SoundPiano pack
+
+```text
+sounds/soundpiano/WarmPiano/
 ├─ pack.md
 ├─ C3.wav
 ├─ C4.wav
@@ -35,6 +48,17 @@ sample G4 = G4.wav
 
 ## SoundPad
 
+Recommended folder:
+
+```text
+sounds/soundpad/ForestSoundPad/
+├─ pack.md
+├─ kick.wav
+└─ rain.wav
+```
+
+Manifest:
+
 ```notescript-sound
 name: Forest SoundPad
 version: 1
@@ -53,7 +77,7 @@ The preferred manifest token is `type: soundpad`. Legacy `type: kit` manifests r
 
 ## Built-in production packs
 
-The repository-generated native library currently includes eight pitched packs plus one SoundPad pack:
+The repository-generated native library currently includes eight SoundPiano pitched packs plus one SoundPad set:
 
 - `piano`
 - `electric-piano`
@@ -67,9 +91,21 @@ The repository-generated native library currently includes eight pitched packs p
 
 All bundled WAV files are generated deterministically by `scripts/generate-core-sounds.js` and distributed under the NoteScript project MIT license. Third-party add-ons remain separate works and must preserve their own license/source metadata.
 
+Built-in paths are currently:
+
+- `sounds/soundpiano/piano`
+- `sounds/soundpiano/electric-piano`
+- `sounds/soundpiano/music-box`
+- `sounds/soundpiano/organ`
+- `sounds/soundpiano/synth-bass`
+- `sounds/soundpiano/synth-lead`
+- `sounds/soundpiano/warm-pad`
+- `sounds/soundpiano/pluck`
+- `sounds/soundpad/soundpad`
+
 ## Current decoder
 
-v0.1 renders PCM16 WAV natively. Other audio formats are planned behind decoder adapters.
+PCM16 WAV is decoded natively. When FFmpeg is available, NoteScript also decodes FLAC, OGG, OPUS, AIFF, MP3 and M4A through the decoder adapter.
 
 ## Licensing
 

@@ -139,7 +139,16 @@ jobs:
               $page.Content -notmatch 'id="soundPadHotkeyCancel"' -or
               $page.Content -notmatch 'id="soundPadMixLock"' -or
               $page.Content -notmatch 'id="soundPadResetMix"' -or
-              $page.Content -notmatch 'id="beatLanePlayMode"' -or
+              $page.Content -notmatch 'id="playSourceType"' -or
+              $page.Content -notmatch 'value="soundpiano">SoundPiano' -or
+              $page.Content -notmatch 'value="soundpad">SoundPad' -or
+              $page.Content -notmatch 'value="gamebeatlane6">GameBeatLane6' -or
+              $page.Content -notmatch 'id="transportVoiceSelect"' -or
+              $page.Content -notmatch 'id="transportLoad"[^>]*>Reload' -or
+              $page.Content -notmatch 'id="composeTrackSelect"' -or
+              $page.Content -notmatch 'id="composeVoiceSelect"' -or
+              $page.Content -notmatch 'id="renderOutputName"' -or
+              $page.Content -notmatch 'id="renderProject"[^>]*>Download WAV' -or
               $page.Content -notmatch 'id="beatLaneView"' -or
               $page.Content -notmatch 'id="beatLaneHighway"' -or
               $page.Content -notmatch 'id="beatLaneProject"' -or
@@ -189,6 +198,19 @@ jobs:
               throw "Portable Studio settings smoke test failed."
             }
 
+            $expectedSoundPiano = Join-Path $root "sounds\soundpiano\piano\pack.md"
+            $expectedSoundPad = Join-Path $root "sounds\soundpad\soundpad\pack.md"
+            $legacyFlatPiano = Join-Path $root "sounds\piano\pack.md"
+            $legacyFlatSoundPad = Join-Path $root "sounds\soundpad\pack.md"
+            if (
+              -not (Test-Path $expectedSoundPiano) -or
+              -not (Test-Path $expectedSoundPad) -or
+              (Test-Path $legacyFlatPiano) -or
+              (Test-Path $legacyFlatSoundPad)
+            ) {
+              throw "Portable sound category folder layout smoke test failed."
+            }
+
             $sounds = Invoke-RestMethod -Uri "$baseUri/v1/sounds?details=1" -TimeoutSec 5
             $requiredSoundIds = @(
               "piano",
@@ -207,13 +229,17 @@ jobs:
               }
             }
             $soundPad = @($sounds.sounds | Where-Object { $_.id -eq "soundpad" })
+            $piano = @($sounds.sounds | Where-Object { $_.id -eq "piano" })
             if (
               $sounds.sounds.Count -ne $requiredSoundIds.Count -or
               $soundPad[0].type -ne "soundpad" -or
+              $soundPad[0].category -ne "soundpad" -or
               $soundPad[0].triggers.Count -ne 16 -or
-              -not ($soundPad[0].triggers -contains "impact")
+              -not ($soundPad[0].triggers -contains "impact") -or
+              $piano[0].type -ne "pitched" -or
+              $piano[0].category -ne "soundpiano"
             ) {
-              throw "Portable production sound library / SoundPad discovery smoke test failed."
+              throw "Portable production sound category / SoundPad discovery smoke test failed."
             }
 
             $preview = Join-Path $env:RUNNER_TEMP "notescript-transport-preview.wav"
@@ -221,6 +247,24 @@ jobs:
             $bytes = [System.IO.File]::ReadAllBytes($preview)
             if ($bytes.Length -le 44 -or [System.Text.Encoding]::ASCII.GetString($bytes, 0, 4) -ne "RIFF") {
               throw "Portable transport preview is not a valid WAV."
+            }
+
+            $previewOverride = Join-Path $env:RUNNER_TEMP "notescript-transport-electric-piano.wav"
+            Invoke-WebRequest -UseBasicParsing -Uri "$baseUri/v1/transport/audio?project=Evening%20Walk.md&sourceType=sound&sourceId=electric-piano" -OutFile $previewOverride -TimeoutSec 15
+            $overrideBytes = [System.IO.File]::ReadAllBytes($previewOverride)
+            if (
+              $overrideBytes.Length -le 44 -or
+              [System.Text.Encoding]::ASCII.GetString($overrideBytes, 0, 4) -ne "RIFF" -or
+              (Get-FileHash $previewOverride).Hash -eq (Get-FileHash $preview).Hash
+            ) {
+              throw "Portable transport voice override smoke test failed."
+            }
+
+            $downloadWav = Join-Path $env:RUNNER_TEMP "notescript-compose-download.wav"
+            Invoke-WebRequest -UseBasicParsing -Uri "$baseUri/v1/render/audio?project=Evening%20Walk.md" -OutFile $downloadWav -TimeoutSec 15
+            $downloadBytes = [System.IO.File]::ReadAllBytes($downloadWav)
+            if ($downloadBytes.Length -le 44 -or [System.Text.Encoding]::ASCII.GetString($downloadBytes, 0, 4) -ne "RIFF") {
+              throw "Portable Compose download WAV endpoint is not a valid WAV."
             }
 
             $stem0 = Join-Path $env:RUNNER_TEMP "notescript-track-0.wav"

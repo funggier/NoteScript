@@ -38,6 +38,7 @@ function soundSummary(pack, id) {
     id,
     name: pack.name,
     type: pack.type,
+    category: pack.category || (pack.type === "soundpad" ? "soundpad" : "soundpiano"),
     version: pack.version,
     author: pack.author,
     license: pack.license,
@@ -84,6 +85,15 @@ export function createControlService(programRoot) {
   function normalizeProjectName(name) {
     const base = safeName(name);
     return base.toLowerCase().endsWith(".md") ? base : base + ".md";
+  }
+
+  function clearProjectTransportCaches(file) {
+    for (const key of [...transportCache.keys()]) {
+      if (key === file || key.startsWith(file + "::")) transportCache.delete(key);
+    }
+    for (const key of [...transportStemCache.keys()]) {
+      if (key.startsWith(file + "::")) transportStemCache.delete(key);
+    }
   }
 
   function normalizeSoundPadVolumes(value) {
@@ -187,11 +197,55 @@ export function createControlService(programRoot) {
 
   function resolvePortableSound(id) {
     const name = safeName(id);
-    const directory = assertInside(soundsRoot, path.join(soundsRoot, name));
-    if (!fs.existsSync(path.join(directory, "pack.md"))) {
+    const entry = listSoundAddons([soundsRoot]).find((item) => item.name === name);
+    if (!entry) {
       throw new NoteScriptError('Sound add-on "' + name + '" was not found.');
     }
+    const directory = assertInside(soundsRoot, entry.directory);
     return { id: name, directory, pack: loadSoundPack(directory) };
+  }
+
+  function resolveRenderSourceOverride(input = null) {
+    if (!input || !input.type || !input.id) return null;
+    const type = String(input.type).toLowerCase();
+    if (type === "sound") {
+      const id = safeName(input.id);
+      const resolved = resolvePortableSound(id);
+      if (resolved.pack.type !== "pitched") {
+        throw new NoteScriptError("Project voice override requires a pitched SoundPiano pack.");
+      }
+      return { type: "sound", id };
+    }
+    if (type === "instrument") {
+      const id = String(input.id || "").trim().replaceAll("\\", "/");
+      if (!/^(SFZ|SF2|SF3)\/[^/\\:*?"<>|]+$/i.test(id)) {
+        throw new NoteScriptError("Invalid instrument ID.");
+      }
+      const match = listInstrumentAddons([instrumentsRoot]).find(
+        (entry) => entry.id.toLowerCase() === id.toLowerCase()
+      );
+      if (!match) throw new NoteScriptError('Instrument "' + id + '" was not found.');
+      return { type: "instrument", id: match.id };
+    }
+    throw new NoteScriptError("Voice override type must be sound or instrument.");
+  }
+
+  function songWithSourceOverride(song, sourceOverride = null) {
+    const resolved = resolveRenderSourceOverride(sourceOverride);
+    if (!resolved) return song;
+    return {
+      ...song,
+      tracks: song.tracks.map((track) => {
+        const hasTriggers = track.bars.some((bar) =>
+          bar.events.some((event) => event.kind === "trigger")
+        );
+        if (hasTriggers) return track;
+        if (resolved.type === "sound") {
+          return { ...track, sound: resolved.id, instrument: null };
+        }
+        return { ...track, sound: null, instrument: resolved.id };
+      })
+    };
   }
 
   return {
@@ -308,10 +362,7 @@ export function createControlService(programRoot) {
       const file = assertInside(projectsRoot, path.join(projectsRoot, filename));
       const parsed = parseSong(String(markdown));
       fs.writeFileSync(file, String(markdown), "utf8");
-      transportCache.delete(file);
-      for (const key of [...transportStemCache.keys()]) {
-        if (key.startsWith(file + "::")) transportStemCache.delete(key);
-      }
+      clearProjectTransportCaches(file);
       return { file, name: filename, title: parsed.title, tracks: parsed.tracks.length };
     },
 
@@ -323,13 +374,8 @@ export function createControlService(programRoot) {
       if (source === target) return { name: filename, file: target };
       if (fs.existsSync(target)) throw new NoteScriptError("A project with that name already exists.");
       fs.renameSync(source, target);
-      transportCache.delete(source);
-      transportCache.delete(target);
-      for (const key of [...transportStemCache.keys()]) {
-        if (key.startsWith(source + "::") || key.startsWith(target + "::")) {
-          transportStemCache.delete(key);
-        }
-      }
+      clearProjectTransportCaches(source);
+      clearProjectTransportCaches(target);
       return { name: filename, file: target };
     },
 
@@ -337,10 +383,7 @@ export function createControlService(programRoot) {
       const file = resolveProject(fileOrName);
       if (!fs.existsSync(file)) throw new NoteScriptError("Project does not exist: " + file);
       fs.unlinkSync(file);
-      transportCache.delete(file);
-      for (const key of [...transportStemCache.keys()]) {
-        if (key.startsWith(file + "::")) transportStemCache.delete(key);
-      }
+      clearProjectTransportCaches(file);
       return { deleted: path.basename(file) };
     },
 
@@ -422,7 +465,12 @@ export function createControlService(programRoot) {
     listPortableSoundsDetailed() {
       return listSoundAddons([soundsRoot]).map((entry) => {
         const pack = loadSoundPack(entry.directory);
-        return soundSummary(pack, entry.name);
+        return {
+          ...soundSummary(pack, entry.name),
+          category: entry.category === "legacy"
+            ? (pack.type === "soundpad" ? "soundpad" : "soundpiano")
+            : entry.category
+        };
       });
     },
 
@@ -489,17 +537,20 @@ export function createControlService(programRoot) {
       });
     },
 
-    getTransportPreview(fileOrName) {
+    getTransportPreview(fileOrName, sourceOverride = null) {
       const { file, markdown } = loadProject(fileOrName);
       const stat = fs.statSync(file);
-      const signature = stat.size + ":" + stat.mtimeMs;
-      const cached = transportCache.get(file);
+      const resolvedOverride = resolveRenderSourceOverride(sourceOverride);
+      const overrideKey = resolvedOverride ? resolvedOverride.type + ":" + resolvedOverride.id : "original";
+      const signature = stat.size + ":" + stat.mtimeMs + ":" + overrideKey;
+      const cacheKey = file + "::" + overrideKey;
+      const cached = transportCache.get(cacheKey);
 
       if (cached && cached.signature === signature) {
         return cached.preview;
       }
 
-      const song = parseSong(markdown);
+      const song = songWithSourceOverride(parseSong(markdown), resolvedOverride);
       const rendered = renderToWavBuffer(song, file, { portableRoot: root });
       const preview = {
         buffer: rendered.buffer,
@@ -509,13 +560,42 @@ export function createControlService(programRoot) {
         ...rendered.report
       };
 
-      transportCache.set(file, { signature, preview });
-      while (transportCache.size > 4) {
+      transportCache.set(cacheKey, { signature, preview });
+      while (transportCache.size > 8) {
         const oldest = transportCache.keys().next().value;
         transportCache.delete(oldest);
       }
 
       return preview;
+    },
+
+    getMarkdownTrackPreview(markdown, trackIndex, fileName = "Tracks Workspace.md") {
+      const source = String(markdown || "");
+      const song = parseSong(source);
+      const index = Number.parseInt(String(trackIndex), 10);
+
+      if (!Number.isInteger(index) || index < 0 || index >= song.tracks.length) {
+        throw new NoteScriptError("Track index is outside the song.");
+      }
+
+      const virtualName = safeName(fileName || "Tracks Workspace.md");
+      const virtualFile = path.join(projectsRoot, virtualName);
+      const mix = renderToWavBuffer(song, virtualFile, { portableRoot: root });
+      const rendered = renderToWavBuffer(song, virtualFile, {
+        portableRoot: root,
+        trackIndex: index,
+        normalizationPeak: mix.report.peakBeforeNormalization
+      });
+
+      return {
+        buffer: rendered.buffer,
+        project: virtualName,
+        trackIndex: index,
+        trackName: song.tracks[index].name,
+        durationSeconds: rendered.report.durationSeconds,
+        sampleRate: rendered.report.sampleRate,
+        peakBeforeNormalization: rendered.report.peakBeforeNormalization
+      };
     },
 
     getTransportTrackPreview(fileOrName, trackIndex) {
@@ -569,10 +649,7 @@ export function createControlService(programRoot) {
         return { cleared: "all" };
       }
       const file = resolveProject(fileOrName);
-      transportCache.delete(file);
-      for (const key of [...transportStemCache.keys()]) {
-        if (key.startsWith(file + "::")) transportStemCache.delete(key);
-      }
+      clearProjectTransportCaches(file);
       return { cleared: path.basename(file) };
     },
 
@@ -625,13 +702,24 @@ export function createControlService(programRoot) {
       return { buffer };
     },
 
-    renderProject(fileOrName, outputName = null) {
+    renderProject(fileOrName, outputName = null, sourceOverride = null) {
       const { file, markdown } = loadProject(fileOrName);
-      const song = parseSong(markdown);
+      const song = songWithSourceOverride(parseSong(markdown), sourceOverride);
       const stem = outputName ? safeName(outputName) : path.basename(file, path.extname(file));
       const filename = stem.toLowerCase().endsWith(".wav") ? stem : stem + ".wav";
       const output = assertInside(exportsRoot, path.join(exportsRoot, filename));
       return renderToWav(song, file, output, { portableRoot: root });
+    },
+
+    getProjectRenderAudio(fileOrName, sourceOverride = null) {
+      const { file, markdown } = loadProject(fileOrName);
+      const song = songWithSourceOverride(parseSong(markdown), sourceOverride);
+      const rendered = renderToWavBuffer(song, file, { portableRoot: root });
+      return {
+        buffer: rendered.buffer,
+        project: path.basename(file),
+        ...rendered.report
+      };
     },
 
     exportMidi(fileOrName, outputName = null) {

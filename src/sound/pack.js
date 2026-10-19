@@ -33,9 +33,16 @@ export function loadSoundPack(packDir) {
   const manifest = path.join(packDir, "pack.md");
   if (!fs.existsSync(manifest)) throw new NoteScriptError("Sound pack not found: " + manifest);
   const text = fs.readFileSync(manifest, "utf8");
+  const folderCategory = path.basename(path.dirname(path.resolve(packDir))).toLowerCase();
   const pack = {
     name: path.basename(packDir),
-    type: "pitched",
+    type: folderCategory === "soundpad" ? "soundpad" : "pitched",
+    category:
+      folderCategory === "soundpad"
+        ? "soundpad"
+        : folderCategory === "soundpiano"
+          ? "soundpiano"
+          : "legacy",
     fallback: "nearest",
     version: "1",
     author: "",
@@ -93,6 +100,9 @@ export function loadSoundPack(packDir) {
 
     throw new NoteScriptError('Unknown pack statement "' + source.text + '".', source.line);
   }
+
+  if (pack.category === "soundpad") pack.type = "soundpad";
+  if (pack.category === "soundpiano") pack.type = "pitched";
 
   if (pack.type === "pitched" && pack.samples.size === 0) {
     throw new NoteScriptError("Pitched pack has no sample mappings.");

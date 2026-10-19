@@ -116,13 +116,27 @@ const server = http.createServer(async (req, res) => {
       );
     }
     if (req.method === "GET" && url.pathname === "/v1/transport/audio") {
-      const preview = service.getTransportPreview(url.searchParams.get("project"));
+      const sourceType = url.searchParams.get("sourceType");
+      const sourceId = url.searchParams.get("sourceId");
+      const preview = service.getTransportPreview(
+        url.searchParams.get("project"),
+        sourceType && sourceId ? { type: sourceType, id: sourceId } : null
+      );
       return binary(res, 200, "audio/wav", preview.buffer);
     }
     if (req.method === "GET" && url.pathname === "/v1/transport/track-audio") {
       const preview = service.getTransportTrackPreview(
         url.searchParams.get("project"),
         url.searchParams.get("track")
+      );
+      return binary(res, 200, "audio/wav", preview.buffer);
+    }
+    if (req.method === "POST" && url.pathname === "/v1/tracks/track-audio") {
+      const input = await body(req);
+      const preview = service.getMarkdownTrackPreview(
+        input.markdown,
+        input.track,
+        input.fileName || "Tracks Workspace.md"
       );
       return binary(res, 200, "audio/wav", preview.buffer);
     }
@@ -193,9 +207,26 @@ const server = http.createServer(async (req, res) => {
       const input = await body(req);
       return json(res, 200, service.validateProject(input.project));
     }
+    if (req.method === "GET" && url.pathname === "/v1/render/audio") {
+      const sourceType = url.searchParams.get("sourceType");
+      const sourceId = url.searchParams.get("sourceId");
+      const rendered = service.getProjectRenderAudio(
+        url.searchParams.get("project"),
+        sourceType && sourceId ? { type: sourceType, id: sourceId } : null
+      );
+      return binary(res, 200, "audio/wav", rendered.buffer);
+    }
     if (req.method === "POST" && url.pathname === "/v1/render") {
       const input = await body(req);
-      return json(res, 200, service.renderProject(input.project, input.output));
+      const sourceOverride =
+        input.sourceType && input.sourceId
+          ? { type: input.sourceType, id: input.sourceId }
+          : null;
+      return json(
+        res,
+        200,
+        service.renderProject(input.project, input.output, sourceOverride)
+      );
     }
     if (req.method === "POST" && url.pathname === "/v1/midi") {
       const input = await body(req);

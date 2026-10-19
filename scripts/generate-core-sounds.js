@@ -380,11 +380,11 @@ const pitchedPacks = [
 ];
 
 for (const pack of pitchedPacks) {
-  const dir = path.join(root, "examples", "sounds", pack.id);
+  const dir = path.join(root, "examples", "sounds", "soundpiano", pack.id);
   for (const note of pack.notes) write(path.join(dir, note + ".wav"), pack.synth(note));
 }
 
-const soundPadDir = path.join(root, "examples", "sounds", "soundpad");
+const soundPadDir = path.join(root, "examples", "sounds", "soundpad", "soundpad");
 const soundPad = {
   kick: kick(),
   snare: snare(),

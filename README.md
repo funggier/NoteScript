@@ -38,9 +38,14 @@ NoteScript-portable/
 │  ├─ ffmpeg/                 # optional portable decoder tool
 │  └─ fluidsynth/             # optional SF2/SF3 backend
 ├─ sounds/
-│  └─ <SoundPackName>/
-│     ├─ pack.md
-│     └─ audio files...
+│  ├─ soundpiano/
+│  │  └─ <PitchedPackName>/
+│  │     ├─ pack.md
+│  │     └─ audio files...
+│  └─ soundpad/
+│     └─ <PadSetName>/
+│        ├─ pack.md
+│        └─ audio files...
 └─ instruments/
    ├─ SFZ/
    │  └─ <InstrumentName>/
@@ -67,7 +72,7 @@ This is the user-defined format discussed for NoteScript itself.
 Example:
 
 ```text
-sounds/WarmPiano/
+sounds/soundpiano/WarmPiano/
 ├─ pack.md
 ├─ C3.wav
 ├─ C4.wav
@@ -108,6 +113,26 @@ trigger kick = kick.wav
 trigger shaker = shaker.wav
 trigger rain = rain.wav
 ```
+
+### Sound folder layout
+
+Portable/native sound packs use two explicit categories:
+
+```text
+sounds/
+├─ soundpiano/
+│  ├─ piano/
+│  ├─ electric-piano/
+│  ├─ music-box/
+│  └─ ...
+└─ soundpad/
+   ├─ soundpad/
+   └─ <other-pad-set>/
+```
+
+`soundpiano/<pack>` contains pitched keyboard-style packs used by notes/chords. A pack under this folder is treated as `type: pitched`.
+
+`soundpad/<set>` contains named-trigger pad sets. A pack under this folder is treated as `type: soundpad` regardless of an older manifest token. The legacy flat `sounds/<pack>` layout remains readable for compatibility, but new packs should use the category folders above.
 
 ### Built-in free sound library
 
@@ -191,9 +216,9 @@ Implemented:
 - Whole/half/quarter/eighth/sixteenth and dotted durations.
 - Velocity and track volume.
 - Timeline compilation.
-- Folder-based `sounds/` add-ons.
-- Pitched sample packs with nearest-root pitch shifting.
-- SoundPad named-trigger sample packs.
+- Categorized `sounds/soundpiano/<pack>` and `sounds/soundpad/<set>` add-ons with legacy flat-layout compatibility.
+- Pitched SoundPiano sample packs with nearest-root pitch shifting.
+- SoundPad named-trigger sample packs whose category folder enforces SoundPad semantics.
 - Built-in MIT sound library with 8 pitched packs and a 16-trigger SoundPad.
 - PCM16 WAV loading and deterministic WAV rendering.
 - Decoder abstraction with optional FFmpeg support for FLAC/OGG/OPUS/AIFF/MP3/M4A.
@@ -201,6 +226,7 @@ Implemented:
 - MIDI export.
 - Windows preview via the default audio player for the legacy CLI preview command.
 - In-browser Project Transport preview with Play/Pause/Stop/Seek/Loop and no external player.
+- Project Transport can temporarily preview pitched tracks with `Original Project`, any installed SoundPiano pack, or any playable Instrument add-on; changing the preview voice does not rewrite the `.md` project and requires `Reload` before playback.
 - In-memory/cached project preview rendering through the Control API.
 - Non-destructive preview volume and stereo pan controls; pan is explicitly left-to-right (`L 100 -> C -> R 100`) and maps to Web Audio `-1 -> 0 -> +1`.
 - Browser audio-output selection when the browser exposes Web Audio `setSinkId`.
@@ -209,6 +235,10 @@ Implemented:
 - Optional FluidSynth backend for SF2/SF3 offline rendering and audition-note rendering.
 - SoundFont bank/preset selection through `instrument.md`.
 - NoteScript Studio with tabbed Play / Project / Compose / Tracks / Sounds / Settings workspaces.
+- Play Source selector with `SoundPiano`, `SoundPad`, and `GameBeatLane6`; future games can join the same source selector without a separate Play Mode switch.
+- Compose Track/Voice selectors backed by the installed SoundPiano/SoundPad/Instrument libraries, shared across Text/Form/Node editing.
+- Advanced Tracks expose a per-track Voice dropdown while preserving the same Markdown source of truth.
+- Compose can render the current `.md` project and download a user-named WAV directly from the browser.
 - Game-style Play page with performance HUD, on-key hotkey caps and playable piano/SoundPad controls.
 - BeatLane6 rhythm-game mode using NoteScript Markdown projects as level sources.
 - BeatLane6 six-lane `A S D | J K L` play with deterministic Easy/Normal/Hard chart generation from the canonical timeline.
@@ -291,6 +321,7 @@ Current API surface:
 - `GET /v1/game/beatlane6/chart`
 - `GET /v1/transport/audio`
 - `GET /v1/transport/track-audio`
+- `GET /v1/render/audio` — browser WAV download source used by Compose
 - `POST /v1/live/select`
 - `POST /v1/live/note-on`
 - `POST /v1/live/note-off`
@@ -357,7 +388,7 @@ node src/cli.js capabilities
 node src/cli.js validate examples/evening-walk.md
 node src/cli.js list-sounds examples/evening-walk.md
 node src/cli.js list-instruments examples/evening-walk.md
-node src/cli.js validate-pack examples/sounds/piano
+node src/cli.js validate-pack examples/sounds/soundpiano/piano
 node src/cli.js validate-instrument examples/instruments/SFZ/basic-sfz
 node src/cli.js render examples/evening-walk.md -o out/evening-walk.wav
 node src/cli.js render examples/sfz-basic.md -o out/sfz-basic.wav
@@ -376,6 +407,7 @@ NoteScript source code remains MIT; third-party audio assets retain their origin
 - Same input + same sound bytes + same renderer settings should be deterministic.
 - AI is external to the NoteScript runtime.
 - `sounds/` and `instruments/` are separate systems.
+- Native sound packs are grouped by behavior under `sounds/soundpiano/` and `sounds/soundpad/`.
 - Standard instrument formats are grouped by format folder.
 - GUI, CLI, MCP and ChatGPT Plugin integrations should use stable core/control interfaces.
 - Portable paths are relative wherever possible.

@@ -33,31 +33,41 @@
       <section class="tab-page active" data-page="play">
         <div class="workspace play-workspace">
           <aside class="sidebar">
-            <section class="panel compact play-mode-panel">
-              <div class="section-title">
-                <h2>Play Mode</h2>
-                <span class="badge">LIVE / GAME</span>
-              </div>
-              <div class="play-mode-switch" role="group" aria-label="Play mode">
-                <button id="livePlayMode" class="mode-button active" type="button">Live</button>
-                <button id="beatLanePlayMode" class="mode-button" type="button">BeatLane6</button>
-              </div>
-            </section>
-
-            <section class="panel">
+            <section class="panel play-source-panel">
               <div class="section-title">
                 <h2>Play Source</h2>
-                <span class="badge">LIVE</span>
+                <span class="badge">SOURCE</span>
               </div>
 
-              <label class="field-label" for="soundSelect">Sound Pack</label>
-              <select id="soundSelect" aria-label="Sound pack"></select>
-              <div id="soundMeta" class="meta"></div>
+              <label class="field-label" for="playSourceType">Type</label>
+              <select id="playSourceType" aria-label="Play source type">
+                <option value="soundpiano">SoundPiano</option>
+                <option value="soundpad">SoundPad</option>
+                <option value="gamebeatlane6">GameBeatLane6</option>
+              </select>
 
-              <label class="field-label spaced-label" for="instrumentSelect">Instrument</label>
-              <select id="instrumentSelect" aria-label="Instrument library"></select>
-              <div id="instrumentMeta" class="meta">
-                SFZ/SF2/SF3 libraries are discovered separately.
+              <div id="liveSourceControls">
+                <div id="pianoVoiceKindRow">
+                  <label class="field-label spaced-label" for="pianoVoiceKind">SoundPiano source</label>
+                  <select id="pianoVoiceKind" aria-label="SoundPiano source kind">
+                    <option value="sound">SoundPiano Pack</option>
+                    <option value="instrument">Instrument Add-on</option>
+                  </select>
+                </div>
+
+                <div id="soundPackRow">
+                  <label id="soundPackLabel" class="field-label spaced-label" for="soundSelect">Sound Pack</label>
+                  <select id="soundSelect" aria-label="Sound pack"></select>
+                  <div id="soundMeta" class="meta"></div>
+                </div>
+
+                <div id="instrumentRow" class="hidden">
+                  <label class="field-label spaced-label" for="instrumentSelect">Instrument</label>
+                  <select id="instrumentSelect" aria-label="Instrument library"></select>
+                  <div id="instrumentMeta" class="meta">
+                    SFZ/SF2/SF3 libraries are discovered separately.
+                  </div>
+                </div>
               </div>
             </section>
 
@@ -268,7 +278,12 @@
               </div>
 
               <select id="projectSelect" aria-label="NoteScript project"></select>
-              <button id="transportLoad" class="action-button" type="button">Load Project Preview</button>
+
+              <label class="field-label spaced-label" for="transportVoiceSelect">Preview voice</label>
+              <select id="transportVoiceSelect" aria-label="Project preview voice"></select>
+              <div class="meta">Original Project keeps each track source. A selected SoundPiano/Instrument temporarily replaces pitched tracks only.</div>
+
+              <button id="transportLoad" class="action-button" type="button">Reload</button>
 
               <div class="transport-buttons">
                 <button id="transportPlay" class="action-button" type="button">Play</button>
@@ -310,7 +325,7 @@
               <select id="outputDevice" aria-label="Browser audio output"></select>
               <button id="refreshOutputs" class="action-button secondary" type="button">Refresh Outputs</button>
 
-              <div id="transportStatus" class="meta">Select a project and load its preview.</div>
+              <div id="transportStatus" class="meta">Select a project and preview voice, then Reload.</div>
             </section>
           </aside>
         </div>
@@ -354,8 +369,14 @@
             <div class="compose-actions">
               <button id="analyzeProject" class="action-button secondary" type="button">Analyze</button>
               <button id="saveProject" class="action-button" type="button">Save</button>
-              <button id="renderProject" class="action-button secondary" type="button">Render WAV</button>
+              <input id="renderOutputName" class="text-input compact-output-name" type="text" placeholder="Output name.wav" aria-label="WAV output name">
+              <button id="renderProject" class="action-button secondary" type="button">Download WAV</button>
               <button id="exportMidi" class="action-button secondary" type="button">Export MIDI</button>
+            </div>
+            <div class="compose-source-toolbar">
+              <label>Track<select id="composeTrackSelect" aria-label="Compose track source target"></select></label>
+              <label>Voice<select id="composeVoiceSelect" aria-label="Compose track voice"></select></label>
+              <button id="composeApplyVoice" class="action-button secondary" type="button">Apply Voice</button>
             </div>
           </div>
 
@@ -428,13 +449,16 @@
       <section class="tab-page" data-page="tracks">
         <div class="advanced-header">
           <div>
-            <div class="eyebrow">ADVANCED MODE</div>
+            <div class="eyebrow">TRACK WORKSPACE</div>
             <h2>Multi-track Arrangement</h2>
-            <p>DAW-style overview of the same NoteScript project.</p>
+            <p>Independent .md workspace. Load a file here, add tracks, choose each track voice, and play stems without changing other tabs.</p>
           </div>
-          <div class="mode-switch">
-            <button id="basicMode" class="mode-button" type="button">Basic</button>
-            <button id="advancedMode" class="mode-button active" type="button">Advanced</button>
+          <div class="tracks-file-tools">
+            <label class="action-button secondary tracks-file-button">
+              Load .md
+              <input id="tracksFileInput" type="file" accept=".md,text/markdown,text/plain">
+            </label>
+            <button id="tracksAddTrack" class="action-button secondary" type="button">Add Track</button>
           </div>
         </div>
 
@@ -456,11 +480,11 @@
             <span id="advancedPosition">0:00.0</span>
             <span id="advancedDuration">0:00.0</span>
           </div>
-          <div id="advancedStatus" class="meta">Open a project, then Play. Track Mute works during playback.</div>
+          <div id="advancedStatus" class="meta">Load a NoteScript .md file in this tab. Track Mute and per-track Voice are independent from Project/Compose.</div>
         </div>
 
         <div id="trackTimeline" class="track-timeline">
-          <div class="empty-state">Open a project in Compose to build the multi-track timeline.</div>
+          <div class="empty-state">Load a .md file above to build this independent track workspace.</div>
         </div>
       </section>
 

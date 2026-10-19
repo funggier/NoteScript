@@ -210,3 +210,29 @@ Deferred extensions, not required for the completed baseline:
 - manual chart overrides/editor
 - persistent high scores
 - input/audio offset calibration polish
+
+## Post-NTS-007 Studio source/render workflow
+
+Status: **IMPLEMENTED / LOCAL + PORTABLE GREEN / EXACT-COMMIT CI PENDING**
+
+Implemented:
+
+- [x] Sound library taxonomy is `sounds/soundpiano/<pack>` and `sounds/soundpad/<set>`.
+- [x] Category folders enforce pitched SoundPiano vs SoundPad behavior.
+- [x] Legacy flat `sounds/<pack>` remains readable for compatibility.
+- [x] Play Source is a single selector: `SoundPiano`, `SoundPad`, `GameBeatLane6`; separate Play Mode UI removed.
+- [x] SoundPiano can select a native pack or playable standard Instrument add-on.
+- [x] Project Transport is preview-only with temporary `Original Project` / SoundPiano / Instrument override.
+- [x] Project Transport changes require explicit `Reload`; Play does not silently rebuild a changed preview.
+- [x] Project Transport override does not rewrite the `.md` project.
+- [x] Compose exposes Track + Voice selection across Text/Form/Node.
+- [x] Form track source is an installed-library Voice dropdown rather than free-text source input.
+- [x] Advanced Tracks expose a per-track Voice dropdown that writes back to authoritative Markdown.
+- [x] Compose is the single user-facing WAV creation surface with custom filename + direct browser `Download WAV`.
+- [x] Project Transport and Advanced do not duplicate WAV save/download controls.
+- [x] Local syntax check and automated tests GREEN.
+- [x] Portable build/API/browser UI smoke GREEN.
+
+Remaining gate:
+
+- [ ] exact-commit GitHub Actions GREEN.

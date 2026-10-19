@@ -7,6 +7,7 @@ import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { parseSong } from "../src/parser.js";
 import { loadSoundPack } from "../src/sound/pack.js";
+import { listSoundAddons } from "../src/sound/resolver.js";
 import { loadInstrumentAddon, listInstrumentAddons } from "../src/instrument/addon.js";
 import { parseSfzFile, selectSfzRegions, sfzPitchRatio } from "../src/instrument/sfz.js";
 import { renderToWav, renderToWavBuffer } from "../src/renderer.js";
@@ -35,8 +36,8 @@ test("parses the example song", () => {
 });
 
 test("loads pitched and SoundPad sound add-ons", () => {
-  const piano = loadSoundPack(path.join(root, "examples", "sounds", "piano"));
-  const soundPad = loadSoundPack(path.join(root, "examples", "sounds", "soundpad"));
+  const piano = loadSoundPack(path.join(root, "examples", "sounds", "soundpiano", "piano"));
+  const soundPad = loadSoundPack(path.join(root, "examples", "sounds", "soundpad", "soundpad"));
   assert.equal(piano.type, "pitched");
   assert.equal(piano.samples.size, 5);
   assert.equal(soundPad.type, "soundpad");
@@ -53,7 +54,7 @@ test("loads pitched and SoundPad sound add-ons", () => {
     "electric-piano", "music-box", "organ", "synth-bass",
     "synth-lead", "warm-pad", "pluck"
   ]) {
-    const pack = loadSoundPack(path.join(root, "examples", "sounds", id));
+    const pack = loadSoundPack(path.join(root, "examples", "sounds", "soundpiano", id));
     assert.equal(pack.type, "pitched", id + " should be pitched");
     assert.equal(pack.samples.size, 5, id + " should expose five root samples");
     assert.equal(pack.license, "MIT");
@@ -61,7 +62,7 @@ test("loads pitched and SoundPad sound add-ons", () => {
 
   const legacyDir = fs.mkdtempSync(path.join(os.tmpdir(), "notescript-legacy-soundpad-"));
   fs.copyFileSync(
-    path.join(root, "examples", "sounds", "soundpad", "kick.wav"),
+    path.join(root, "examples", "sounds", "soundpad", "soundpad", "kick.wav"),
     path.join(legacyDir, "kick.wav")
   );
   fs.writeFileSync(
@@ -77,6 +78,51 @@ test("loads pitched and SoundPad sound add-ons", () => {
     ].join("\n")
   );
   assert.equal(loadSoundPack(legacyDir).type, "soundpad");
+
+  const discovered = listSoundAddons([path.join(root, "examples", "sounds")]);
+  assert.equal(discovered.length, 9);
+  assert.equal(discovered.find((item) => item.name === "piano")?.category, "soundpiano");
+  assert.equal(discovered.find((item) => item.name === "soundpad")?.category, "soundpad");
+
+  const categoryRoot = fs.mkdtempSync(path.join(os.tmpdir(), "notescript-sound-categories-"));
+  const forcedPad = path.join(categoryRoot, "soundpad", "forced-pad");
+  const forcedPiano = path.join(categoryRoot, "soundpiano", "forced-piano");
+  fs.mkdirSync(forcedPad, { recursive: true });
+  fs.mkdirSync(forcedPiano, { recursive: true });
+  fs.copyFileSync(
+    path.join(root, "examples", "sounds", "soundpad", "soundpad", "kick.wav"),
+    path.join(forcedPad, "kick.wav")
+  );
+  fs.copyFileSync(
+    path.join(root, "examples", "sounds", "soundpiano", "piano", "C4.wav"),
+    path.join(forcedPiano, "C4.wav")
+  );
+  fs.writeFileSync(
+    path.join(forcedPad, "pack.md"),
+    [
+      "# Forced Pad",
+      "",
+      "```notescript-sound",
+      "name: Forced Pad",
+      "type: pitched",
+      "trigger kick = kick.wav",
+      "```"
+    ].join("\n")
+  );
+  fs.writeFileSync(
+    path.join(forcedPiano, "pack.md"),
+    [
+      "# Forced Piano",
+      "",
+      "```notescript-sound",
+      "name: Forced Piano",
+      "type: soundpad",
+      "sample C4 = C4.wav",
+      "```"
+    ].join("\n")
+  );
+  assert.equal(loadSoundPack(forcedPad).type, "soundpad");
+  assert.equal(loadSoundPack(forcedPiano).type, "pitched");
 });
 
 test("validates format-grouped instrument add-ons", () => {
@@ -258,7 +304,7 @@ test("live playback manager stays idle and rejects unsupported persistent format
   const sfzDir = path.join(dir, "instruments", "SFZ", "Test");
   fs.mkdirSync(sfzDir, { recursive: true });
   fs.writeFileSync(path.join(sfzDir, "sample.wav"), fs.readFileSync(
-    path.join(root, "examples", "sounds", "piano", "C4.wav")
+    path.join(root, "examples", "sounds", "soundpiano", "piano", "C4.wav")
   ));
   fs.writeFileSync(path.join(sfzDir, "test.sfz"), "<region> sample=sample.wav key=60\n");
   const fence = String.fromCharCode(96).repeat(3);
@@ -285,7 +331,7 @@ test("decoder abstraction always exposes native PCM16 WAV", () => {
   const caps = getDecoderCapabilities();
   assert.equal(caps.native.wavPcm16, true);
 
-  const decoded = decodeAudioFile(path.join(root, "examples", "sounds", "piano", "C4.wav"));
+  const decoded = decodeAudioFile(path.join(root, "examples", "sounds", "soundpiano", "piano", "C4.wav"));
   assert.equal(decoded.sampleRate, 44100);
   assert.ok(decoded.samples.length > 1000);
   assert.equal(decoded.decoder, "native-wav-pcm16");
@@ -299,7 +345,7 @@ test("FFmpeg adapter decodes FLAC when FFmpeg is available", (t) => {
   }
 
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "notescript-flac-"));
-  const source = path.join(root, "examples", "sounds", "piano", "C4.wav");
+  const source = path.join(root, "examples", "sounds", "soundpiano", "piano", "C4.wav");
   const flac = path.join(dir, "C4.flac");
   const encoded = spawnSync(caps.ffmpeg.command, ["-y", "-v", "error", "-i", source, flac], {
     windowsHide: true
@@ -460,11 +506,29 @@ test("control service caches project transport preview audio", () => {
     recursive: true,
     force: true
   });
+  fs.cpSync(path.join(root, "examples", "instruments"), path.join(dir, "instruments"), {
+    recursive: true,
+    force: true
+  });
   fs.copyFileSync(songFile, path.join(dir, "projects", "Evening Walk.md"));
 
+  const projectFile = path.join(dir, "projects", "Evening Walk.md");
+  const sourceBeforeOverride = fs.readFileSync(projectFile, "utf8");
   const service = createControlService(dir);
   const first = service.getTransportPreview("Evening Walk.md");
   const second = service.getTransportPreview("Evening Walk.md");
+  const electric = service.getTransportPreview(
+    "Evening Walk.md",
+    { type: "sound", id: "electric-piano" }
+  );
+  const electricCached = service.getTransportPreview(
+    "Evening Walk.md",
+    { type: "sound", id: "electric-piano" }
+  );
+  const sfzOverride = service.getTransportPreview(
+    "Evening Walk.md",
+    { type: "instrument", id: "SFZ/basic-sfz" }
+  );
   const stem0 = service.getTransportTrackPreview("Evening Walk.md", 0);
   const stem0Cached = service.getTransportTrackPreview("Evening Walk.md", 0);
   const stem1 = service.getTransportTrackPreview("Evening Walk.md", 1);
@@ -473,6 +537,16 @@ test("control service caches project transport preview audio", () => {
   assert.strictEqual(first, second);
   assert.equal(first.project, "Evening Walk.md");
   assert.ok(first.durationSeconds > 1);
+  assert.equal(electric.buffer.toString("ascii", 0, 4), "RIFF");
+  assert.strictEqual(electric, electricCached);
+  assert.notDeepEqual(electric.buffer, first.buffer);
+  assert.equal(sfzOverride.buffer.toString("ascii", 0, 4), "RIFF");
+  assert.notDeepEqual(sfzOverride.buffer, first.buffer);
+  assert.equal(fs.readFileSync(projectFile, "utf8"), sourceBeforeOverride);
+  const downloadAudio = service.getProjectRenderAudio("Evening Walk.md");
+  assert.equal(downloadAudio.buffer.toString("ascii", 0, 4), "RIFF");
+  assert.ok(downloadAudio.buffer.length > 44);
+  assert.equal(fs.readFileSync(projectFile, "utf8"), sourceBeforeOverride);
   assert.equal(stem0.buffer.toString("ascii", 0, 4), "RIFF");
   assert.equal(stem1.buffer.toString("ascii", 0, 4), "RIFF");
   assert.strictEqual(stem0, stem0Cached);
@@ -593,7 +667,8 @@ test("Studio UI exposes tabbed game piano, compose modes, advanced tracks and re
   assert.match(html, /id="advancedPlay"/);
   assert.match(html, /id="advancedPause"/);
   assert.match(html, /id="advancedStop"/);
-  assert.match(html, /Track Mute works during playback/);
+  assert.match(app, /track-voice-select/);
+  assert.match(app, /track-mute/);
   assert.match(html, /id="hotkeyEditor"/);
   assert.match(html, /PERFORMANCE MODE/);
   assert.match(html, /id="pianoHotkeyEdit"/);
@@ -606,7 +681,12 @@ test("Studio UI exposes tabbed game piano, compose modes, advanced tracks and re
   assert.match(html, /id="soundPadHotkeyCancel"/);
   assert.match(html, /id="soundPadMixLock"/);
   assert.match(html, /id="soundPadResetMix"/);
-  assert.match(html, /id="beatLanePlayMode"/);
+  assert.match(html, /id="playSourceType"/);
+  assert.match(html, /value="soundpiano">SoundPiano/);
+  assert.match(html, /value="soundpad">SoundPad/);
+  assert.match(html, /value="gamebeatlane6">GameBeatLane6/);
+  assert.doesNotMatch(html, /id="livePlayMode"/);
+  assert.doesNotMatch(html, /id="beatLanePlayMode"/);
   assert.match(html, /id="beatLaneView"/);
   assert.match(html, /id="beatLaneHighway"/);
   assert.match(html, /id="beatLaneProject"/);
@@ -623,7 +703,16 @@ test("Studio UI exposes tabbed game piano, compose modes, advanced tracks and re
   assert.match(html, /id="enableMidi"/);
   assert.match(html, /id="transportPlay"/);
   assert.match(html, /id="transportSeek"/);
+  assert.match(html, /id="transportVoiceSelect"/);
+  assert.match(html, /id="transportLoad"[^>]*>Reload</);
   assert.match(html, /id="outputDevice"/);
+  assert.doesNotMatch(html, /id="transportSaveWav"/);
+  assert.match(html, /id="composeTrackSelect"/);
+  assert.match(html, /id="composeVoiceSelect"/);
+  assert.match(html, /id="composeApplyVoice"/);
+  assert.match(html, /id="renderOutputName"/);
+  assert.match(html, /id="renderProject"[^>]*>Download WAV</);
+  assert.doesNotMatch(html, /id="advancedRender"/);
   assert.match(app, /\/v1\/transport\/audio/);
   assert.match(app, /\/v1\/transport\/track-audio/);
   assert.match(app, /toggleAdvancedTrackMute/);
@@ -636,6 +725,10 @@ test("Studio UI exposes tabbed game piano, compose modes, advanced tracks and re
   assert.match(app, /requestMIDIAccess/);
   assert.match(app, /\/v1\/project\?project=/);
   assert.match(app, /\/v1\/analyze/);
+  assert.match(app, /\/v1\/render\/audio/);
+  assert.match(app, /applyComposeVoice/);
+  assert.match(app, /updateTrackSourceInMarkdown/);
+  assert.match(app, /Preview voice changed\. Press Reload before Play/);
   assert.match(app, /\/v1\/game\/beatlane6\/chart/);
   assert.match(app, /BEATLANE6_INPUT_KEYS/);
   assert.match(app, /beatLaneAnimationTick/);

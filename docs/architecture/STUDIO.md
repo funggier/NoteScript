@@ -33,6 +33,16 @@ Input sources:
 - remappable computer keyboard;
 - Web MIDI when the browser provides it.
 
+The Play page has one top-level **Play Source** selector:
+
+- `SoundPiano` — pitched native SoundPiano packs or playable Instrument add-ons;
+- `SoundPad` — named-trigger SoundPad sets;
+- `GameBeatLane6` — the BeatLane6 rhythm game.
+
+There is no separate Play Mode switch. Future games can join the same Play Source selector.
+
+The Project Transport on this page is preview-only. It can temporarily render `Original Project`, a SoundPiano pack, or a playable Instrument across pitched tracks. Project/voice changes require an explicit `Reload`; the override does not rewrite Markdown.
+
 The Play page retains the NTS-003 live and buffered playback paths.
 
 ### Project
@@ -72,6 +82,14 @@ Structured fields for:
 
 Changing Form regenerates the NoteScript fenced body in the Text editor. Save still remains explicit.
 
+A shared Compose source toolbar is visible across Text/Form/Node editing:
+
+- choose a Track;
+- choose a Voice from installed SoundPiano/SoundPad/Instrument sources appropriate to that track;
+- Apply Voice to rewrite the track's `sound:` or `instrument:` line in the authoritative Markdown.
+
+Compose also owns user-facing WAV creation. The user chooses an output filename and presses **Download WAV**. The browser receives `GET /v1/render/audio?project=<project>` and downloads the rendered WAV directly. Project Transport and Advanced Tracks do not duplicate this save/download control.
+
 #### Node
 
 A visual flow:
@@ -88,11 +106,14 @@ A DAW-style multi-track arrangement derived from the compiled timeline.
 
 Each track lane shows:
 
-- source;
+- current source;
+- a Voice dropdown backed by the installed compatible sources;
 - track volume/pan metadata;
 - timeline events;
 - Mute/Unmute;
 - Edit shortcut back to Compose/Form.
+
+Changing the Advanced Voice dropdown writes the corresponding `sound:` / `instrument:` source back to Markdown and invalidates loaded stems so the change is heard after Reload Stems / next playback.
 
 Advanced mode does not create a second project representation.
 

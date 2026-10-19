@@ -110,4 +110,17 @@ Deferred follow-up:
 - manual chart overrides/editor
 - persistent local high scores
 
+## Post-NTS-007 — Studio source taxonomy and render workflow — LOCAL GREEN
+
+- [x] Categorize native sounds under `sounds/soundpiano/<pack>` and `sounds/soundpad/<set>`.
+- [x] Preserve legacy flat sound-pack discovery for compatibility.
+- [x] Replace separate Play Mode with one Play Source selector: SoundPiano / SoundPad / GameBeatLane6.
+- [x] Let SoundPiano choose native packs or playable standard Instrument add-ons.
+- [x] Add temporary Project Transport preview-voice override with explicit Reload and no Markdown mutation.
+- [x] Add installed-library Track/Voice selection to Compose Text/Form/Node.
+- [x] Add per-track Voice selection to Advanced Tracks with Markdown write-back.
+- [x] Make Compose the single user-facing WAV creation surface with custom filename + direct download.
+- [x] Local tests, portable API and browser UI qualification GREEN.
+- [ ] Exact-commit CI GREEN.
+
 The NoteScript core remains AI-free.

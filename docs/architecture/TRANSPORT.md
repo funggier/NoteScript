@@ -23,24 +23,29 @@ It returns a WAV buffer and render report without writing an export file.
 
 The Control Service exposes a bounded preview cache:
 
-- key: resolved project path;
-- validation signature: file size + modification time;
-- maximum cached projects: 4;
-- save operations invalidate the affected project cache.
+- key: resolved project path + preview-voice override;
+- validation signature: file size + modification time + override identity;
+- maximum cached preview variants: 8;
+- save/rename/delete operations invalidate all preview variants for the affected project.
 
 API:
 
 - `GET /v1/transport/audio?project=<file.md>`
+- `GET /v1/transport/audio?project=<file.md>&sourceType=sound&sourceId=<SoundPiano>`
+- `GET /v1/transport/audio?project=<file.md>&sourceType=instrument&sourceId=<FORMAT/name>`
 - `POST /v1/transport/cache/clear`
 
 The audio endpoint returns `audio/wav`.
 
+A preview voice override is temporary. It replaces pitched tracks for that render only, leaves trigger/SoundPad tracks on their original source, and never rewrites the authoritative Markdown project.
+
 ## Browser transport
 
-The Audition Keyboard includes:
+The Play page Project Transport includes:
 
 - project selector;
-- Load Project Preview;
+- Preview voice selector with `Original Project`, installed SoundPiano packs and playable Instrument add-ons;
+- `Reload` to rebuild the preview using the currently selected project + preview voice;
 - Play;
 - Pause;
 - Stop;
@@ -49,6 +54,8 @@ The Audition Keyboard includes:
 - preview volume;
 - preview pan;
 - browser audio-output selector when supported.
+
+Changing either the project or Preview voice discards the currently decoded preview. Play does not silently rebuild it; the user presses `Reload` first so it is explicit which voice is being heard.
 
 A project preview is decoded into a browser AudioBuffer. Playback uses a new AudioBufferSourceNode for every start/resume/seek because Web Audio source nodes are single-use.
 
@@ -107,12 +114,16 @@ The renderer baseline currently creates 44.1 kHz WAV previews.
 
 A browser may resample decoded audio to the active AudioContext/output sample rate. The UI therefore labels the displayed decoded rate as **browser context** rate rather than implying that it is the source render rate.
 
-## Relationship to exports
+## Relationship to Compose and exports
 
-Transport preview is not an export operation.
+Project Transport is preview-only.
 
-- Preview: in-memory/cached WAV -> Web Audio.
-- Export: explicit output file under `exports/`.
+- Transport: choose project + temporary preview voice -> `Reload` -> in-memory/cached WAV -> Web Audio.
+- Transport never changes the selected track source in Markdown.
+- Transport has no file-name field and no save/download action.
+- Compose owns user-facing audio creation: select track + Voice, apply it to Markdown, choose a WAV filename, then `Download WAV`.
+- The browser download endpoint is `GET /v1/render/audio?project=<file.md>`.
+- CLI/API workflows may still explicitly render files under `exports/` through the existing render command/API.
 
 The preview cache can be discarded at any time.
 
