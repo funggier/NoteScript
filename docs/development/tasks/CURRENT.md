@@ -2,7 +2,7 @@
 
 ## NTS-004 — Desktop GUI portable
 
-Status: ACTIVE — LOCALLY QUALIFIED / EXACT-COMMIT CI PENDING
+Status: COMPLETE / GREEN
 
 Goal: provide a practical portable NoteScript Studio while keeping Markdown as the authoritative song representation.
 
@@ -94,7 +94,15 @@ Transport checkpoint:
 - [x] Source syntax check GREEN: 25 JavaScript files.
 - [x] Portable qualification.
 - [x] Temporary qualification project removed; portable examples restored to baseline.
-- [ ] Exact-commit GitHub CI GREEN.
+- [x] Exact-commit GitHub CI GREEN.
+
+Exact-commit qualification:
+
+- commit: `62503c4c8186078e83a8cb195d93867dc36f7bd4`
+- Actions run: `39292575647`
+- job: `test (24.x)`
+- result: SUCCESS
+- all steps GREEN, including portable build, CLI smoke, Studio/API smoke and production SoundPad discovery.
 
 Evidence:
 
@@ -107,4 +115,4 @@ The GUI calls stable Control API/service operations instead of duplicating parse
 
 Markdown remains the authoritative editable song representation.
 
-NTS-004 remains ACTIVE only until exact-commit CI is GREEN.
+NTS-004 is closed. The next planned milestone is NTS-005 — Musical language expansion.

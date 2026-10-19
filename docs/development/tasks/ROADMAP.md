@@ -34,7 +34,7 @@ Exit: source tests GREEN, example WAV renders, portable build runs from its own 
 - Shared note-on/note-off audition engine for native sound packs and supported instruments.
 - Polyphonic live playing, sustain, velocity and future MIDI-input support.
 
-## NTS-004 — Desktop GUI portable — ACTIVE
+## NTS-004 — Desktop GUI portable — COMPLETE
 
 - Markdown editor.
 - Syntax diagnostics.
@@ -45,6 +45,13 @@ Exit: source tests GREEN, example WAV renders, portable build runs from its own 
 - Transport.
 - Render/export.
 - Project management.
+- Game-style remappable piano hotkeys.
+- SoundPad hotkeys and per-pad volume mixing.
+- Advanced multi-track stem playback with live track Mute/Unmute.
+- Single portable command entry point plus thin BAT shortcuts.
+- Single-file network host/port configuration.
+
+Exit: local UI qualification GREEN and exact-commit GitHub Actions run `39292575647` SUCCESS for commit `62503c4c8186078e83a8cb195d93867dc36f7bd4`.
 
 ## NTS-005 — Musical language expansion
 

@@ -419,17 +419,31 @@ Portable Control API discovery returned exactly the built-in production sound so
 - `piano`, type `pitched`;
 - `soundpad`, type `soundpad`.
 
-## Exact-commit gate
+## Exact-commit gate — GREEN
 
-GitHub exact-commit CI is still required before NTS-004 is marked COMPLETE.
+Qualified commit:
 
-The CI gate will include:
+`62503c4c8186078e83a8cb195d93867dc36f7bd4`
 
+GitHub Actions:
+
+- run: `39292575647`
+- job: `test (24.x)`
+- conclusion: **SUCCESS**
+
+All workflow steps passed:
+
+- checkout/setup;
+- `npm ci`;
 - syntax check;
 - automated tests;
 - portable build;
 - portable CLI smoke;
-- portable Studio HTML smoke;
+- portable Studio and Control API smoke;
 - project/settings API smoke;
+- production Piano/SoundPad discovery;
 - full project preview WAV;
-- per-track stem WAV.
+- per-track stem WAV;
+- portable start/status/stop lifecycle.
+
+NTS-004 is therefore COMPLETE / GREEN.
