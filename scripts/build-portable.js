@@ -33,10 +33,12 @@ fs.copyFileSync(process.execPath, path.join(runtimeDir, runtimeName));
 for (const dir of ["sounds", "projects", "exports", "config", "templates", "tools"]) {
   fs.mkdirSync(path.join(out, dir), { recursive: true });
 }
+
 fs.copyFileSync(
   path.join(root, "config", "network.json"),
   path.join(out, "config", "network.json")
 );
+
 for (const format of ["SFZ", "SF2", "SF3"]) {
   fs.mkdirSync(path.join(out, "instruments", format), { recursive: true });
 }
@@ -44,79 +46,104 @@ for (const format of ["SFZ", "SF2", "SF3"]) {
 copyDir(path.join(root, "examples", "sounds"), path.join(out, "sounds"));
 copyDir(path.join(root, "examples", "instruments"), path.join(out, "instruments"));
 copyDir(path.join(root, "templates"), path.join(out, "templates"));
-if (fs.existsSync(path.join(root, "tools"))) copyDir(path.join(root, "tools"), path.join(out, "tools"));
-fs.copyFileSync(path.join(root, "examples", "evening-walk.md"), path.join(out, "projects", "Evening Walk.md"));
-fs.copyFileSync(path.join(root, "examples", "sfz-demo.md"), path.join(out, "projects", "SFZ Demo.md"));
+if (fs.existsSync(path.join(root, "tools"))) {
+  copyDir(path.join(root, "tools"), path.join(out, "tools"));
+}
+
+fs.copyFileSync(
+  path.join(root, "examples", "evening-walk.md"),
+  path.join(out, "projects", "Evening Walk.md")
+);
+fs.copyFileSync(
+  path.join(root, "examples", "sfz-demo.md"),
+  path.join(out, "projects", "SFZ Demo.md")
+);
 
 const cmd = [
   "@echo off",
   "setlocal",
   "set ROOT=%~dp0",
   "set NOTESCRIPT_ROOT=%ROOT%",
-  '"%ROOT%runtime\\node.exe" "%ROOT%app\\src\\cli.js" %*'
+  "set SERVER=%ROOT%app\\src\\control\\server.js",
+  "set MODE=%~1",
+  "if \"%MODE%\"==\"\" goto studio",
+  "if /I \"%MODE%\"==\"studio\" goto studio",
+  "if /I \"%MODE%\"==\"start\" goto start",
+  "if /I \"%MODE%\"==\"stop\" goto stop",
+  "if /I \"%MODE%\"==\"status\" goto status",
+  "goto cli",
+  "",
+  ":studio",
+  "call :startserver",
+  "if errorlevel 1 exit /b %errorlevel%",
+  "call :loadurl",
+  "if errorlevel 1 exit /b %errorlevel%",
+  "powershell -NoProfile -Command \"Start-Sleep -Milliseconds 500\"",
+  "start \"\" \"%STUDIO_URL%\"",
+  "exit /b 0",
+  "",
+  ":start",
+  "call :startserver",
+  "exit /b %errorlevel%",
+  "",
+  ":stop",
+  "powershell -NoProfile -ExecutionPolicy Bypass -Command \"$server=$env:SERVER; $items=@(Get-CimInstance Win32_Process | Where-Object { $_.Name -ieq 'node.exe' -and $_.CommandLine -and $_.CommandLine.IndexOf($server, [StringComparison]::OrdinalIgnoreCase) -ge 0 }); if ($items.Count -eq 0) { Write-Host 'NoteScript Control API is not running.'; exit 0 }; foreach ($p in $items) { Stop-Process -Id $p.ProcessId -Force -ErrorAction SilentlyContinue; Write-Host ('Stopped NoteScript Control API PID ' + $p.ProcessId) }\"",
+  "exit /b %errorlevel%",
+  "",
+  ":status",
+  "call :loadurl",
+  "if errorlevel 1 exit /b %errorlevel%",
+  "powershell -NoProfile -ExecutionPolicy Bypass -Command \"$server=$env:SERVER; $url=$env:STUDIO_URL; $items=@(Get-CimInstance Win32_Process | Where-Object { $_.Name -ieq 'node.exe' -and $_.CommandLine -and $_.CommandLine.IndexOf($server, [StringComparison]::OrdinalIgnoreCase) -ge 0 }); Write-Host 'NoteScript Control API'; if ($items.Count -eq 0) { Write-Host 'State : STOPPED'; Write-Host ('URL   : ' + $url); Write-Host 'Health: N/A'; exit 0 }; $pidText=($items | ForEach-Object { [string]$_.ProcessId }) -join ', '; Write-Host 'State : RUNNING'; Write-Host ('PID   : ' + $pidText); Write-Host ('URL   : ' + $url); try { $health=Invoke-RestMethod -Uri ($url.TrimEnd('/') + '/v1/health') -TimeoutSec 2; if ($health.ok) { Write-Host 'Health: OK' } else { Write-Host 'Health: UNHEALTHY' } } catch { Write-Host 'Health: UNREACHABLE' }\"",
+  "exit /b %errorlevel%",
+  "",
+  ":cli",
+  "\"%ROOT%runtime\\node.exe\" \"%ROOT%app\\src\\cli.js\" %*",
+  "exit /b %errorlevel%",
+  "",
+  ":startserver",
+  "powershell -NoProfile -ExecutionPolicy Bypass -Command \"$root=$env:ROOT; $node=Join-Path $root 'runtime\\node.exe'; $server=$env:SERVER; $items=@(Get-CimInstance Win32_Process | Where-Object { $_.Name -ieq 'node.exe' -and $_.CommandLine -and $_.CommandLine.IndexOf($server, [StringComparison]::OrdinalIgnoreCase) -ge 0 }); if ($items.Count -gt 0) { Write-Host ('NoteScript Control API is already running. PID ' + $items[0].ProcessId); exit 0 }; $p=Start-Process -FilePath $node -ArgumentList @($server) -WorkingDirectory $root -WindowStyle Hidden -PassThru; Write-Host ('NoteScript Control API started in background. PID ' + $p.Id)\"",
+  "exit /b %errorlevel%",
+  "",
+  ":loadurl",
+  "set STUDIO_URL=",
+  "set URL_FILE=%TEMP%\\notescript-url-%RANDOM%-%RANDOM%.txt",
+  "\"%ROOT%runtime\\node.exe\" \"%ROOT%app\\src\\control\\network-cli.js\" url > \"%URL_FILE%\"",
+  "if errorlevel 1 (",
+  "  if exist \"%URL_FILE%\" del /q \"%URL_FILE%\" >nul 2>&1",
+  "  echo Unable to read config\\network.json",
+  "  exit /b 2",
+  ")",
+  "set /p STUDIO_URL=<\"%URL_FILE%\"",
+  "del /q \"%URL_FILE%\" >nul 2>&1",
+  "if not defined STUDIO_URL (",
+  "  echo Unable to read config\\network.json",
+  "  exit /b 2",
+  ")",
+  "exit /b 0"
 ].join("\r\n") + "\r\n";
+
 fs.writeFileSync(path.join(out, "NoteScript.cmd"), cmd);
 
-const preview = [
-  "@echo off",
-  "setlocal",
-  "set ROOT=%~dp0",
-  "set NOTESCRIPT_ROOT=%ROOT%",
-  'if "%~1"=="" (',
-  '  echo Drag a .md song onto this file or pass a song path.',
-  "  exit /b 2",
-  ")",
-  '"%ROOT%runtime\\node.exe" "%ROOT%app\\src\\cli.js" preview "%~1"'
-].join("\r\n") + "\r\n";
-fs.writeFileSync(path.join(out, "Preview-Song.cmd"), preview);
+const batWrappers = {
+  "Studio.bat": ["studio"],
+  "Start.bat": ["start"],
+  "Stop.bat": ["stop"],
+  "Status.bat": ["status"],
+  "Validate.bat": ["validate"],
+  "Render.bat": ["render"]
+};
 
-const render = [
-  "@echo off",
-  "setlocal",
-  "set ROOT=%~dp0",
-  "set NOTESCRIPT_ROOT=%ROOT%",
-  'if "%~1"=="" (',
-  '  echo Drag a .md song onto this file or pass a song path.',
-  "  exit /b 2",
-  ")",
-  'for %%F in ("%~1") do set NAME=%%~nF',
-  '"%ROOT%runtime\\node.exe" "%ROOT%app\\src\\cli.js" render "%~1" -o "%ROOT%exports\\%NAME%.wav"'
-].join("\r\n") + "\r\n";
-fs.writeFileSync(path.join(out, "Render-Song.cmd"), render);
-
-const control = [
-  "@echo off",
-  "setlocal",
-  "set ROOT=%~dp0",
-  "set NOTESCRIPT_ROOT=%ROOT%",
-  '"%ROOT%runtime\\node.exe" "%ROOT%app\\src\\control\\server.js"'
-].join("\r\n") + "\r\n";
-fs.writeFileSync(path.join(out, "Start-Control-API.cmd"), control);
-
-const stopControl = [
-  "@echo off",
-  "setlocal",
-  "set ROOT=%~dp0",
-  "set SERVER=%ROOT%app\\src\\control\\server.js",
-  'powershell -NoProfile -ExecutionPolicy Bypass -Command "$server=$env:SERVER; $items=@(Get-CimInstance Win32_Process | Where-Object { $_.Name -ieq \'node.exe\' -and $_.CommandLine -and $_.CommandLine.IndexOf($server, [StringComparison]::OrdinalIgnoreCase) -ge 0 }); if ($items.Count -eq 0) { Write-Host \'NoteScript Control API is not running.\'; exit 0 }; foreach ($p in $items) { Stop-Process -Id $p.ProcessId -Force -ErrorAction SilentlyContinue; Write-Host (\'Stopped NoteScript Control API PID \' + $p.ProcessId) }"'
-].join("\r\n") + "\r\n";
-fs.writeFileSync(path.join(out, "Stop-Control-API.cmd"), stopControl);
-
-const audition = [
-  "@echo off",
-  "setlocal",
-  "set ROOT=%~dp0",
-  "set NOTESCRIPT_ROOT=%ROOT%",
-  'for /f "delims=" %%U in (\'"%ROOT%runtime\\node.exe" "%ROOT%app\\src\\control\\network-cli.js" url\') do set "STUDIO_URL=%%U"',
-  'if not defined STUDIO_URL (',
-  '  echo Unable to read config\\network.json',
-  '  exit /b 2',
-  ')',
-  'start "NoteScript Control API" /min "%ROOT%runtime\\node.exe" "%ROOT%app\\src\\control\\server.js"',
-  'powershell -NoProfile -Command "Start-Sleep -Milliseconds 700"',
-  'start "" "%STUDIO_URL%"'
-].join("\r\n") + "\r\n";
-fs.writeFileSync(path.join(out, "NoteScript-Studio.cmd"), audition);
-fs.writeFileSync(path.join(out, "Audition-Keyboard.cmd"), audition);
+for (const [name, prefixArgs] of Object.entries(batWrappers)) {
+  const forwarded = prefixArgs.join(" ");
+  const body = [
+    "@echo off",
+    "setlocal",
+    forwarded
+      ? 'call "%~dp0NoteScript.cmd" ' + forwarded + ' %*'
+      : 'call "%~dp0NoteScript.cmd" %*',
+    "exit /b %errorlevel%"
+  ].join("\r\n") + "\r\n";
+  fs.writeFileSync(path.join(out, name), body);
+}
 
 console.log("Portable folder created: " + out);

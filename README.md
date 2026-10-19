@@ -21,13 +21,13 @@ This supports the intended ChatGPT workflow without embedding AI in the applicat
 
 ```text
 NoteScript-portable/
-├─ NoteScript.cmd
-├─ Preview-Song.cmd
-├─ Render-Song.cmd
-├─ Start-Control-API.cmd
-├─ Stop-Control-API.cmd
-├─ NoteScript-Studio.cmd
-├─ Audition-Keyboard.cmd
+├─ NoteScript.cmd              # single logic entry point
+├─ Studio.bat                  # thin shortcut -> NoteScript.cmd studio
+├─ Start.bat                   # thin shortcut -> NoteScript.cmd start
+├─ Stop.bat                    # thin shortcut -> NoteScript.cmd stop
+├─ Status.bat                  # thin shortcut -> NoteScript.cmd status
+├─ Validate.bat                # thin shortcut -> NoteScript.cmd validate
+├─ Render.bat                  # thin shortcut -> NoteScript.cmd render
 ├─ runtime/
 ├─ app/
 ├─ projects/
@@ -197,8 +197,11 @@ Implemented:
 - Separate Sound Pack and Instrument browsers.
 - Persistent SF2/SF3 live playback through one FluidSynth process with direct WASAPI output on Windows.
 - Safe SoundFont switching, live status, sustain CC and process cleanup.
-- Portable `NoteScript-Studio.cmd` launcher plus compatibility `Audition-Keyboard.cmd`.
-- Portable `Start-Control-API.cmd` / `Stop-Control-API.cmd` pair; Stop targets only the NoteScript server whose command line belongs to that portable folder.
+- Portable `NoteScript.cmd` as the single entry point for Studio, background Control API start/stop, and CLI commands.
+- Double-clicking `NoteScript.cmd` opens Studio and starts the Control API hidden in the background when needed.
+- `NoteScript.cmd start` and `NoteScript.cmd stop` control only the NoteScript server belonging to that portable folder and are idempotent.
+- `NoteScript.cmd status` reports RUNNING/STOPPED, PID, configured URL and API health.
+- Convenience `.bat` files are thin wrappers only; all server/network/CLI logic remains in `NoteScript.cmd`.
 - Portable folder builder with bundled Node runtime.
 - Local Control API intended for GUI, MCP, and ChatGPT Plugin adapters.
 - Automated tests.
@@ -235,7 +238,7 @@ Default:
 }
 ```
 
-The Control API and `NoteScript-Studio.cmd` both read this same file. Change the IP or port there only; the launcher opens the corresponding URL automatically. If `host` is `0.0.0.0` or `::`, the server binds broadly while the local Studio launcher uses the matching loopback address for the browser.
+The Control API and the single `NoteScript.cmd` entry point both read this same file. Change the IP or port there only; Studio opens the corresponding URL automatically. If `host` is `0.0.0.0` or `::`, the server binds broadly while the local Studio launch path uses the matching loopback address for the browser.
 
 Current API surface:
 
@@ -273,8 +276,6 @@ The default server binds to loopback. The same server hosts NoteScript Studio. A
 
 Optional environment variables:
 
-- `NOTESCRIPT_CONTROL_HOST`
-- `NOTESCRIPT_CONTROL_PORT`
 - `NOTESCRIPT_CONTROL_TOKEN`
 - `NOTESCRIPT_ROOT`
 - `NOTESCRIPT_FFMPEG`
@@ -291,7 +292,30 @@ npm run portable
 npm run control
 ```
 
-Direct commands include:
+Portable entry-point examples:
+
+```powershell
+NoteScript.cmd
+NoteScript.cmd studio
+NoteScript.cmd start
+NoteScript.cmd status
+NoteScript.cmd stop
+NoteScript.cmd validate "projects\Evening Walk.md"
+NoteScript.cmd render "projects\Evening Walk.md" -o "exports\Evening Walk.wav"
+```
+
+Convenience shortcuts call the same entry point:
+
+```powershell
+Studio.bat
+Start.bat
+Status.bat
+Stop.bat
+Validate.bat "projects\Evening Walk.md"
+Render.bat "projects\Evening Walk.md" -o "exports\Evening Walk.wav"
+```
+
+Direct source commands include:
 
 ```powershell
 node src/cli.js capabilities

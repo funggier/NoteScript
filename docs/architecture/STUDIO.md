@@ -214,11 +214,19 @@ This allows Text/Form/Node/Tracks to share parser semantics without duplicating 
 
 ## Portable launcher
 
-Portable build includes:
+Portable build exposes one command entry point:
 
-`NoteScript-Studio.cmd`
+`NoteScript.cmd`
 
-The compatibility launcher `Audition-Keyboard.cmd` remains for now and points at the same hosted Studio.
+Behavior:
+
+- no argument / `studio`: start the Control API hidden if needed, then open Studio;
+- `start`: start the Control API hidden;
+- `status`: report RUNNING/STOPPED, PID, configured URL and health;
+- `stop`: stop the Control API for that portable folder;
+- any other arguments: forward to the NoteScript CLI.
+
+Optional `.bat` convenience wrappers (Studio/Start/Stop/Status/Validate/Render) contain no runtime logic; they only call `NoteScript.cmd` with a fixed prefix command. No duplicate `.cmd` launchers are generated.
 
 ## Control API additions
 

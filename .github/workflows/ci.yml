@@ -28,17 +28,46 @@ jobs:
           out\NoteScript-portable\NoteScript.cmd validate "out\NoteScript-portable\projects\SFZ Demo.md"
           out\NoteScript-portable\NoteScript.cmd list-sounds "out\NoteScript-portable\projects\Evening Walk.md"
           out\NoteScript-portable\NoteScript.cmd list-instruments "out\NoteScript-portable\projects\SFZ Demo.md"
-          out\NoteScript-portable\Render-Song.cmd "out\NoteScript-portable\projects\Evening Walk.md"
-          out\NoteScript-portable\Render-Song.cmd "out\NoteScript-portable\projects\SFZ Demo.md"
+          out\NoteScript-portable\NoteScript.cmd render "out\NoteScript-portable\projects\Evening Walk.md" -o "out\NoteScript-portable\exports\Evening Walk.wav"
+          out\NoteScript-portable\NoteScript.cmd render "out\NoteScript-portable\projects\SFZ Demo.md" -o "out\NoteScript-portable\exports\SFZ Demo.wav"
       - name: Portable Studio and Control API smoke test
         shell: pwsh
         run: |
           $root = (Resolve-Path "out\NoteScript-portable").Path
-          if (-not (Test-Path (Join-Path $root "NoteScript-Studio.cmd"))) {
-            throw "NoteScript-Studio.cmd is missing from the portable build."
+          $entry = Join-Path $root "NoteScript.cmd"
+          if (-not (Test-Path $entry)) {
+            throw "NoteScript.cmd is missing from the portable build."
           }
-          if (-not (Test-Path (Join-Path $root "Stop-Control-API.cmd"))) {
-            throw "Stop-Control-API.cmd is missing from the portable build."
+
+          foreach ($legacy in @(
+            "Start-Control-API.cmd",
+            "Stop-Control-API.cmd",
+            "NoteScript-Studio.cmd",
+            "Audition-Keyboard.cmd",
+            "Preview-Song.cmd",
+            "Render-Song.cmd"
+          )) {
+            if (Test-Path (Join-Path $root $legacy)) {
+              throw "Legacy duplicate launcher should not exist: $legacy"
+            }
+          }
+
+          foreach ($wrapper in @(
+            "Studio.bat",
+            "Start.bat",
+            "Stop.bat",
+            "Status.bat",
+            "Validate.bat",
+            "Render.bat"
+          )) {
+            $wrapperFile = Join-Path $root $wrapper
+            if (-not (Test-Path $wrapperFile)) {
+              throw "Missing convenience wrapper: $wrapper"
+            }
+            $wrapperText = Get-Content -Raw -LiteralPath $wrapperFile
+            if ($wrapperText -notmatch 'NoteScript\.cmd') {
+              throw "Wrapper does not delegate to NoteScript.cmd: $wrapper"
+            }
           }
 
           $env:NOTESCRIPT_ROOT = $root
@@ -51,9 +80,16 @@ jobs:
           }
           $baseUri = "http://" + $requestHost + ":" + [string]$network.port
 
-          $node = Join-Path $root "runtime\node.exe"
-          $serverFile = Join-Path $root "app\src\control\server.js"
-          $proc = Start-Process -FilePath $node -ArgumentList @($serverFile) -WorkingDirectory $root -PassThru -WindowStyle Hidden
+          $statusStopped = (& $entry status | Out-String)
+          if ($LASTEXITCODE -ne 0 -or $statusStopped -notmatch 'State\s*:\s*STOPPED' -or $statusStopped -notmatch [regex]::Escape($baseUri + "/")) {
+            throw "NoteScript.cmd status did not report the expected STOPPED state."
+          }
+
+          & $entry start
+          if ($LASTEXITCODE -ne 0) {
+            throw "NoteScript.cmd start failed."
+          }
+
           try {
             $ready = $false
             for ($i = 0; $i -lt 24; $i++) {
@@ -69,6 +105,21 @@ jobs:
             }
             if (-not $ready) {
               throw "Portable Control API did not become ready."
+            }
+
+            $statusRunning = (& $entry status | Out-String)
+            if (
+              $LASTEXITCODE -ne 0 -or
+              $statusRunning -notmatch 'State\s*:\s*RUNNING' -or
+              $statusRunning -notmatch 'PID\s*:\s*\d+' -or
+              $statusRunning -notmatch 'Health\s*:\s*OK'
+            ) {
+              throw "NoteScript.cmd status did not report a healthy RUNNING state."
+            }
+
+            $statusWrapper = (& (Join-Path $root "Status.bat") | Out-String)
+            if ($LASTEXITCODE -ne 0 -or $statusWrapper -notmatch 'State\s*:\s*RUNNING') {
+              throw "Status.bat did not delegate to NoteScript.cmd status."
             }
 
             $page = Invoke-WebRequest -UseBasicParsing -Uri "$baseUri/" -TimeoutSec 5
@@ -122,19 +173,31 @@ jobs:
               throw "Portable Advanced stems should not be byte-identical."
             }
 
-            & (Join-Path $root "Stop-Control-API.cmd")
-            $proc.WaitForExit(5000) | Out-Null
-            if (-not $proc.HasExited) {
-              throw "Stop-Control-API.cmd did not stop the portable Control API."
+            & $entry stop
+            if ($LASTEXITCODE -ne 0) {
+              throw "NoteScript.cmd stop failed."
             }
 
-            # Idempotent: stopping an already-stopped portable server must remain successful.
-            & (Join-Path $root "Stop-Control-API.cmd")
+            Start-Sleep -Milliseconds 300
+            try {
+              Invoke-RestMethod -Uri "$baseUri/v1/health" -TimeoutSec 1 | Out-Null
+              throw "Control API is still reachable after NoteScript.cmd stop."
+            } catch {
+              if ($_.Exception.Message -eq "Control API is still reachable after NoteScript.cmd stop.") {
+                throw
+              }
+            }
+
+            $statusStoppedAgain = (& $entry status | Out-String)
+            if ($LASTEXITCODE -ne 0 -or $statusStoppedAgain -notmatch 'State\s*:\s*STOPPED') {
+              throw "NoteScript.cmd status did not return to STOPPED after stop."
+            }
+
+            # Idempotent: stopping an already-stopped server remains successful.
+            & $entry stop
             if ($LASTEXITCODE -ne 0) {
-              throw "Stop-Control-API.cmd is not idempotent."
+              throw "NoteScript.cmd stop is not idempotent."
             }
           } finally {
-            if ($proc -and -not $proc.HasExited) {
-              Stop-Process -Id $proc.Id -Force
-            }
+            & $entry stop | Out-Null
           }

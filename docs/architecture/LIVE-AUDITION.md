@@ -15,11 +15,11 @@ The Control API serves NoteScript Studio at the host/port defined by:
 
 `config/network.json`
 
-Portable users can launch it with:
+Portable users launch it through the single entry point:
 
-`NoteScript-Studio.cmd`
+`NoteScript.cmd`
 
-The compatibility launcher `Audition-Keyboard.cmd` uses the same network configuration.
+Double-clicking it opens Studio. The same file also supports `start` and `stop` for the hidden Control API process.
 
 ### Native sound packs
 

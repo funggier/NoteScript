@@ -75,10 +75,13 @@ Transport checkpoint:
 
 - [x] Separate Sound Pack browser.
 - [x] Separate Instrument browser.
-- [x] Portable build includes `NoteScript-Studio.cmd`.
-- [x] Portable build includes `Start-Control-API.cmd` and `Stop-Control-API.cmd`.
+- [x] Portable build exposes one launcher/command entry point: `NoteScript.cmd`.
+- [x] `NoteScript.cmd` handles Studio, hidden API start, status, API stop, and CLI forwarding.
+- [x] `status` reports process state, PID, URL and health.
+- [x] Thin `.bat` shortcuts exist for Studio/Start/Stop/Status/Validate/Render without duplicating runtime logic.
+- [x] Legacy duplicate `.cmd` launchers are no longer generated.
 - [x] Control API host/port are defined only in `config/network.json`.
-- [x] Studio launcher reads the same network config before opening the browser.
+- [x] The single entry point reads the same network config before opening the browser.
 - [x] Custom-port qualification passed by changing only `config/network.json` from 19427 to 19428.
 - [x] Local browser/UI qualification.
 - [x] Automated tests GREEN: 21/21.

@@ -26,7 +26,7 @@ Default:
 }
 ```
 
-The Control API reads this file at startup. Portable `NoteScript-Studio.cmd` reads the same file before opening the browser, so IP/port values are not duplicated in launchers.
+The Control API reads this file at startup. Portable `NoteScript.cmd` is the single entry point and reads the same file before opening Studio, so IP/port values and start/stop behavior are not duplicated across launchers.
 
 The default should remain loopback-only. If a non-loopback host such as a LAN address or `0.0.0.0` is used, authentication/network exposure must be considered explicitly.
 

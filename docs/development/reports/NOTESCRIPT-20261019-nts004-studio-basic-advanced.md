@@ -319,18 +319,57 @@ The UIA limitation is in the automation adapter's missing LegacyIAccessiblePatte
 
 ## Portable qualification
 
-Portable output includes:
+The earlier multi-launcher prototype was consolidated after qualification.
 
-- `NoteScript-Studio.cmd`
-- `Audition-Keyboard.cmd` compatibility launcher
-- bundled Node runtime
-- Studio UI
-- projects
-- sounds
-- instruments
-- Control API
+Current portable command surface:
 
-Qualification-only project data was removed after tests.
+- `NoteScript.cmd` — the only command file containing runtime logic;
+- `Studio.bat` — thin wrapper for `NoteScript.cmd studio`;
+- `Start.bat` — thin wrapper for `NoteScript.cmd start`;
+- `Stop.bat` — thin wrapper for `NoteScript.cmd stop`;
+- `Status.bat` — thin wrapper for `NoteScript.cmd status`;
+- `Validate.bat` — thin wrapper for `NoteScript.cmd validate`;
+- `Render.bat` — thin wrapper for `NoteScript.cmd render`;
+- bundled Node runtime;
+- Studio UI;
+- projects;
+- sounds;
+- instruments;
+- Control API.
+
+Legacy duplicate `.cmd` launchers are no longer generated.
+
+`NoteScript.cmd status` was qualified in both states:
+
+Stopped:
+
+```text
+NoteScript Control API
+State : STOPPED
+URL   : http://127.0.0.1:19427/
+Health: N/A
+```
+
+Running:
+
+```text
+NoteScript Control API
+State : RUNNING
+PID   : 26656
+URL   : http://127.0.0.1:19427/
+Health: OK
+```
+
+A second start reported the same PID and did not create a duplicate server.
+
+Wrapper qualification:
+
+- `Validate.bat` validated Evening Walk successfully;
+- `Render.bat` produced a 2,109,316-byte RIFF/WAV and the temporary output was removed;
+- `Stop.bat` stopped the server;
+- `Status.bat` returned to STOPPED.
+
+Qualification-only project/output data was removed after tests.
 
 ## Local CI-step rehearsal
 
@@ -342,7 +381,7 @@ Result:
 
 Verified in one run:
 
-- `NoteScript-Studio.cmd` exists;
+- the portable single-entry command surface exists;
 - Studio HTML contains Play/Tracks, Advanced transport and Node Inspector controls;
 - project API returns a valid 2-track Evening Walk;
 - default Studio settings are readable;
