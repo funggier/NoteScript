@@ -30,7 +30,7 @@ fs.mkdirSync(runtimeDir, { recursive: true });
 const runtimeName = process.platform === "win32" ? "node.exe" : "node";
 fs.copyFileSync(process.execPath, path.join(runtimeDir, runtimeName));
 
-for (const dir of ["sounds", "projects", "exports", "config", "templates"]) {
+for (const dir of ["sounds", "projects", "exports", "config", "templates", "tools"]) {
   fs.mkdirSync(path.join(out, dir), { recursive: true });
 }
 for (const format of ["SFZ", "SF2", "SF3"]) {
@@ -38,8 +38,11 @@ for (const format of ["SFZ", "SF2", "SF3"]) {
 }
 
 copyDir(path.join(root, "examples", "sounds"), path.join(out, "sounds"));
+copyDir(path.join(root, "examples", "instruments"), path.join(out, "instruments"));
 copyDir(path.join(root, "templates"), path.join(out, "templates"));
+if (fs.existsSync(path.join(root, "tools"))) copyDir(path.join(root, "tools"), path.join(out, "tools"));
 fs.copyFileSync(path.join(root, "examples", "evening-walk.md"), path.join(out, "projects", "Evening Walk.md"));
+fs.copyFileSync(path.join(root, "examples", "sfz-demo.md"), path.join(out, "projects", "SFZ Demo.md"));
 
 const cmd = [
   "@echo off",
@@ -85,5 +88,16 @@ const control = [
   '"%ROOT%runtime\\node.exe" "%ROOT%app\\src\\control\\server.js"'
 ].join("\r\n") + "\r\n";
 fs.writeFileSync(path.join(out, "Start-Control-API.cmd"), control);
+
+const audition = [
+  "@echo off",
+  "setlocal",
+  "set ROOT=%~dp0",
+  "set NOTESCRIPT_ROOT=%ROOT%",
+  'start "NoteScript Control API" /min "%ROOT%runtime\\node.exe" "%ROOT%app\\src\\control\\server.js"',
+  'powershell -NoProfile -Command "Start-Sleep -Milliseconds 700"',
+  'start "" "http://127.0.0.1:19427/"'
+].join("\r\n") + "\r\n";
+fs.writeFileSync(path.join(out, "Audition-Keyboard.cmd"), audition);
 
 console.log("Portable folder created: " + out);

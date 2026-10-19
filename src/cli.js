@@ -9,6 +9,8 @@ import { exportMidi } from "./midi.js";
 import { loadSoundPack } from "./sound/pack.js";
 import { listSoundAddons } from "./sound/resolver.js";
 import { listInstrumentAddons, loadInstrumentAddon } from "./instrument/addon.js";
+import { getDecoderCapabilities } from "./audio/decoder.js";
+import { getFluidSynthCapabilities } from "./instrument/fluidsynth.js";
 import { NoteScriptError } from "./error.js";
 
 const sourceRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
@@ -19,6 +21,7 @@ function usage() {
     "NoteScript v0.1",
     "",
     "Usage:",
+    "  notescript capabilities",
     "  notescript validate <song.md>",
     "  notescript validate-pack <folder>",
     "  notescript validate-instrument <folder>",
@@ -67,6 +70,14 @@ async function main() {
   const command = args[0];
   if (!command || command === "-h" || command === "--help" || command === "help") {
     usage();
+    return;
+  }
+
+  if (command === "capabilities") {
+    console.log(JSON.stringify({
+      decoders: getDecoderCapabilities(),
+      fluidsynth: getFluidSynthCapabilities(programRoot)
+    }, null, 2));
     return;
   }
 

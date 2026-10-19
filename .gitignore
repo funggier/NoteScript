@@ -3,3 +3,13 @@ out/
 *.log
 .DS_Store
 Thumbs.db
+
+# Optional third-party portable tools (keep license/readme files, do not commit binaries by default)
+tools/ffmpeg/*.exe
+tools/ffmpeg/ffmpeg
+
+tools/fluidsynth/bin/
+tools/fluidsynth/fluidsynth.exe
+tools/fluidsynth/lib/
+tools/fluidsynth/include/
+tools/fluidsynth/share/

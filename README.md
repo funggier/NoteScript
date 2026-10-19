@@ -25,11 +25,15 @@ NoteScript-portable/
 ├─ Preview-Song.cmd
 ├─ Render-Song.cmd
 ├─ Start-Control-API.cmd
+├─ Audition-Keyboard.cmd
 ├─ runtime/
 ├─ app/
 ├─ projects/
 ├─ exports/
 ├─ config/
+├─ tools/
+│  ├─ ffmpeg/                 # optional portable decoder tool
+│  └─ fluidsynth/             # optional SF2/SF3 backend
 ├─ sounds/
 │  └─ <SoundPackName>/
 │     ├─ pack.md
@@ -122,7 +126,7 @@ instrument: SFZ/SalamanderGrandPiano
 
 The add-on manifest must match the parent format folder.
 
-Current baseline can discover and validate SFZ/SF2/SF3 instrument add-ons. Rendering adapters for those formats are a next milestone; v0.1 audio rendering currently uses NoteScript `sounds/` packs.
+Current baseline can discover and validate SFZ/SF2/SF3 instrument add-ons. The first SFZ subset adapter renders/auditions SFZ directly. SF2/SF3 render and audition through the optional FluidSynth backend when it is available; otherwise those add-ons remain visible but are marked non-playable.
 
 ## Example song
 
@@ -163,21 +167,28 @@ Implemented:
 - Pitched sample packs with nearest-root pitch shifting.
 - Named sample kits.
 - PCM16 WAV loading and deterministic WAV rendering.
+- Decoder abstraction with optional FFmpeg support for FLAC/OGG/OPUS/AIFF/MP3/M4A.
+- First SFZ subset parser/renderer with key/velocity regions, pitch center, tune/transpose, gain and simple envelope handling.
 - MIDI export.
 - Windows preview via the default audio player.
 - Separate SFZ/SF2/SF3 instrument add-on discovery/validation.
+- SFZ offline song rendering and SFZ audition-note rendering.
+- Optional FluidSynth backend for SF2/SF3 offline rendering and audition-note rendering.
+- SoundFont bank/preset selection through `instrument.md`.
+- Browser-based Audition Keyboard: mouse keys, computer keyboard, polyphony, velocity, octave shift, sustain and kit pads.
+- Portable `Audition-Keyboard.cmd` launcher.
 - Portable folder builder with bundled Node runtime.
 - Local Control API intended for GUI, MCP, and ChatGPT Plugin adapters.
 - Automated tests.
 
 Planned:
 
-- GUI editor, piano roll, transport and sound browser.
-- Real-time low-latency audio engine.
+- Full desktop GUI editor, piano roll, transport and project browser.
+- Real-time low-latency native playback engine for serious live performance.
+- MIDI-controller input through the same note-on/note-off audition interface.
 - Stereo/pan processing.
-- SFZ render adapter.
-- SF2/SF3 SoundFont adapter.
-- FLAC/OGG/AIFF decoding through a modular decoder layer.
+- Broader SFZ opcode/loop/round-robin/articulation compatibility.
+- Persistent low-latency SoundFont synthesis instead of per-note fast-render requests.
 - Effects, automation, loops, articulations, velocity layers and round-robin.
 - ChatGPT Plugin/MCP adapter over the Control API.
 
@@ -197,16 +208,21 @@ http://127.0.0.1:19427
 
 Current API surface:
 
+- `GET /` — Audition Keyboard UI
 - `GET /v1/health`
+- `GET /v1/capabilities`
 - `GET /v1/projects`
 - `GET /v1/sounds`
+- `GET /v1/sound`
 - `GET /v1/instruments`
+- `GET /v1/audition/audio`
+- `GET /v1/audition/instrument`
 - `POST /v1/projects` — save a validated NoteScript document into `projects/`
 - `POST /v1/validate`
 - `POST /v1/render`
 - `POST /v1/midi`
 
-The default server binds to loopback. A future ChatGPT Plugin or MCP bridge should call this stable layer rather than reaching into parser/audio internals.
+The default server binds to loopback. The same server also hosts the current Audition Keyboard prototype. A future ChatGPT Plugin or MCP bridge should call this stable layer rather than reaching into parser/audio internals.
 
 Optional environment variables:
 
@@ -229,12 +245,14 @@ npm run control
 Direct commands include:
 
 ```powershell
+node src/cli.js capabilities
 node src/cli.js validate examples/evening-walk.md
 node src/cli.js list-sounds examples/evening-walk.md
 node src/cli.js list-instruments examples/evening-walk.md
 node src/cli.js validate-pack examples/sounds/demo-piano
 node src/cli.js validate-instrument examples/instruments/SFZ/demo-sfz
 node src/cli.js render examples/evening-walk.md -o out/evening-walk.wav
+node src/cli.js render examples/sfz-demo.md -o out/sfz-demo.wav
 node src/cli.js midi examples/evening-walk.md -o out/evening-walk.mid
 ```
 

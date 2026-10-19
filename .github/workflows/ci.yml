@@ -23,6 +23,10 @@ jobs:
       - name: Portable smoke test
         shell: cmd
         run: |
+          out\NoteScript-portable\NoteScript.cmd capabilities
           out\NoteScript-portable\NoteScript.cmd validate "out\NoteScript-portable\projects\Evening Walk.md"
+          out\NoteScript-portable\NoteScript.cmd validate "out\NoteScript-portable\projects\SFZ Demo.md"
           out\NoteScript-portable\NoteScript.cmd list-sounds "out\NoteScript-portable\projects\Evening Walk.md"
+          out\NoteScript-portable\NoteScript.cmd list-instruments "out\NoteScript-portable\projects\SFZ Demo.md"
           out\NoteScript-portable\Render-Song.cmd "out\NoteScript-portable\projects\Evening Walk.md"
+          out\NoteScript-portable\Render-Song.cmd "out\NoteScript-portable\projects\SFZ Demo.md"

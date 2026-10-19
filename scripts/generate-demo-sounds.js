@@ -63,4 +63,7 @@ const kitDir = path.join(root, "examples", "sounds", "demo-kit");
 write(path.join(kitDir, "kick.wav"), kick());
 write(path.join(kitDir, "shaker.wav"), shaker());
 
-console.log("Generated deterministic demo sound packs.");
+const sfzDemo = path.join(root, "examples", "instruments", "SFZ", "demo-sfz", "placeholder.wav");
+write(sfzDemo, pitched("C4"));
+
+console.log("Generated deterministic demo sound packs and SFZ fixture.");

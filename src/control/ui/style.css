@@ -1,0 +1,354 @@
+* { box-sizing: border-box; }
+
+:root {
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  color: #e8ecf4;
+  background: #0b0d12;
+  font-synthesis: none;
+}
+
+body {
+  margin: 0;
+  min-width: 960px;
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at 80% 10%, rgba(76, 99, 255, 0.13), transparent 28rem),
+    linear-gradient(180deg, #0d1017 0%, #080a0f 100%);
+}
+
+button, select, input { font: inherit; }
+
+.app-shell {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.topbar {
+  min-height: 104px;
+  padding: 22px 28px 18px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  border-bottom: 1px solid #252a35;
+  background: rgba(12, 15, 22, 0.86);
+  backdrop-filter: blur(14px);
+}
+
+.eyebrow {
+  font-size: 11px;
+  letter-spacing: .22em;
+  color: #818a9c;
+  font-weight: 700;
+}
+
+h1 {
+  margin: 4px 0 2px;
+  font-size: 28px;
+  letter-spacing: -.02em;
+}
+
+.subtitle {
+  margin: 0;
+  color: #8f98aa;
+  font-size: 13px;
+}
+
+.status-pill {
+  margin-top: 8px;
+  border: 1px solid #313846;
+  border-radius: 999px;
+  padding: 7px 11px;
+  font-size: 12px;
+  color: #aeb7c8;
+  background: #151923;
+}
+
+.status-pill.ok {
+  color: #c9f9db;
+  border-color: #2e5f43;
+  background: #11291d;
+}
+
+.status-pill.warn {
+  color: #ffe0a8;
+  border-color: #684d23;
+  background: #2d2110;
+}
+
+.workspace {
+  display: grid;
+  grid-template-columns: 310px 1fr;
+  flex: 1;
+}
+
+.sidebar {
+  padding: 18px;
+  border-right: 1px solid #252a35;
+  background: rgba(11, 14, 20, 0.78);
+  overflow-y: auto;
+}
+
+.panel {
+  border: 1px solid #282e3a;
+  border-radius: 12px;
+  padding: 14px;
+  background: #11151e;
+  margin-bottom: 14px;
+}
+
+.panel h2 {
+  margin: 0 0 11px;
+  font-size: 13px;
+  color: #d8deea;
+}
+
+.section-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.badge {
+  font-size: 9px;
+  letter-spacing: .08em;
+  padding: 3px 6px;
+  border: 1px solid #315a47;
+  color: #9de2bd;
+  border-radius: 5px;
+}
+
+.badge.muted {
+  border-color: #3a4050;
+  color: #7e8798;
+}
+
+select {
+  width: 100%;
+  border: 1px solid #333a49;
+  background: #0c1017;
+  color: #edf0f7;
+  padding: 9px 10px;
+  border-radius: 8px;
+  outline: none;
+}
+
+select:focus { border-color: #6676d9; }
+
+.meta {
+  margin-top: 9px;
+  min-height: 38px;
+  font-size: 11px;
+  line-height: 1.5;
+  color: #828b9b;
+}
+
+.compact { padding-bottom: 16px; }
+
+.control-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 12px;
+  color: #acb4c3;
+}
+
+.control-row.spaced { margin-top: 15px; }
+
+input[type="range"] {
+  width: 100%;
+  accent-color: #6c79e8;
+}
+
+.stepper {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.stepper button {
+  width: 28px;
+  height: 25px;
+  border: 1px solid #323a49;
+  border-radius: 6px;
+  background: #191e29;
+  color: #e7ebf3;
+  cursor: pointer;
+}
+
+.stepper output {
+  width: 28px;
+  text-align: center;
+  font-size: 12px;
+}
+
+.toggle-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-top: 15px;
+  font-size: 12px;
+  color: #acb4c3;
+}
+
+.toggle-row input { accent-color: #6c79e8; }
+
+.legend .keymap {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 7px 8px;
+  align-items: center;
+  font-size: 10px;
+  color: #7f899a;
+}
+
+.legend code {
+  color: #d1d7e3;
+  border: 1px solid #313846;
+  background: #0b0e14;
+  padding: 3px 5px;
+  border-radius: 5px;
+  white-space: nowrap;
+}
+
+.stage {
+  min-width: 0;
+  padding: 25px 28px 28px;
+  display: flex;
+  flex-direction: column;
+}
+
+.stage-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  min-height: 70px;
+}
+
+.selected-name {
+  font-weight: 650;
+  font-size: 18px;
+}
+
+.selected-details {
+  color: #7f8899;
+  font-size: 12px;
+  margin-top: 4px;
+}
+
+.voice-count {
+  color: #9099a9;
+  font-size: 12px;
+}
+
+.instrument-view {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 360px;
+}
+
+.hidden { display: none !important; }
+
+.piano {
+  position: relative;
+  width: min(100%, 1120px);
+  height: 300px;
+  display: flex;
+  user-select: none;
+  touch-action: none;
+  filter: drop-shadow(0 18px 30px rgba(0,0,0,.35));
+}
+
+.key {
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  user-select: none;
+  touch-action: none;
+}
+
+.key.white {
+  position: relative;
+  flex: 1;
+  height: 100%;
+  background: linear-gradient(180deg, #f6f7f9 0%, #d5d8df 100%);
+  border: 1px solid #171a20;
+  border-radius: 0 0 7px 7px;
+  z-index: 1;
+}
+
+.key.white.active {
+  background: linear-gradient(180deg, #b7c0ff 0%, #7f8fe7 100%);
+}
+
+.key.black {
+  position: absolute;
+  top: 0;
+  width: 4.2%;
+  height: 62%;
+  z-index: 3;
+  background: linear-gradient(180deg, #20242d 0%, #050609 100%);
+  border: 1px solid #030407;
+  border-radius: 0 0 5px 5px;
+  box-shadow: 0 4px 8px rgba(0,0,0,.55);
+}
+
+.key.black.active {
+  background: linear-gradient(180deg, #6676d9 0%, #28367f 100%);
+}
+
+.key .note-label {
+  position: absolute;
+  bottom: 9px;
+  width: 100%;
+  text-align: center;
+  color: #5c6270;
+  font-size: 10px;
+  pointer-events: none;
+}
+
+.key.black .note-label {
+  color: #969fb1;
+  bottom: 7px;
+}
+
+.pads {
+  width: min(100%, 900px);
+  display: grid;
+  grid-template-columns: repeat(4, minmax(120px, 1fr));
+  gap: 13px;
+}
+
+.pad {
+  min-height: 130px;
+  border: 1px solid #343c4e;
+  border-radius: 12px;
+  background: linear-gradient(145deg, #1b2130, #10141c);
+  color: #dfe5ef;
+  cursor: pointer;
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,.02);
+}
+
+.pad:active, .pad.active {
+  transform: translateY(2px);
+  border-color: #6676d9;
+  background: linear-gradient(145deg, #2b3560, #171d34);
+}
+
+.monitor {
+  border-top: 1px solid #252a35;
+  padding-top: 14px;
+  color: #8c95a5;
+  font-size: 12px;
+  min-height: 54px;
+}
+
+.monitor-title {
+  color: #c6cdd9;
+  margin-bottom: 4px;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+}

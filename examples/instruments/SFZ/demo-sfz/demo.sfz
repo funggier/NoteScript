@@ -1,2 +1,2 @@
-<group>
-<region> sample=placeholder.wav key=60
+<global> ampeg_release=0.18
+<region> sample=placeholder.wav lokey=48 hikey=84 pitch_keycenter=60 lovel=1 hivel=127

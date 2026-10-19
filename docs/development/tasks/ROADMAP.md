@@ -16,7 +16,7 @@
 
 Exit: source tests GREEN, example WAV renders, portable build runs from its own runtime, repository pushed.
 
-## NTS-002 — Audio source adapters
+## NTS-002 — Audio source adapters — ACTIVE
 
 - Decoder abstraction.
 - FLAC/OGG/AIFF support.
@@ -31,13 +31,17 @@ Exit: source tests GREEN, example WAV renders, portable build runs from its own 
 - Low-latency output device selection.
 - Stereo pan and gain.
 - Preview without launching an external player.
+- Shared note-on/note-off audition engine for native sound packs and supported instruments.
+- Polyphonic live playing, sustain, velocity and future MIDI-input support.
 
 ## NTS-004 — Desktop GUI portable
 
 - Markdown editor.
 - Syntax diagnostics.
 - Timeline / piano roll.
-- Sound and instrument browser.
+- Separate Sound Pack and Instrument Browser.
+- Playable on-screen piano keyboard for audition and live performance.
+- Mouse + computer-keyboard input; future MIDI controller input.
 - Transport.
 - Render/export.
 - Project management.

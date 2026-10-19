@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>NoteScript Audition Keyboard</title>
+  <link rel="stylesheet" href="/ui/style.css">
+</head>
+<body>
+  <div class="app-shell">
+    <header class="topbar">
+      <div>
+        <div class="eyebrow">NOTESCRIPT</div>
+        <h1>Audition Keyboard</h1>
+        <p class="subtitle">Choose a sound add-on and play it with your mouse or computer keyboard.</p>
+      </div>
+      <div id="engineStatus" class="status-pill">Connecting…</div>
+    </header>
+
+    <main class="workspace">
+      <aside class="sidebar">
+        <section class="panel">
+          <div class="section-title">
+            <h2>Sound Pack</h2>
+            <span class="badge">PLAYABLE</span>
+          </div>
+          <select id="soundSelect" aria-label="Sound pack"></select>
+          <div id="soundMeta" class="meta"></div>
+        </section>
+
+        <section class="panel">
+          <div class="section-title">
+            <h2>Instrument Library</h2>
+            <span class="badge muted">ADAPTER</span>
+          </div>
+          <select id="instrumentSelect" aria-label="Instrument library"></select>
+          <div id="instrumentMeta" class="meta">
+            SFZ/SF2/SF3 libraries are discovered separately. Live playback becomes available as each adapter is enabled.
+          </div>
+        </section>
+
+        <section class="panel compact">
+          <div class="control-row">
+            <label for="velocity">Velocity</label>
+            <output id="velocityValue">96</output>
+          </div>
+          <input id="velocity" type="range" min="1" max="127" value="96">
+
+          <div class="control-row spaced">
+            <span>Keyboard octave</span>
+            <div class="stepper">
+              <button id="octaveDown" type="button" aria-label="Octave down">−</button>
+              <output id="octaveValue">0</output>
+              <button id="octaveUp" type="button" aria-label="Octave up">+</button>
+            </div>
+          </div>
+
+          <label class="toggle-row">
+            <input id="sustain" type="checkbox">
+            <span>Sustain</span>
+          </label>
+        </section>
+
+        <section class="panel legend">
+          <h2>Computer Keys</h2>
+          <div class="keymap">
+            <code>A W S E D F T G Y H U J K</code>
+            <span>Chromatic keys from C upward</span>
+            <code>Z / X</code>
+            <span>Octave down / up</span>
+            <code>Space</code>
+            <span>Sustain while held</span>
+          </div>
+        </section>
+      </aside>
+
+      <section class="stage">
+        <div class="stage-header">
+          <div>
+            <div id="selectedName" class="selected-name">No sound selected</div>
+            <div id="selectedDetails" class="selected-details">Copy sound add-ons into the portable sounds folder.</div>
+          </div>
+          <div id="voiceCount" class="voice-count">0 voices</div>
+        </div>
+
+        <div id="pianoView" class="instrument-view">
+          <div id="keyboard" class="piano" aria-label="Piano keyboard"></div>
+        </div>
+
+        <div id="kitView" class="instrument-view hidden">
+          <div id="pads" class="pads"></div>
+        </div>
+
+        <div class="monitor">
+          <div class="monitor-title">Live monitor</div>
+          <div id="monitorText">Ready.</div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script type="module" src="/ui/app.js"></script>
+</body>
+</html>

@@ -1,11 +1,14 @@
 #!/usr/bin/env node
+import fs from "node:fs";
 import http from "node:http";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { createControlService } from "./service.js";
 import { NoteScriptError } from "../error.js";
 
-const sourceRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..");
+const here = path.dirname(fileURLToPath(import.meta.url));
+const sourceRoot = path.resolve(here, "..", "..");
+const uiRoot = path.join(here, "ui");
 const programRoot = process.env.NOTESCRIPT_ROOT ? path.resolve(process.env.NOTESCRIPT_ROOT) : sourceRoot;
 const host = process.env.NOTESCRIPT_CONTROL_HOST || "127.0.0.1";
 const port = Number.parseInt(process.env.NOTESCRIPT_CONTROL_PORT || "19427", 10);
@@ -16,9 +19,24 @@ function json(res, status, body) {
   const payload = Buffer.from(JSON.stringify(body, null, 2));
   res.writeHead(status, {
     "content-type": "application/json; charset=utf-8",
-    "content-length": payload.length
+    "content-length": payload.length,
+    "cache-control": "no-store"
   });
   res.end(payload);
+}
+
+function binary(res, status, contentType, payload) {
+  res.writeHead(status, {
+    "content-type": contentType,
+    "content-length": payload.length,
+    "cache-control": "no-store"
+  });
+  res.end(payload);
+}
+
+function staticFile(res, file, contentType) {
+  if (!fs.existsSync(file)) return json(res, 404, { ok: false, error: "not_found" });
+  return binary(res, 200, contentType, fs.readFileSync(file));
 }
 
 async function body(req) {
@@ -40,21 +58,56 @@ function authorized(req) {
 
 const server = http.createServer(async (req, res) => {
   try {
-    if (!authorized(req)) return json(res, 401, { ok: false, error: "unauthorized" });
-
     const url = new URL(req.url || "/", "http://127.0.0.1");
+
+    if (req.method === "GET" && url.pathname === "/") {
+      return staticFile(res, path.join(uiRoot, "index.html"), "text/html; charset=utf-8");
+    }
+    if (req.method === "GET" && url.pathname === "/ui/app.js") {
+      return staticFile(res, path.join(uiRoot, "app.js"), "text/javascript; charset=utf-8");
+    }
+    if (req.method === "GET" && url.pathname === "/ui/style.css") {
+      return staticFile(res, path.join(uiRoot, "style.css"), "text/css; charset=utf-8");
+    }
+
+    if (!authorized(req)) return json(res, 401, { ok: false, error: "unauthorized" });
 
     if (req.method === "GET" && url.pathname === "/v1/health") {
       return json(res, 200, service.health());
+    }
+    if (req.method === "GET" && url.pathname === "/v1/capabilities") {
+      return json(res, 200, service.capabilities());
     }
     if (req.method === "GET" && url.pathname === "/v1/projects") {
       return json(res, 200, { projects: service.listProjects() });
     }
     if (req.method === "GET" && url.pathname === "/v1/sounds") {
-      return json(res, 200, { sounds: service.listSounds(url.searchParams.get("project")) });
+      const details = url.searchParams.get("details") === "1";
+      return json(res, 200, {
+        sounds: details
+          ? service.listPortableSoundsDetailed()
+          : service.listSounds(url.searchParams.get("project"))
+      });
+    }
+    if (req.method === "GET" && url.pathname === "/v1/sound") {
+      return json(res, 200, service.getSoundDetails(url.searchParams.get("id")));
     }
     if (req.method === "GET" && url.pathname === "/v1/instruments") {
       return json(res, 200, { instruments: service.listInstruments(url.searchParams.get("project")) });
+    }
+    if (req.method === "GET" && url.pathname === "/v1/audition/audio") {
+      const pack = url.searchParams.get("pack");
+      const note = url.searchParams.has("note") ? url.searchParams.get("note") : null;
+      const trigger = url.searchParams.get("trigger");
+      const audio = service.getAuditionAudio(pack, { note, trigger });
+      return binary(res, 200, "audio/wav", audio.buffer);
+    }
+    if (req.method === "GET" && url.pathname === "/v1/audition/instrument") {
+      const instrument = url.searchParams.get("instrument");
+      const note = url.searchParams.get("note");
+      const velocity = url.searchParams.get("velocity") || "96";
+      const audio = service.getInstrumentAuditionAudio(instrument, note, velocity);
+      return binary(res, 200, "audio/wav", audio.buffer);
     }
 
     if (req.method === "POST" && url.pathname === "/v1/projects") {
@@ -85,8 +138,18 @@ const server = http.createServer(async (req, res) => {
   }
 });
 
+server.on("error", (error) => {
+  if (error && error.code === "EADDRINUSE") {
+    console.error("NoteScript Control API port is already in use: " + host + ":" + port);
+    process.exitCode = 2;
+    return;
+  }
+  throw error;
+});
+
 server.listen(port, host, () => {
   console.log("NoteScript Control API listening on http://" + host + ":" + port);
+  console.log("Audition Keyboard: http://" + host + ":" + port + "/");
   console.log("Portable root: " + programRoot);
   if (!token) console.log("Control token: disabled (loopback-only default recommended).");
 });

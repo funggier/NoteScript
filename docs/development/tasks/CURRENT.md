@@ -1,30 +1,41 @@
 # Current Task
 
-## NTS-001 — Bootstrap core
+## NTS-002 — Audio source adapters
 
-Status: COMPLETE / GREEN
+Status: QUALIFIED LOCALLY / GITHUB CI PENDING
 
-Goal: establish the first executable NoteScript repository at `T:\Space\Projects\ProjectsProgram\NoteScript`.
+Goal: expand NoteScript beyond the original PCM16 WAV-only baseline while keeping the core portable, modular and AI-free.
 
 Acceptance:
 
-- [x] MIT license.
-- [x] Markdown parser/validator.
-- [x] Canonical timeline.
-- [x] Native sound add-on folders with `pack.md`.
-- [x] Pitched samples and named triggers.
-- [x] Deterministic WAV renderer.
-- [x] MIDI export.
-- [x] Separate `instruments/SFZ|SF2|SF3/<name>` add-on hierarchy.
-- [x] Instrument manifest validation.
-- [x] Portable builder and bundled runtime.
-- [x] Control API for future GUI/MCP/ChatGPT Plugin.
-- [x] Source syntax check GREEN.
-- [x] Tests GREEN: 6/6.
-- [x] Portable runtime qualification GREEN.
-- [x] Portable Control API health GREEN.
-- [x] Git repository initialized/committed.
-- [x] GitHub repository created/pushed: `funggier/NoteScript` (private).
-- [x] Bootstrap code commit CI GREEN: `9104450bedd6834a1dcbad804a3c9b9ddd04014c`, Actions run `39251875169`.
+- [x] Decoder abstraction.
+- [x] Native dependency-free PCM16 WAV path retained.
+- [x] Optional FFmpeg decode path for FLAC/OGG/OPUS/AIFF/MP3/M4A.
+- [x] Portable `tools/ffmpeg/` discovery.
+- [x] Baseline SFZ parser/renderer.
+- [x] SFZ song rendering.
+- [x] SFZ audition-note rendering.
+- [x] Optional FluidSynth backend.
+- [x] SF2 song rendering with real CC0 SoundFont evidence.
+- [x] SF2 audition-note rendering.
+- [x] SF3 song rendering with real upstream SF3 evidence.
+- [x] SF3 audition-note rendering.
+- [x] Portable `tools/fluidsynth/` discovery verified without environment override.
+- [x] Sound/instrument metadata and license/source fields preserved.
+- [x] Browser-based Audition Keyboard foundation.
+- [x] Mouse + computer-keyboard note input.
+- [x] Polyphony / velocity / octave shift / sustain.
+- [x] Kit trigger pads.
+- [x] Capability reporting for optional backends.
+- [x] Source syntax check GREEN: 21 JavaScript files.
+- [x] Local tests GREEN: 14/14.
+- [x] Final clean portable rebuild after temporary third-party qualification assets.
+- [ ] Exact-commit GitHub CI GREEN.
 
-Evidence: `docs/development/reports/NOTESCRIPT-20261019-bootstrap-qualification.md`.
+Evidence:
+
+`docs/development/reports/NOTESCRIPT-20261019-nts002-audio-adapters-live-audition.md`
+
+## Next after NTS-002
+
+NTS-003 will turn the audition foundation into a persistent low-latency playback engine suitable for serious live playing and future MIDI-controller input.

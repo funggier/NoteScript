@@ -6,7 +6,7 @@ version: 1
 author: NoteScript project
 license: MIT-generated-demo
 source: generated locally
-description: Structural SFZ add-on example.
+description: Playable baseline SFZ adapter fixture.
 format: SFZ
 entry: demo.sfz
 ```

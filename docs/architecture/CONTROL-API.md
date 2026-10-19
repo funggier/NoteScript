@@ -23,14 +23,17 @@ A token can be enabled with `NOTESCRIPT_CONTROL_TOKEN`.
 
 Current v1 routes:
 
-- health
+- health and capability discovery
 - list projects
-- list sounds
+- list/detail sounds
 - list instruments
+- native sound audition audio
+- SFZ instrument audition audio
 - save project
 - validate project
 - render WAV
 - export MIDI
+- serve the local Audition Keyboard UI
 
 ## Direct ChatGPT workflow
 

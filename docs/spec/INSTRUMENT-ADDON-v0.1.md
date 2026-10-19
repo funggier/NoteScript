@@ -47,6 +47,8 @@ For SF2/SF3, future manifests may also select `bank:` and `preset:`.
 
 ## v0.1 status
 
-Discovery and validation are implemented.
+Discovery and validation are implemented for SFZ/SF2/SF3.
 
-Actual SFZ/SF2/SF3 rendering is intentionally a separate adapter milestone and is not claimed as implemented yet.
+A first SFZ subset renderer/audition adapter is implemented. See `SFZ-ADAPTER-v0.1.md` for the supported boundary.
+
+SF2/SF3 rendering and audition are implemented through the optional FluidSynth backend. If FluidSynth is absent, those add-ons remain discoverable/valid but non-playable. See `SOUNDFONT-ADAPTER-v0.1.md`.
