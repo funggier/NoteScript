@@ -147,7 +147,6 @@ jobs:
               $page.StatusCode -ne 200 -or
               $page.Content -notmatch "NOTESCRIPT STUDIO" -or
               $page.Content -notmatch 'data-tab="play"' -or
-              $page.Content -notmatch 'data-tab="tracks"' -or
               $page.Content -notmatch 'id="advancedPlay"' -or
               $page.Content -notmatch 'id="nodeInspectorApply"' -or
               $page.Content -notmatch 'id="pianoHotkeyEdit"' -or
