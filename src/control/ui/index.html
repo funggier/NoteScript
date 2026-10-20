@@ -24,7 +24,6 @@
       <button class="main-tab active" data-tab="play" type="button">Play</button>
       <button class="main-tab" data-tab="project" type="button">Project</button>
       <button class="main-tab" data-tab="compose" type="button">Compose</button>
-      <button class="main-tab" data-tab="tracks" type="button">Tracks</button>
       <button class="main-tab" data-tab="sounds" type="button">Sounds</button>
       <button class="main-tab" data-tab="settings" type="button">Settings</button>
     </nav>
@@ -363,6 +362,7 @@
               <button class="sub-tab active" data-compose-mode="text" type="button">Text</button>
               <button class="sub-tab" data-compose-mode="form" type="button">Form</button>
               <button class="sub-tab" data-compose-mode="node" type="button">Node</button>
+              <button class="sub-tab" data-compose-mode="tracks" type="button">Tracks</button>
             </div>
             <div class="compose-actions">
               <label class="action-button secondary compact-action compact-file-button">
@@ -378,19 +378,6 @@
               <input id="renderOutputName" class="text-input compact-output-name" type="text" placeholder="Output name.wav" aria-label="WAV output name">
               <button id="renderProject" class="action-button secondary" type="button">Download WAV</button>
               <button id="exportMidi" class="action-button secondary" type="button">Export MIDI</button>
-            </div>
-            <div class="compose-source-toolbar">
-              <label>Track<select id="composeTrackSelect" aria-label="Compose track source target"></select></label>
-              <label>Source Type<select id="composeSourceType" aria-label="Compose track source type"></select></label>
-              <label>Instrument / Sound<select id="composeVoiceSelect" aria-label="Compose track instrument or sound"></select></label>
-              <label class="compose-volume-control">
-                Volume
-                <span class="inline-range">
-                  <input id="composeTrackVolume" type="range" min="0" max="1" step="0.05" value="1" aria-label="Compose track volume">
-                  <output id="composeTrackVolumeValue">100%</output>
-                </span>
-              </label>
-              <button id="composeApplyVoice" class="action-button secondary" type="button">Apply Track</button>
             </div>
           </div>
 
@@ -457,25 +444,19 @@
               </aside>
             </div>
           </section>
-        </div>
-      </section>
 
-      <section class="tab-page" data-page="tracks">
-        <div class="advanced-header">
-          <div>
-            <div class="eyebrow">TRACK WORKSPACE</div>
-            <h2>Multi-track Arrangement</h2>
-            <p>Independent .md workspace. Edit track sound and volume, then play or export from one compact workspace.</p>
-          </div>
-          <div class="tracks-file-tools compact-toolbar" aria-label="Track project actions">
-            <label class="action-button secondary tracks-file-button compact-action" title="Import NoteScript Markdown">
-              Import
-              <input id="tracksFileInput" type="file" accept=".md,text/markdown,text/plain">
-            </label>
-            <button id="tracksAddTrack" class="action-button secondary compact-action" type="button" title="Add Track">+ Track</button>
-            <button id="tracksDownloadMd" class="action-button secondary compact-action" type="button" title="Download current Markdown">.md</button>
-          </div>
-        </div>
+          <section class="compose-view" data-compose-view="tracks">
+            <div class="advanced-header">
+              <div>
+                <div class="eyebrow">TRACK MIXER</div>
+                <h2>Tracks</h2>
+                <p>Each Track controls its own source, instrument, volume, mute and export on the same Compose Markdown.</p>
+              </div>
+              <div class="tracks-file-tools compact-toolbar" aria-label="Track actions">
+                <button id="tracksAddTrack" class="action-button secondary compact-action" type="button" title="Add Track">+ Track</button>
+                <button id="tracksDownloadMd" class="action-button secondary compact-action" type="button" title="Download current Markdown">.md</button>
+              </div>
+            </div>
 
         <div class="advanced-transport">
           <div class="advanced-transport-main">
@@ -488,7 +469,6 @@
                 <button id="advancedPlay" class="action-button compact-action" type="button">Play</button>
                 <button id="advancedPause" class="action-button secondary compact-action" type="button">Pause</button>
                 <button id="advancedStop" class="action-button secondary compact-action" type="button">Stop</button>
-                <button id="advancedReload" class="action-button secondary compact-action" type="button" title="Reload rendered stems">Reload</button>
               </div>
               <div class="track-export-group" aria-label="Track export">
                 <input id="tracksOutputName" class="text-input compact-output-name" type="text" placeholder="Export name" aria-label="Tracks export name">
@@ -502,11 +482,13 @@
             <span id="advancedPosition">0:00.0</span>
             <span id="advancedDuration">0:00.0</span>
           </div>
-          <div id="advancedStatus" class="meta">Load a NoteScript .md file here. Each Track has Sound, Volume, Mute, Stem WAV and Track Set export.</div>
+          <div id="advancedStatus" class="meta">Current Compose Markdown. Each Track has independent Source, Instrument / Sound, Volume, Mute and Stem export.</div>
         </div>
 
         <div id="trackTimeline" class="track-timeline">
-          <div class="empty-state">Load a .md file above to build the independent multi-track view.</div>
+          <div class="empty-state">Open or import a valid Compose .md to build the multi-track view.</div>
+        </div>
+          </section>
         </div>
       </section>
 
@@ -540,6 +522,7 @@
               <option value="text">Text</option>
               <option value="form">Form</option>
               <option value="node">Node</option>
+              <option value="tracks">Tracks</option>
             </select>
           </section>
 

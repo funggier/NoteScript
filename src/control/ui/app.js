@@ -95,12 +95,6 @@ const ui = {
   renderProject: document.querySelector("#renderProject"),
   renderOutputName: document.querySelector("#renderOutputName"),
   exportMidi: document.querySelector("#exportMidi"),
-  composeTrackSelect: document.querySelector("#composeTrackSelect"),
-  composeSourceType: document.querySelector("#composeSourceType"),
-  composeVoiceSelect: document.querySelector("#composeVoiceSelect"),
-  composeTrackVolume: document.querySelector("#composeTrackVolume"),
-  composeTrackVolumeValue: document.querySelector("#composeTrackVolumeValue"),
-  composeApplyVoice: document.querySelector("#composeApplyVoice"),
   diagnosticBadge: document.querySelector("#diagnosticBadge"),
   diagnostics: document.querySelector("#diagnostics"),
   formTitle: document.querySelector("#formTitle"),
@@ -117,7 +111,6 @@ const ui = {
   nodeInspectorApply: document.querySelector("#nodeInspectorApply"),
   nodeInspectorForm: document.querySelector("#nodeInspectorForm"),
   trackTimeline: document.querySelector("#trackTimeline"),
-  tracksFileInput: document.querySelector("#tracksFileInput"),
   tracksAddTrack: document.querySelector("#tracksAddTrack"),
   tracksDownloadMd: document.querySelector("#tracksDownloadMd"),
   tracksDownloadSet: document.querySelector("#tracksDownloadSet"),
@@ -127,7 +120,6 @@ const ui = {
   advancedPlay: document.querySelector("#advancedPlay"),
   advancedPause: document.querySelector("#advancedPause"),
   advancedStop: document.querySelector("#advancedStop"),
-  advancedReload: document.querySelector("#advancedReload"),
   advancedSeek: document.querySelector("#advancedSeek"),
   advancedPosition: document.querySelector("#advancedPosition"),
   advancedDuration: document.querySelector("#advancedDuration"),
@@ -2859,6 +2851,11 @@ function activateComposeMode(mode) {
   });
   if (mode === "form") renderFormEditor();
   if (mode === "node") renderNodeCanvas();
+  if (mode === "tracks") {
+    refreshTrackViewFromCompose().catch((error) => {
+      ui.advancedStatus.textContent = "Tracks error: " + error.message;
+    });
+  }
 }
 
 function defaultProjectMarkdown(title = "Untitled") {
@@ -2993,13 +2990,16 @@ function renderDiagnostics(analysis) {
 async function analyzeCurrentMarkdown(updateDerivedViews = true) {
   const markdown = ui.markdownEditor.value;
   const analysis = await post("/v1/analyze", { markdown });
+  state.studio.markdown = markdown;
   state.studio.analysis = analysis;
   renderDiagnostics(analysis);
 
-  if (analysis.valid) renderComposeSourceToolbar();
   if (updateDerivedViews && analysis.valid) {
     renderNodeCanvas();
     if (state.studio.composeMode === "form") renderFormEditor();
+    if (state.studio.composeMode === "tracks") {
+      syncTrackViewFromComposeAnalysis(analysis);
+    }
   }
   return analysis;
 }
@@ -3035,7 +3035,6 @@ async function openStudioProject(name) {
   renderDiagnostics(state.studio.analysis);
   renderFormEditor();
   renderNodeCanvas();
-  renderComposeSourceToolbar();
   const defaultOutput = data.name.replace(/\.md$/i, "");
   ui.renderOutputName.value = defaultOutput;
   activateMainTab("compose");
@@ -3348,110 +3347,6 @@ function parseVoiceValue(value) {
     type: raw.slice(0, separator),
     id: raw.slice(separator + 1)
   };
-}
-
-async function updateTrackSettingsInMarkdown(trackIndex, settings = {}) {
-  const analysis = state.studio.analysis;
-  const track = analysis?.song?.tracks?.[trackIndex];
-  if (!track) return false;
-
-  const voice = settings.voiceValue === undefined
-    ? undefined
-    : parseVoiceValue(settings.voiceValue);
-  if (settings.voiceValue !== undefined && !voice) return false;
-
-  const hasVolume = settings.volume !== undefined;
-  const volume = hasVolume
-    ? Math.max(0, Math.min(1, Number(settings.volume)))
-    : null;
-  if (hasVolume && !Number.isFinite(volume)) return false;
-
-  const lines = ui.markdownEditor.value.split(/\r?\n/);
-  const start = Number(track.line) - 1;
-  const nextTrack = analysis.song.tracks[trackIndex + 1];
-  const end = nextTrack ? Number(nextTrack.line) - 1 : lines.length;
-  const block = lines.slice(start, end);
-
-  if (voice) {
-    const replacement = voice.type + ": " + voice.id;
-    const sourceIndex = block.findIndex((line, index) =>
-      index > 0 && /^\s*(sound|instrument)\s*:/i.test(line)
-    );
-    if (sourceIndex >= 0) block[sourceIndex] = replacement;
-    else block.splice(1, 0, replacement);
-  }
-
-  if (hasVolume) {
-    const value = Number(volume.toFixed(2));
-    const replacement = "volume: " + value;
-    const volumeIndex = block.findIndex((line, index) =>
-      index > 0 && /^\s*volume\s*:/i.test(line)
-    );
-    if (volumeIndex >= 0) {
-      block[volumeIndex] = replacement;
-    } else {
-      const sourceIndex = block.findIndex((line, index) =>
-        index > 0 && /^\s*(sound|instrument)\s*:/i.test(line)
-      );
-      block.splice(sourceIndex >= 0 ? sourceIndex + 1 : 1, 0, replacement);
-    }
-  }
-
-  lines.splice(start, end - start, ...block);
-  ui.markdownEditor.value = lines.join("\n");
-  state.studio.markdown = ui.markdownEditor.value;
-  setDirty(true);
-
-  const nextAnalysis = await analyzeCurrentMarkdown(true);
-  if (nextAnalysis.valid) {
-    renderComposeSourceToolbar();
-    return true;
-  }
-  return false;
-}
-
-async function updateTrackSourceInMarkdown(trackIndex, voiceValue) {
-  return updateTrackSettingsInMarkdown(trackIndex, { voiceValue });
-}
-
-async function updateTrackVolumeInMarkdown(trackIndex, volume) {
-  return updateTrackSettingsInMarkdown(trackIndex, { volume });
-}
-
-function renderComposeSourceToolbar() {
-  const song = state.studio.analysis?.song;
-  if (!song?.tracks?.length) {
-    ui.composeTrackSelect.innerHTML = '<option value="">No tracks</option>';
-    ui.composeSourceType.innerHTML = '<option value="">No source</option>';
-    ui.composeVoiceSelect.innerHTML = '<option value="">No instrument / sound</option>';
-    ui.composeTrackVolume.value = "1";
-    ui.composeTrackVolumeValue.textContent = "100%";
-    ui.composeTrackVolume.disabled = true;
-    ui.composeApplyVoice.disabled = true;
-    return;
-  }
-
-  const previousTrack = Number(ui.composeTrackSelect.value || 0);
-  ui.composeTrackSelect.innerHTML = "";
-  song.tracks.forEach((track, index) => {
-    const option = document.createElement("option");
-    option.value = String(index);
-    option.textContent = track.name;
-    ui.composeTrackSelect.appendChild(option);
-  });
-  const trackIndex = Math.max(0, Math.min(song.tracks.length - 1, previousTrack));
-  ui.composeTrackSelect.value = String(trackIndex);
-  const track = song.tracks[trackIndex];
-  fillTrackSourceTypeSelect(ui.composeSourceType, track);
-  fillSourceItemSelect(
-    ui.composeVoiceSelect,
-    ui.composeSourceType.value,
-    voiceValueForTrack(track)
-  );
-  ui.composeTrackVolume.value = String(track.volume);
-  ui.composeTrackVolumeValue.textContent = Math.round(track.volume * 100) + "%";
-  ui.composeTrackVolume.disabled = false;
-  ui.composeApplyVoice.disabled = false;
 }
 
 function buildTrackForm(track, index) {
@@ -3924,7 +3819,7 @@ function stopAdvancedSources(manual = true) {
   disconnectAdvancedNodes();
 }
 
-function invalidateAdvancedTransport(message = "Project changed. Reload stems before playback.") {
+function invalidateAdvancedTransport(message = "Track data changed. Mix playback will rebuild on Play.") {
   const transport = state.advancedTransport;
   if (transport.playing) {
     transport.playing = false;
@@ -3941,32 +3836,83 @@ function invalidateAdvancedTransport(message = "Project changed. Reload stems be
   if (ui.advancedStatus) ui.advancedStatus.textContent = message;
 }
 
-async function analyzeTracksWorkspace(markdown, fileName = null) {
-  const analysis = await post("/v1/analyze", { markdown });
-  state.tracksWorkspace.markdown = String(markdown || "");
+function currentComposeFileName() {
+  return (
+    state.studio.currentProject ||
+    ui.projectNameInput.value ||
+    "Untitled.md"
+  ).trim() || "Untitled.md";
+}
+
+function syncTrackViewFromComposeAnalysis(analysis) {
+  state.tracksWorkspace.fileName = currentComposeFileName();
+  state.tracksWorkspace.markdown = ui.markdownEditor.value;
   state.tracksWorkspace.analysis = analysis;
-  if (fileName) state.tracksWorkspace.fileName = fileName;
+  state.tracksWorkspace.dirty = state.studio.dirty;
+
+  invalidateAdvancedTransport(
+    analysis?.valid
+      ? "Track data changed. Mix playback will rebuild on Play."
+      : "Compose Markdown has errors. Fix diagnostics before Track playback."
+  );
+  renderTrackTimeline();
+
+  const count = analysis?.song?.tracks?.length || 0;
+  ui.advancedProjectLabel.textContent =
+    currentComposeFileName() +
+    " · " + count + " track" + (count === 1 ? "" : "s");
+  ui.tracksOutputName.value = currentComposeFileName().replace(/\.md$/i, "");
+}
+
+async function refreshTrackViewFromCompose() {
+  const analysis = await analyzeCurrentMarkdown(false);
+  syncTrackViewFromComposeAnalysis(analysis);
+  if (analysis.valid) {
+    ui.advancedStatus.textContent =
+      "Tracks ready · each Track edits the current Compose Markdown directly.";
+  }
+  return analysis;
+}
+
+async function analyzeTracksWorkspace(markdown, fileName = null, commitStudio = false) {
+  const source = String(markdown || "");
+  if (commitStudio) {
+    ui.markdownEditor.value = source;
+    state.studio.markdown = source;
+    if (fileName) ui.projectNameInput.value = fileName;
+    setDirty(true);
+  }
+
+  const analysis = await post("/v1/analyze", { markdown: source });
+  state.tracksWorkspace.markdown = source;
+  state.tracksWorkspace.analysis = analysis;
+  state.tracksWorkspace.fileName = fileName || currentComposeFileName();
+  state.tracksWorkspace.dirty = commitStudio || state.studio.dirty;
+
+  if (commitStudio) {
+    state.studio.analysis = analysis;
+    renderDiagnostics(analysis);
+  }
 
   invalidateAdvancedTransport(
     analysis.valid
-      ? "Tracks workspace changed. Reload stems before playback."
-      : "Loaded .md has errors. Fix the source file and load it again."
+      ? "Track data changed. Mix playback will rebuild on Play."
+      : "Compose Markdown has errors. Fix diagnostics before Track playback."
   );
   renderTrackTimeline();
 
   if (analysis.valid) {
     const count = analysis.song?.tracks?.length || 0;
     ui.advancedProjectLabel.textContent =
-      (state.tracksWorkspace.fileName || "Tracks Workspace.md") +
+      currentComposeFileName() +
       " · " + count + " track" + (count === 1 ? "" : "s");
     ui.advancedStatus.textContent =
-      "Tracks ready. Choose each Instrument / Sound, then Play or Reload Stems.";
+      "Tracks updated in the current Compose Markdown.";
   } else {
     const first = analysis.diagnostics?.[0];
-    ui.advancedProjectLabel.textContent =
-      state.tracksWorkspace.fileName || "Invalid .md";
+    ui.advancedProjectLabel.textContent = currentComposeFileName();
     ui.advancedStatus.textContent =
-      "Track workspace error" +
+      "Track error" +
       (first?.line ? " at line " + first.line : "") +
       ": " + (first?.message || "Invalid NoteScript Markdown.");
   }
@@ -4007,24 +3953,6 @@ async function loadComposeFile(file) {
   return analysis.valid;
 }
 
-async function loadTracksWorkspaceFile(file) {
-  if (!file) return false;
-  const markdown = await file.text();
-  state.tracksWorkspace.fileName = file.name || "Imported Tracks.md";
-  state.tracksWorkspace.dirty = true;
-  state.advancedTransport.muted.clear();
-  state.advancedTransport.volumes.clear();
-  ui.tracksOutputName.value = String(state.tracksWorkspace.fileName)
-    .replace(/\.md$/i, "");
-  await analyzeTracksWorkspace(markdown, state.tracksWorkspace.fileName);
-  if (state.tracksWorkspace.analysis?.valid) {
-    ui.advancedStatus.textContent =
-      "Imported " + state.tracksWorkspace.fileName +
-      " into the independent Tracks workspace.";
-  }
-  return Boolean(state.tracksWorkspace.analysis?.valid);
-}
-
 function addTrackBlockToMarkdown(markdown, trackName, voiceValue) {
   const voice = parseVoiceValue(voiceValue) ||
     { type: "sound", id: soundPianoPacks()[0]?.id || "piano" };
@@ -4045,7 +3973,7 @@ function addTrackBlockToMarkdown(markdown, trackName, voiceValue) {
   }
 
   if (start < 0 || end < 0) {
-    throw new Error("Tracks workspace requires a fenced notescript block.");
+    throw new Error("Compose Markdown requires a fenced notescript block.");
   }
 
   const block = [
@@ -4088,10 +4016,11 @@ async function addTrackToTracksWorkspace() {
     workspace.dirty = true;
     await analyzeTracksWorkspace(
       next,
-      workspace.fileName || "Tracks Workspace.md"
+      currentComposeFileName(),
+      true
     );
     ui.advancedStatus.textContent =
-      "Added Track " + nextIndex + " to the Tracks workspace.";
+      "Added Track " + nextIndex + " to the current Compose Markdown.";
   } catch (error) {
     ui.advancedStatus.textContent = "Add Track error: " + error.message;
   }
@@ -4114,11 +4043,48 @@ async function updateTracksWorkspaceSettings(trackIndex, settings = {}) {
     : null;
   if (hasVolume && !Number.isFinite(volume)) return false;
 
+  const hasPan = settings.pan !== undefined;
+  const pan = hasPan
+    ? Math.max(-1, Math.min(1, Number(settings.pan)))
+    : null;
+  if (hasPan && !Number.isFinite(pan)) return false;
+
+  const hasVelocity = settings.velocity !== undefined;
+  const velocity = hasVelocity
+    ? Math.max(1, Math.min(127, Math.round(Number(settings.velocity))))
+    : null;
+  if (hasVelocity && !Number.isFinite(velocity)) return false;
+
+  const hasName = settings.name !== undefined;
+  const name = hasName ? String(settings.name || "").trim() : "";
+  if (hasName && !name) return false;
+
+  const hasBars = settings.barsText !== undefined;
+  const barLines = hasBars
+    ? String(settings.barsText || "")
+        .split(/\r?\n/)
+        .map((line) => line.trim())
+        .filter(Boolean)
+    : [];
+  if (hasBars && barLines.some((line) => !/^bar\s+\d+\s*:/i.test(line))) {
+    ui.advancedStatus.textContent = "Each Bars / Notes line must start with 'bar N:'.";
+    return false;
+  }
+
   const lines = workspace.markdown.split(/\r?\n/);
   const start = Number(track.line) - 1;
   const nextTrack = analysis.song.tracks[trackIndex + 1];
-  const end = nextTrack ? Number(nextTrack.line) - 1 : lines.length;
+  let end = nextTrack ? Number(nextTrack.line) - 1 : lines.length;
+  if (!nextTrack) {
+    const fence = String.fromCharCode(96).repeat(3);
+    const fenceIndex = lines.findIndex(
+      (line, index) => index > start && line.trim() === fence
+    );
+    if (fenceIndex >= 0) end = fenceIndex;
+  }
   const block = lines.slice(start, end);
+
+  if (hasName) block[0] = "track " + name;
 
   if (voice) {
     const replacement = voice.type + ": " + voice.id;
@@ -4145,15 +4111,40 @@ async function updateTracksWorkspaceSettings(trackIndex, settings = {}) {
     }
   }
 
+  if (hasPan) {
+    const replacement = "pan: " + Number(pan.toFixed(2));
+    const panIndex = block.findIndex((line, index) =>
+      index > 0 && /^\s*pan\s*:/i.test(line)
+    );
+    if (panIndex >= 0) block[panIndex] = replacement;
+    else block.splice(2, 0, replacement);
+  }
+
+  if (hasVelocity) {
+    const replacement = "velocity: " + velocity;
+    const velocityIndex = block.findIndex((line, index) =>
+      index > 0 && /^\s*velocity\s*:/i.test(line)
+    );
+    if (velocityIndex >= 0) block[velocityIndex] = replacement;
+    else block.splice(2, 0, replacement);
+  }
+
+  if (hasBars) {
+    for (let index = block.length - 1; index >= 1; index -= 1) {
+      if (/^\s*bar\s+\d+\s*:/i.test(block[index])) block.splice(index, 1);
+    }
+    block.push(...(barLines.length ? barLines : ["bar 1: R w"]));
+  }
+
   lines.splice(start, end - start, ...block);
-  workspace.dirty = true;
   await analyzeTracksWorkspace(
     lines.join("\n"),
-    workspace.fileName || "Tracks Workspace.md"
+    currentComposeFileName(),
+    true
   );
+  if (state.tracksWorkspace.analysis?.valid) renderNodeCanvas();
   return Boolean(state.tracksWorkspace.analysis?.valid);
 }
-
 async function updateTracksWorkspaceSource(trackIndex, voiceValue) {
   return updateTracksWorkspaceSettings(trackIndex, { voiceValue });
 }
@@ -4162,6 +4153,58 @@ async function updateTracksWorkspaceVolume(trackIndex, volume) {
   const changed = await updateTracksWorkspaceSettings(trackIndex, { volume });
   if (changed) state.advancedTransport.volumes.delete(Number(trackIndex));
   return changed;
+}
+
+async function deleteTrackFromCompose(trackIndex) {
+  const workspace = state.tracksWorkspace;
+  const analysis = workspace.analysis;
+  const tracks = analysis?.song?.tracks || [];
+  const index = Number(trackIndex);
+  const track = tracks[index];
+
+  if (!analysis?.valid || !track) return false;
+  if (tracks.length <= 1) {
+    ui.advancedStatus.textContent = "At least one Track is required.";
+    return false;
+  }
+
+  if (!window.confirm("Delete Track " + track.name + "?")) return false;
+
+  const lines = workspace.markdown.split(/\r?\n/);
+  const start = Number(track.line) - 1;
+  const nextTrack = tracks[index + 1];
+  let end = nextTrack ? Number(nextTrack.line) - 1 : lines.length;
+
+  if (!nextTrack) {
+    const fence = String.fromCharCode(96).repeat(3);
+    const fenceIndex = lines.findIndex(
+      (line, lineIndex) => lineIndex > start && line.trim() === fence
+    );
+    if (fenceIndex >= 0) end = fenceIndex;
+  }
+
+  let removeStart = start;
+  if (removeStart > 0 && lines[removeStart - 1].trim() === "") {
+    removeStart -= 1;
+  }
+  lines.splice(removeStart, end - removeStart);
+
+  state.advancedTransport.muted.clear();
+  state.advancedTransport.volumes.clear();
+
+  await analyzeTracksWorkspace(
+    lines.join("\n"),
+    currentComposeFileName(),
+    true
+  );
+
+  if (state.tracksWorkspace.analysis?.valid) {
+    renderFormEditor();
+    renderNodeCanvas();
+    ui.advancedStatus.textContent = "Deleted Track " + track.name + ".";
+    return true;
+  }
+  return false;
 }
 
 async function fetchAdvancedStem(trackIndex) {
@@ -4195,7 +4238,7 @@ async function loadAdvancedTransport(force = false) {
   const analysis = workspace.analysis;
   if (!analysis?.valid || !analysis.song?.tracks?.length) {
     ui.advancedStatus.textContent =
-      "Load a valid .md file in Tracks before mix playback.";
+      "Open or import valid Compose Markdown before mix playback.";
     return false;
   }
 
@@ -4219,7 +4262,6 @@ async function loadAdvancedTransport(force = false) {
   ui.advancedStatus.textContent =
     "Rendering " + trackCount + " synchronized track stem(s)...";
   ui.advancedPlay.disabled = true;
-  ui.advancedReload.disabled = true;
 
   try {
     const buffers = await Promise.all(
@@ -4249,7 +4291,6 @@ async function loadAdvancedTransport(force = false) {
     return false;
   } finally {
     ui.advancedPlay.disabled = false;
-    ui.advancedReload.disabled = false;
   }
 }
 function createAdvancedSources() {
@@ -4431,63 +4472,12 @@ function qPerBar(song) {
   return song.config.timeNumerator * (4 / song.config.timeDenominator);
 }
 
-function editTracksWorkspaceTrackInCompose(trackIndex) {
-  const workspace = state.tracksWorkspace;
-  const index = Number(trackIndex);
-  const track = workspace.analysis?.song?.tracks?.[index];
-
-  if (!workspace.analysis?.valid || !workspace.markdown || !track) {
-    ui.advancedStatus.textContent = "Cannot edit this Track until a valid .md is loaded.";
-    return;
-  }
-
-  stopAdvancedTransport();
-  const fileName = workspace.fileName || "Tracks Workspace.md";
-  state.studio.currentProject = null;
-  state.studio.markdown = workspace.markdown;
-  state.studio.analysis = workspace.analysis;
-
-  ui.markdownEditor.value = workspace.markdown;
-  ui.projectNameInput.value = fileName;
-  ui.renderOutputName.value = fileName.replace(/\.md$/i, "");
-  ui.projectFileMeta.textContent =
-    "Loaded from Tracks · editing " + track.name + " · Save when ready.";
-
-  renderDiagnostics(state.studio.analysis);
-  renderComposeSourceToolbar();
-  renderNodeCanvas();
-  renderFormEditor();
-  setDirty(true);
-
-  activateMainTab("compose");
-  activateComposeMode("form");
-
-  ui.composeTrackSelect.value = String(index);
-  fillTrackSourceTypeSelect(ui.composeSourceType, track);
-  fillSourceItemSelect(
-    ui.composeVoiceSelect,
-    ui.composeSourceType.value,
-    voiceValueForTrack(track)
-  );
-  ui.composeTrackVolume.value = String(track.volume);
-  ui.composeTrackVolumeValue.textContent = Math.round(track.volume * 100) + "%";
-
-  requestAnimationFrame(() => {
-    const target = ui.formTracks.querySelectorAll(".track-form-row")[index];
-    if (!target) return;
-    target.classList.add("edit-target");
-    target.scrollIntoView({ behavior: "smooth", block: "center" });
-    target.querySelector(".form-track-name")?.focus({ preventScroll: true });
-    window.setTimeout(() => target.classList.remove("edit-target"), 1800);
-  });
-}
-
 function renderTrackTimeline() {
   const analysis = state.tracksWorkspace.analysis;
   ui.trackTimeline.innerHTML = "";
 
   if (!analysis?.valid || !analysis.timeline) {
-    ui.trackTimeline.innerHTML = '<div class="empty-state">Load a valid .md file to build the independent multi-track view.</div>';
+    ui.trackTimeline.innerHTML = '<div class="empty-state">Open or import valid Compose Markdown to build the multi-track view.</div>';
     return;
   }
 
@@ -4515,10 +4505,25 @@ function renderTrackTimeline() {
 
     const title = document.createElement("div");
     title.className = "timeline-track-title";
-    title.innerHTML =
-      "<strong>" + escapeHtml(track.name) + "</strong>" +
-      "<span>" + escapeHtml(sourceLabel(track)) + "</span>" +
-      "<span>source vol " + track.volume + " · pan " + track.pan + "</span>";
+
+    const nameInput = document.createElement("input");
+    nameInput.type = "text";
+    nameInput.className = "text-input track-name-input";
+    nameInput.value = track.name;
+    nameInput.setAttribute("aria-label", "Track name");
+    nameInput.addEventListener("change", async () => {
+      const changed = await updateTracksWorkspaceSettings(trackIndex, {
+        name: nameInput.value
+      });
+      if (changed) {
+        ui.advancedStatus.textContent =
+          "Track name updated to " + nameInput.value.trim() + ".";
+      }
+    });
+
+    const sourceMeta = document.createElement("span");
+    sourceMeta.textContent = sourceLabel(track);
+    title.append(nameInput, sourceMeta);
 
     const controls = document.createElement("div");
     controls.className = "timeline-track-controls";
@@ -4564,7 +4569,7 @@ function renderTrackTimeline() {
       const changed = await updateTracksWorkspaceSource(trackIndex, voice.value);
       if (changed) {
         ui.advancedStatus.textContent =
-          "Instrument / Sound changed for " + track.name + ". Press Reload Stems or Play.";
+          "Instrument / Sound changed for " + track.name + ". Mix playback will rebuild on Play.";
       }
     });
     voiceWrap.append(voiceLabel, voice);
@@ -4595,19 +4600,68 @@ function renderTrackTimeline() {
       if (changed) {
         ui.advancedStatus.textContent =
           "Track volume saved in Markdown for " + track.name +
-          ". Press Reload Stems before final playback.";
+          ". Mix playback will rebuild on Play.";
       }
     });
     volumeWrap.append(volumeLabel, volume, volumeValue);
 
-    const editTrack = document.createElement("button");
-    editTrack.type = "button";
-    editTrack.className = "track-edit";
-    editTrack.textContent = "Edit";
-    editTrack.setAttribute("aria-label", "Edit " + track.name + " in Compose");
-    editTrack.addEventListener("click", () =>
-      editTracksWorkspaceTrackInCompose(trackIndex)
-    );
+    const panWrap = document.createElement("label");
+    panWrap.className = "track-pan-control";
+    const panLabel = document.createElement("span");
+    panLabel.textContent = "PAN";
+    const pan = document.createElement("input");
+    pan.type = "range";
+    pan.min = "-100";
+    pan.max = "100";
+    pan.step = "10";
+    pan.value = String(Math.round((songTrack?.pan ?? 0) * 100));
+    pan.setAttribute("aria-label", "Track pan for " + track.name);
+    const panValue = document.createElement("span");
+    panValue.className = "track-pan-value";
+    panValue.textContent = Math.round((songTrack?.pan ?? 0) * 100) + "%";
+    pan.addEventListener("input", () => {
+      panValue.textContent = Number(pan.value) + "%";
+    });
+    pan.addEventListener("change", async () => {
+      const changed = await updateTracksWorkspaceSettings(trackIndex, {
+        pan: Number(pan.value) / 100
+      });
+      if (changed) ui.advancedStatus.textContent = "Pan updated for " + track.name + ".";
+    });
+    panWrap.append(panLabel, pan, panValue);
+
+    const velocityWrap = document.createElement("label");
+    velocityWrap.className = "track-velocity-control";
+    const velocityLabel = document.createElement("span");
+    velocityLabel.textContent = "VEL";
+    const velocity = document.createElement("input");
+    velocity.type = "range";
+    velocity.min = "1";
+    velocity.max = "127";
+    velocity.step = "1";
+    velocity.value = String(songTrack?.velocity ?? 96);
+    velocity.setAttribute("aria-label", "Track velocity for " + track.name);
+    const velocityValue = document.createElement("span");
+    velocityValue.className = "track-velocity-value";
+    velocityValue.textContent = String(songTrack?.velocity ?? 96);
+    velocity.addEventListener("input", () => {
+      velocityValue.textContent = velocity.value;
+    });
+    velocity.addEventListener("change", async () => {
+      const changed = await updateTracksWorkspaceSettings(trackIndex, {
+        velocity: Number(velocity.value)
+      });
+      if (changed) ui.advancedStatus.textContent = "Velocity updated for " + track.name + ".";
+    });
+    velocityWrap.append(velocityLabel, velocity, velocityValue);
+
+    const deleteTrack = document.createElement("button");
+    deleteTrack.type = "button";
+    deleteTrack.className = "track-delete";
+    deleteTrack.textContent = "Delete";
+    deleteTrack.disabled = analysis.song.tracks.length <= 1;
+    deleteTrack.setAttribute("aria-label", "Delete " + track.name);
+    deleteTrack.addEventListener("click", () => deleteTrackFromCompose(trackIndex));
 
     const mute = document.createElement("button");
     mute.type = "button";
@@ -4628,11 +4682,35 @@ function renderTrackTimeline() {
       sourceTypeWrap,
       voiceWrap,
       volumeWrap,
-      editTrack,
+      panWrap,
+      velocityWrap,
       mute,
-      downloadStem
+      downloadStem,
+      deleteTrack
     );
     head.append(title, controls);
+
+    const barsEditor = document.createElement("label");
+    barsEditor.className = "track-bars-editor";
+    const barsLabel = document.createElement("span");
+    barsLabel.textContent = "BARS / NOTES";
+    const barsInput = document.createElement("textarea");
+    barsInput.className = "markdown-editor track-bars-input";
+    barsInput.rows = 3;
+    barsInput.value = songTrack.bars.map((bar) =>
+      "bar " + bar.number + ": " + bar.events.map(eventText).join(" | ")
+    ).join("\n");
+    barsInput.setAttribute("aria-label", "Bars and notes for " + track.name);
+    barsInput.addEventListener("change", async () => {
+      const changed = await updateTracksWorkspaceSettings(trackIndex, {
+        barsText: barsInput.value
+      });
+      if (changed) {
+        ui.advancedStatus.textContent =
+          "Bars / Notes updated for " + track.name + ".";
+      }
+    });
+    barsEditor.append(barsLabel, barsInput);
 
     const lane = document.createElement("div");
     lane.className = "timeline-lane";
@@ -4655,7 +4733,7 @@ function renderTrackTimeline() {
       lane.appendChild(block);
     }
 
-    row.append(head, lane);
+    row.append(head, barsEditor, lane);
     ui.trackTimeline.appendChild(row);
   }
 
@@ -4946,7 +5024,7 @@ async function downloadTracksStem(trackIndex) {
   const workspace = state.tracksWorkspace;
   const track = workspace.analysis?.song?.tracks?.[trackIndex];
   if (!workspace.analysis?.valid || !track) {
-    ui.advancedStatus.textContent = "Load a valid Tracks workspace before exporting a stem.";
+    ui.advancedStatus.textContent = "Open or import valid Compose Markdown before exporting a stem.";
     return;
   }
 
@@ -5090,21 +5168,6 @@ async function renderCurrentProjectToWav() {
   }
 }
 
-async function applyComposeVoice() {
-  const trackIndex = Number(ui.composeTrackSelect.value);
-  if (!Number.isInteger(trackIndex)) return;
-  const changed = await updateTrackSettingsInMarkdown(trackIndex, {
-    voiceValue: ui.composeVoiceSelect.value,
-    volume: ui.composeTrackVolume.value
-  });
-  if (changed) {
-    const track = state.studio.analysis?.song?.tracks?.[trackIndex];
-    ui.projectFileMeta.textContent =
-      "Track updated: " + (track?.name || ("Track " + (trackIndex + 1))) +
-      " · " + Math.round((track?.volume ?? 1) * 100) + "% volume. Save or Download WAV when ready.";
-  }
-}
-
 async function exportCurrentProjectMidi() {
   const saved = await saveCurrentProject();
   if (!saved) return;
@@ -5146,27 +5209,6 @@ function wireStudioUi() {
   ui.analyzeProject.addEventListener("click", () => analyzeCurrentMarkdown(true));
   ui.renderProject.addEventListener("click", renderCurrentProjectToWav);
   ui.exportMidi.addEventListener("click", exportCurrentProjectMidi);
-  ui.composeTrackSelect.addEventListener("change", () => {
-    const track = state.studio.analysis?.song?.tracks?.[Number(ui.composeTrackSelect.value)];
-    if (track) {
-      fillTrackSourceTypeSelect(ui.composeSourceType, track);
-      fillSourceItemSelect(
-        ui.composeVoiceSelect,
-        ui.composeSourceType.value,
-        voiceValueForTrack(track)
-      );
-      ui.composeTrackVolume.value = String(track.volume);
-      ui.composeTrackVolumeValue.textContent = Math.round(track.volume * 100) + "%";
-    }
-  });
-  ui.composeSourceType.addEventListener("change", () => {
-    fillSourceItemSelect(ui.composeVoiceSelect, ui.composeSourceType.value);
-  });
-  ui.composeTrackVolume.addEventListener("input", () => {
-    ui.composeTrackVolumeValue.textContent =
-      Math.round(Number(ui.composeTrackVolume.value) * 100) + "%";
-  });
-  ui.composeApplyVoice.addEventListener("click", applyComposeVoice);
   ui.formAddTrack.addEventListener("click", addFormTrack);
   ui.nodeInspectorApply.addEventListener("click", applyNodeInspector);
   ui.nodeInspectorForm.addEventListener("click", openSelectedNodeInForm);
@@ -5192,17 +5234,6 @@ function wireStudioUi() {
   ui.soundPadMixLock.addEventListener("click", toggleSoundPadMixLock);
   ui.soundPadResetMix.addEventListener("click", resetSoundPadMix);
 
-  ui.tracksFileInput.addEventListener("change", async () => {
-    const file = ui.tracksFileInput.files?.[0] || null;
-    if (!file) return;
-    try {
-      await loadTracksWorkspaceFile(file);
-    } catch (error) {
-      ui.advancedStatus.textContent = "Tracks load error: " + error.message;
-    } finally {
-      ui.tracksFileInput.value = "";
-    }
-  });
   ui.tracksAddTrack.addEventListener("click", addTrackToTracksWorkspace);
   ui.tracksDownloadMd.addEventListener("click", downloadTracksMarkdown);
   ui.tracksDownloadMix.addEventListener("click", downloadTracksMix);
@@ -5319,7 +5350,6 @@ async function initialize() {
   ui.advancedPlay.addEventListener("click", playAdvancedTransport);
   ui.advancedPause.addEventListener("click", pauseAdvancedTransport);
   ui.advancedStop.addEventListener("click", stopAdvancedTransport);
-  ui.advancedReload.addEventListener("click", () => loadAdvancedTransport(true));
   ui.advancedSeek.addEventListener("change", () => {
     const ratio = Number(ui.advancedSeek.value) / 1000;
     seekAdvancedTransport(state.advancedTransport.duration * ratio);

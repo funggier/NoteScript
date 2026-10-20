@@ -1119,54 +1119,6 @@ input[type="range"] {
   font-size: 10px;
 }
 
-.compose-source-toolbar {
-  display: flex;
-  align-items: end;
-  flex-wrap: wrap;
-  gap: 6px 8px;
-  padding: 7px 12px;
-  border-bottom: 1px solid #252a35;
-  background: #0d1118;
-}
-
-.compose-source-toolbar label {
-  display: grid;
-  gap: 4px;
-  min-width: 145px;
-  color: #8994a9;
-  font-size: 9px;
-  letter-spacing: .07em;
-  text-transform: uppercase;
-}
-
-.compose-source-toolbar select {
-  min-width: 145px;
-}
-
-.compose-volume-control {
-  min-width: 180px !important;
-}
-
-.inline-range {
-  display: grid;
-  grid-template-columns: minmax(120px, 1fr) 42px;
-  align-items: center;
-  gap: 8px;
-}
-
-.inline-range input[type="range"] {
-  width: 100%;
-  margin: 0;
-}
-
-.inline-range output {
-  text-align: right;
-  color: #d8e1f2;
-  font-size: 10px;
-  letter-spacing: 0;
-  text-transform: none;
-}
-
 .compose-view {
   display: none;
   flex: 1;
@@ -1502,10 +1454,6 @@ button.node-card.selected {
   min-width: 48px;
 }
 
-.advanced-transport-buttons #advancedReload {
-  min-width: 54px;
-}
-
 .advanced-transport-buttons #tracksDownloadMix {
   min-width: 62px;
 }
@@ -1611,9 +1559,11 @@ button.node-card.selected {
   letter-spacing: 0;
 }
 
-.track-volume-control {
+.track-volume-control,
+.track-pan-control,
+.track-velocity-control {
   display: grid;
-  grid-template-columns: auto minmax(90px, 1fr) 38px;
+  grid-template-columns: auto minmax(84px, 1fr) 38px;
   align-items: center;
   gap: 6px;
   width: 100%;
@@ -1622,21 +1572,25 @@ button.node-card.selected {
   letter-spacing: .06em;
 }
 
-.track-volume-control input[type="range"] {
+.track-volume-control input[type="range"],
+.track-pan-control input[type="range"],
+.track-velocity-control input[type="range"] {
   width: 100%;
-  min-width: 90px;
+  min-width: 84px;
   margin: 0;
 }
 
-.track-volume-value {
+.track-volume-value,
+.track-pan-value,
+.track-velocity-value {
   text-align: right;
   color: #d8e1f2;
   letter-spacing: 0;
 }
 
-.track-edit,
 .track-mute,
-.track-download {
+.track-download,
+.track-delete {
   min-height: 24px;
   border: 1px solid #3a4357;
   border-radius: 6px;
@@ -1649,10 +1603,15 @@ button.node-card.selected {
   white-space: nowrap;
 }
 
-.track-edit {
-  border-color: #4f5f92;
-  background: #1d2744;
-  color: #d7def5;
+.track-delete {
+  border-color: #6d3e48;
+  background: #2d171c;
+  color: #e7aeb7;
+}
+
+.track-delete:disabled {
+  opacity: .38;
+  cursor: not-allowed;
 }
 
 .track-download {
@@ -1661,9 +1620,33 @@ button.node-card.selected {
   color: #c6d0e6;
 }
 
-.track-form-row.edit-target {
-  border-color: #5e6dcc;
-  box-shadow: 0 0 0 1px rgba(94, 109, 204, .32);
+.track-name-input {
+  width: min(220px, 100%);
+  min-width: 120px;
+  padding: 5px 7px;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.track-bars-editor {
+  display: grid;
+  gap: 5px;
+  padding: 8px 10px;
+  border-top: 1px solid #252c3a;
+  background: #111722;
+  color: #7f8ba2;
+  font-size: 8px;
+  letter-spacing: .08em;
+}
+
+.track-bars-input {
+  width: 100%;
+  min-height: 64px;
+  resize: vertical;
+  padding: 7px 9px;
+  font-size: 10px;
+  line-height: 1.45;
+  letter-spacing: 0;
 }
 
 .tracks-file-tools {

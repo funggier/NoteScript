@@ -117,14 +117,14 @@ Deferred follow-up:
 - [x] Replace separate Play Mode with one Play Source selector: SoundPiano / SoundPad / GameBeatLane6.
 - [x] Let SoundPiano choose native packs or playable standard Instrument add-ons.
 - [x] Add temporary Project Transport preview-voice override with automatic reload and no Markdown mutation.
-- [x] Add local `.md` import plus installed-library Track + Source Type + Instrument / Sound + Volume controls to Compose Text/Form/Node.
+- [x] Add local `.md` import shared by Compose Text/Form/Node/Tracks.
 - [x] Add Play/Pause/Stop preview from the current unsaved Compose editor state.
 - [x] Keep Project Transport preview-only with automatic preview rebuild for temporary SoundPiano/Instrument overrides.
-- [x] Keep Tracks as an independent multi-track `.md` workspace.
-- [x] Let Tracks import local Markdown into its own workspace and add tracks there.
-- [x] Add per-track Source Type + Instrument / Sound selection, persistent Volume and live Mute.
-- [x] Add edited `.md`, individual Stem WAV and Mix WAV downloads in Tracks.
-- [x] Add per-Track Edit shortcut from Tracks to Compose Form mode without auto-saving.
+- [x] Merge Tracks into Compose as the fourth view and remove the separate Tracks main tab/import path.
+- [x] Remove the redundant top-level Track selector/Apply Track toolbar.
+- [x] Make each Track card self-contained: Name, Source Type, Instrument / Sound, Volume, Pan, Velocity, Bars / Notes, Mute, Stem and Delete.
+- [x] Prevent deletion of the final remaining Track.
+- [x] Add current `.md`, individual Stem WAV, Mix WAV and Track Set downloads from Compose → Tracks.
 - [x] Add Track Set ZIP export with current Markdown + mix + every stem + manifest.
 - [x] Remove the legacy workspace-level selector and the Basic/Advanced product split; all Studio tabs are first-class.
 - [x] Local tests, portable API and browser UI qualification GREEN.

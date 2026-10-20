@@ -234,13 +234,13 @@ Implemented:
 - SFZ offline song rendering and SFZ audition-note rendering.
 - Optional FluidSynth backend for SF2/SF3 offline rendering and audition-note rendering.
 - SoundFont bank/preset selection through `instrument.md`.
-- NoteScript Studio with tabbed Play / Project / Compose / Tracks / Sounds / Settings workspaces.
+- NoteScript Studio with top-level Play / Project / Compose / Sounds / Settings tabs; Tracks is a full Compose sub-view beside Text / Form / Node.
 - Play Source selector with `SoundPiano`, `SoundPad`, and `GameBeatLane6`; future games can join the same source selector without a separate Play Mode switch.
-- Compose can import a local `.md` as an unsaved in-memory document, then edit it in Text/Form/Node without overwriting a Project until Save is pressed.
-- Compose Track + Source Type + Instrument / Sound + Volume controls are backed by installed SoundPiano/SoundPad/Instrument libraries across Text/Form/Node; source and volume write back to the current Compose Markdown.
+- Compose can import a local `.md` as an unsaved in-memory document, then edit the same authoritative Markdown through Text / Form / Node / Tracks without overwriting a Project until Save is pressed.
 - Compose has Play/Pause/Stop preview for the current in-memory editor state; Play renders the latest unsaved Markdown, so Save is not required before listening.
-- Tracks is an independent `.md` multi-track workspace: import Markdown, choose Source Type + `Instrument / Sound` per track, persist Volume, use live Mute, download the edited `.md`, export each Stem WAV, export a Mix WAV, or download a Track Set ZIP containing the Markdown, mix, every stem and a manifest.
-- Every Tracks row has a compact Edit action that loads that Tracks Markdown into Compose as an unsaved document, switches directly to Compose Form mode and focuses the selected Track.
+- Compose → Tracks exposes one self-contained card per Track with editable Name, Source Type, Instrument / Sound, Volume, Pan, Velocity and Bars / Notes plus live Mute, Stem WAV and Delete.
+- Track-card edits, Add Track and Delete Track write directly to the same Compose Markdown seen by Text/Form/Node. The final remaining Track cannot be deleted.
+- Compose → Tracks can download the current `.md`, individual Stem WAVs, a Mix WAV, or a Track Set ZIP containing Markdown, mix, every stem and a manifest.
 - Compose can render the current `.md` project and download a user-named WAV directly from the browser.
 - Game-style Play page with performance HUD, on-key hotkey caps and playable piano/SoundPad controls.
 - BeatLane6 rhythm-game mode using NoteScript Markdown projects as level sources.
@@ -258,10 +258,9 @@ Implemented:
 - Piano note/hotkey labels are centered inside the actual white/black key bounds rather than relying on browser static-position behavior.
 - Optional Web MIDI input for note on/off, velocity, sustain and all-notes-off.
 - Project create/open/save/rename/delete flow inside the portable workspace.
-- Compose Text / Form / Node modes editing the same authoritative Markdown project.
+- Compose Text / Form / Node / Tracks modes edit the same authoritative Markdown project.
 - Node palette plus Bar/Event Node Inspector with edits written back to Markdown before Save.
-- Tracks multi-track arrangement view with synchronized per-track stems.
-- Tracks Play/Pause/Stop/Seek plus per-track Volume and Mute/Unmute that work during playback.
+- Compose → Tracks provides synchronized per-track stems plus Play/Pause/Stop/Seek, persistent Track parameters and live Mute/Unmute.
 - Separate Sound Pack and Instrument browsers.
 - Persistent SF2/SF3 live playback through one FluidSynth process with direct WASAPI output on Windows.
 - Safe SoundFont switching, live status, sustain CC and process cleanup.
@@ -341,9 +340,9 @@ Current API surface:
 - `POST /v1/studio/settings`
 - `POST /v1/validate`
 - `POST /v1/render/audio` — render current in-memory Compose Markdown to WAV
-- `POST /v1/tracks/track-audio` — render one Track stem from the current independent Tracks Markdown
-- `POST /v1/tracks/mix-audio` — render the Tracks mix with optional muted-track exclusion
-- `POST /v1/tracks/set-zip` — export Tracks Markdown + mix WAV + all stem WAVs + manifest
+- `POST /v1/tracks/track-audio` — render one Track stem from the current Compose Markdown
+- `POST /v1/tracks/mix-audio` — render the current Compose Tracks mix with optional muted-track exclusion
+- `POST /v1/tracks/set-zip` — export current Compose Markdown + mix WAV + all stem WAVs + manifest
 - `POST /v1/render`
 - `POST /v1/midi`
 

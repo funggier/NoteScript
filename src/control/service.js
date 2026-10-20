@@ -443,8 +443,8 @@ export function createControlService(programRoot) {
       };
 
       delete next.workspaceMode;
-      if (!["text", "form", "node"].includes(next.editorMode)) {
-        throw new NoteScriptError("editorMode must be text, form or node.");
+      if (!["text", "form", "node", "tracks"].includes(next.editorMode)) {
+        throw new NoteScriptError("editorMode must be text, form, node or tracks.");
       }
 
       fs.writeFileSync(studioSettingsFile, JSON.stringify(next, null, 2) + "\n", "utf8");

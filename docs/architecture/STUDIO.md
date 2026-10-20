@@ -14,7 +14,7 @@ Project and Compose operate on portable project files:
 projects/<name>.md
 ```
 
-Tracks is an independent multi-track workspace. It loads or imports its own `.md` into memory for arrangement, stem playback and export without automatically mutating Project/Compose.
+Tracks is a Compose sub-view. Text, Form, Node and Tracks all edit the same in-memory Markdown document.
 
 ## Main tabs
 
@@ -63,7 +63,7 @@ All path validation remains in the Control Service.
 
 ### Compose
 
-Three editing views share the same Markdown:
+Four editing views share the same Markdown:
 
 #### Text
 
@@ -86,15 +86,7 @@ Structured fields for:
 
 Changing Form regenerates the NoteScript fenced body in the Text editor. Save still remains explicit.
 
-A shared Compose source toolbar is visible across Text/Form/Node editing:
-
-- choose a Track;
-- choose Source Type (`SoundPiano`, `SoundPad` where valid, or `Instrument`);
-- choose the installed Instrument / Sound for that track;
-- set persistent per-track Volume;
-- Apply Track to rewrite the track's `sound:` / `instrument:` and `volume:` fields in the authoritative Markdown.
-
-Compose owns the simplest full-project preview/export workflow. A local `.md` can be imported as an unsaved in-memory Compose document. **Play / Pause / Stop** preview renders the current unsaved Markdown through `POST /v1/render/audio`, and **Download WAV** uses that same in-memory state with a user-chosen filename. Project Transport remains preview-only. Tracks remains an independent Markdown workspace for stem, mix and Track Set exports.
+Compose owns the full-project preview/export workflow. A local `.md` can be imported as an unsaved in-memory Compose document. **Play / Pause / Stop** preview renders the current unsaved Markdown through `POST /v1/render/audio`, and **Download WAV** uses that same in-memory state with a user-chosen filename. Project Transport remains preview-only.
 
 #### Node
 
@@ -106,28 +98,30 @@ The palette can append Track/Bar/Note/Chord/Rest/Trigger structures.
 
 Bar/Event nodes can be selected in Node Inspector. Applying the inspector rewrites the matching `bar N:` line in the same in-memory Markdown. Save persists the result.
 
-### Tracks
+#### Tracks
 
-Tracks is an independent multi-track editing/mixing workspace.
+Tracks is the multi-track Compose view of the same authoritative Markdown.
 
-Tracks can:
+Each Track card owns its own controls:
 
-- load a local `.md` directly into Tracks;
-- keep that Tracks Markdown separate from Project/Compose state;
-- add a new track to the Tracks Markdown;
-- choose **Source Type** and **Instrument / Sound** per track;
-- use SoundPiano or playable Instrument add-ons for pitched tracks;
-- use SoundPad sets for trigger tracks;
-- set persistent per-track Volume (0–100%);
-- Mute/Unmute tracks during playback without rewriting the persistent volume;
-- Play/Pause/Stop/Seek synchronized per-track stems;
-- Reload Stems after source/volume edits;
-- download the edited Tracks `.md`;
-- download a WAV stem for any individual track;
-- download a Mix WAV, excluding tracks currently muted in the Tracks mixer;
-- download a Track Set ZIP containing Markdown, the current mix, every individual stem and `track-set.json` metadata.
+- Track Name;
+- Source Type;
+- installed Instrument / Sound;
+- persistent Volume;
+- persistent Pan;
+- persistent Velocity;
+- Bars / Notes text;
+- temporary live Mute;
+- individual Stem WAV export;
+- Delete Track.
 
-Instrument/Sound/Volume/Add Track edits rewrite only the in-memory Tracks Markdown. Project/Compose remain unchanged until the user explicitly chooses **Edit** on a Track. Edit copies the current Tracks Markdown into Compose as an unsaved document, switches to Form mode and focuses that Track; nothing is persisted until Save is pressed.
+Add Track and Delete Track rewrite the same Compose Markdown immediately. Delete is disabled when only one Track remains, so a valid song never becomes trackless.
+
+There is no second Tracks import flow, no Track-selection toolbar above Compose, no Apply Track button and no manual Reload Stems action. Import happens once from Compose. Track edits invalidate cached stems automatically; the next Mix Play rebuilds stems from the latest Markdown.
+
+Compose → Tracks also provides Play/Pause/Stop/Seek synchronized stems, current `.md` download, Mix WAV download and Track Set ZIP export.
+
+Switching between Text, Form, Node and Tracks changes only the editor view, never the underlying song document.
 
 ## Tracks multi-track playback and export
 
@@ -152,9 +146,9 @@ Mute OFF + volume 75% -> gain = 0.75
 Mute ON              -> gain = 0
 ```
 
-Changing persistent Volume rewrites `volume:` in the Tracks Markdown. Changing Instrument / Sound rewrites the track's `sound:` or `instrument:` line. Both invalidate loaded stems so Reload/Play renders the updated arrangement.
+Changing Track parameters rewrites the current Compose Markdown. Source/Instrument, Volume, Pan, Velocity, Name and Bars/Notes changes invalidate loaded stems so the next Play renders the updated arrangement automatically.
 
-Tracks audio export uses the current independent Tracks Markdown:
+Tracks audio export uses the current Compose Markdown:
 
 - `POST /v1/tracks/track-audio` -> one track stem WAV;
 - `POST /v1/tracks/mix-audio` -> current mix WAV, with Mute selections optionally excluded;
@@ -298,7 +292,7 @@ Current Studio workflows include:
 - `POST /v1/render/audio` for current Compose Markdown
 - `POST /v1/tracks/track-audio` for a current-project Track stem
 - `POST /v1/tracks/mix-audio` for a current-project Tracks mix
-- `POST /v1/tracks/set-zip` for a Track Set ZIP built from the current independent Tracks Markdown
+- `POST /v1/tracks/set-zip` for a Track Set ZIP built from the current Compose Markdown
 
 Legacy project-based transport/stem routes remain available for compatibility.
 

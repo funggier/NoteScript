@@ -169,12 +169,13 @@ jobs:
               $page.Content -notmatch 'id="composePreviewPause"[^>]*>Pause' -or
               $page.Content -notmatch 'id="composePreviewStop"[^>]*>Stop' -or
               $page.Content -notmatch 'id="composePreviewStatus"' -or
-              $page.Content -notmatch 'id="composeTrackSelect"' -or
-              $page.Content -notmatch 'id="composeVoiceSelect"' -or
-              $page.Content -notmatch 'id="composeTrackVolume"' -or
-              $page.Content -notmatch 'id="composeTrackVolumeValue"' -or
-              $page.Content -notmatch 'id="composeApplyVoice"[^>]*>Apply Track' -or
-              $page.Content -notmatch 'id="tracksFileInput"' -or
+              $page.Content -notmatch 'data-compose-mode="tracks"' -or
+              $page.Content -notmatch 'data-compose-view="tracks"' -or
+              $page.Content -match 'data-tab="tracks"' -or
+              $page.Content -match 'id="composeTrackSelect"' -or
+              $page.Content -match 'id="composeApplyVoice"' -or
+              $page.Content -match 'id="tracksFileInput"' -or
+              $page.Content -match 'id="advancedReload"' -or
               $page.Content -notmatch 'id="tracksAddTrack"' -or
               $page.Content -notmatch 'id="tracksDownloadMd"' -or
               $page.Content -notmatch 'id="tracksOutputName"' -or
@@ -332,17 +333,20 @@ jobs:
               $tracksUiScript -notmatch 'playComposePreview' -or
               $tracksUiScript -notmatch 'pauseComposePreview' -or
               $tracksUiScript -notmatch 'stopComposePreview' -or
-              $tracksUiScript -notmatch 'editTracksWorkspaceTrackInCompose' -or
-              $tracksUiScript -notmatch 'className = "track-edit"' -or
-              $tracksUiScript -notmatch 'loadTracksWorkspaceFile' -or
-              $tracksUiScript -match 'syncTracksFromStudio' -or
-              $tracksUiScript -match 'syncStudioFromTracksWorkspace' -or
-              $tracksUiScript -match 'saveTracksProject' -or
+              $tracksUiScript -notmatch 'refreshTrackViewFromCompose' -or
+              $tracksUiScript -notmatch 'syncTrackViewFromComposeAnalysis' -or
+              $tracksUiScript -notmatch 'track-name-input' -or
+              $tracksUiScript -notmatch 'track-bars-input' -or
+              $tracksUiScript -notmatch 'className = "track-delete"' -or
+              $tracksUiScript -notmatch 'deleteTrackFromCompose' -or
+              $tracksUiScript -match 'editTracksWorkspaceTrackInCompose' -or
+              $tracksUiScript -match 'loadTracksWorkspaceFile' -or
+              $tracksUiScript -match 'applyComposeVoice' -or
               $tracksUiScript -notmatch 'addTrackToTracksWorkspace' -or
               $tracksUiScript -notmatch 'updateTracksWorkspaceSource' -or
               $tracksUiScript -notmatch 'setAdvancedTrackVolume'
             ) {
-              throw "Portable independent Tracks workflow smoke test failed."
+              throw "Portable unified Compose Tracks workflow smoke test failed."
             }
 
             foreach ($stem in @($stem0, $stem1)) {
@@ -368,7 +372,7 @@ jobs:
               $tracksIndependentStemBytes.Length -le 44 -or
               [System.Text.Encoding]::ASCII.GetString($tracksIndependentStemBytes, 0, 4) -ne "RIFF"
             ) {
-              throw "Portable independent Tracks stem export is not a valid WAV."
+              throw "Portable Compose Tracks stem export is not a valid WAV."
             }
 
             $tracksBody = [pscustomobject]@{
