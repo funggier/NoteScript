@@ -2,7 +2,7 @@
 
 Date: 2026-10-20 (Asia/Bangkok)
 
-Status: **IMPLEMENTED / LOCAL + PORTABLE GREEN / EXACT-COMMIT CI PENDING**
+Status: **COMPLETE / GREEN / EXACT-COMMIT CI GREEN**
 
 ## Scope
 
@@ -62,6 +62,11 @@ Rendered WAV smoke:
 
 `examples/beatlane6-songs/`
 
-## Remaining gate
+## Exact-commit qualification
 
-- exact-commit GitHub Actions GREEN
+- implementation commit: `dc63dd14902ac4f54d9bb5398e0d1c5d9a811b23`
+- GitHub Actions run: `39417096402`
+- workflow: `CI`
+- result: **SUCCESS**
+- portable CLI validation: PASS for all five songs
+- portable BeatLane6 chart API smoke: PASS for all five songs

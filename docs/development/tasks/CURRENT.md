@@ -216,7 +216,7 @@ Deferred extensions, not required for the completed baseline:
 
 ## Post-NTS-007 BeatLane6 long-form song pack
 
-Status: **IMPLEMENTED / LOCAL + PORTABLE GREEN / EXACT-COMMIT CI PENDING**
+Status: **COMPLETE / GREEN / EXACT-COMMIT CI GREEN**
 
 - [x] Add five original long-form BeatLane6 songs.
 - [x] Extend every song to 36 bars per Track and at least 60 seconds.
@@ -227,6 +227,7 @@ Status: **IMPLEMENTED / LOCAL + PORTABLE GREEN / EXACT-COMMIT CI PENDING**
 - [x] Render all five songs to valid RIFF/WAV.
 - [x] Copy all five songs into portable `projects/` with human-readable names.
 - [x] Add portable CI validation and BeatLane6 API chart checks.
+- [x] Exact-commit CI GREEN: run `39417096402` for commit `dc63dd14902ac4f54d9bb5398e0d1c5d9a811b23`.
 
 Evidence:
 

@@ -110,7 +110,7 @@ Deferred follow-up:
 - manual chart overrides/editor
 - persistent local high scores
 
-## Post-NTS-007 — BeatLane6 long-form song pack — LOCAL + PORTABLE GREEN
+## Post-NTS-007 — BeatLane6 long-form song pack — COMPLETE / GREEN
 
 - [x] Add five original 36-bar BeatLane6 songs.
 - [x] Target roughly 1:01–1:23 per song for longer play sessions.
@@ -119,7 +119,7 @@ Deferred follow-up:
 - [x] Render all songs through the deterministic offline renderer.
 - [x] Bundle the song pack into portable `projects/`.
 - [x] Add automated and portable CI gates.
-- [ ] Exact-commit CI GREEN.
+- [x] Exact-commit CI GREEN: run `39417096402` for commit `dc63dd14902ac4f54d9bb5398e0d1c5d9a811b23`.
 
 Evidence:
 
