@@ -269,7 +269,7 @@ export function createControlService(programRoot) {
         ok: true,
         service: "NoteScript Control API",
         apiVersion: "v1",
-        coreVersion: "0.1.0",
+        coreVersion: "0.2.0",
         portableRoot: root
       };
     },

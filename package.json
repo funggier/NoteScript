@@ -1,6 +1,6 @@
 {
   "name": "notescript",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Deterministic Markdown-first music composition with modular user-defined sound sources.",
   "type": "module",
   "bin": {
