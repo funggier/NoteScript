@@ -78,7 +78,16 @@ for (const [sourceName, projectName] of [
   ["sunday-pages.md", "Sunday Pages.md"],
   ["quiet-neon.md", "Quiet Neon.md"],
   ["garden-at-four.md", "Garden at Four.md"],
-  ["moonlit-tea.md", "Moonlit Tea.md"]
+  ["moonlit-tea.md", "Moonlit Tea.md"],
+  ["cassette-afterglow.md", "Cassette Afterglow.md"],
+  ["mango-soda.md", "Mango Soda.md"],
+  ["moon-garden-radio.md", "Moon Garden Radio.md"],
+  ["paper-boat-daydream.md", "Paper Boat Daydream.md"],
+  ["peach-horizon.md", "Peach Horizon.md"],
+  ["starlight-thermos.md", "Starlight Thermos.md"],
+  ["tiny-parade.md", "Tiny Parade.md"],
+  ["velvet-sidewalk.md", "Velvet Sidewalk.md"],
+  ["wildflower-postcard.md", "Wildflower Postcard.md"]
 ]) {
   fs.copyFileSync(
     path.join(root, "examples", "listening-songs", sourceName),

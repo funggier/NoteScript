@@ -311,7 +311,7 @@ test("bundled BeatLane6 song pack is long-form, six-lane and game-ready", () => 
   }
 });
 
-test("bundled listening song pack is long-form and uses the selected lead voices", () => {
+test("bundled listening song pack contains all promoted long-form songs and selected lead voices", () => {
   const expected = new Map([
     ["morning-window.md", ["Morning Window", "clean-electric-guitar"]],
     ["rain-on-the-balcony.md", ["Rain on the Balcony", "marimba"]],
@@ -322,7 +322,16 @@ test("bundled listening song pack is long-form and uses the selected lead voices
     ["sunday-pages.md", ["Sunday Pages", "marimba"]],
     ["quiet-neon.md", ["Quiet Neon", "synth-bass"]],
     ["garden-at-four.md", ["Garden at Four", "nylon-guitar"]],
-    ["moonlit-tea.md", ["Moonlit Tea", "jazz-guitar"]]
+    ["moonlit-tea.md", ["Moonlit Tea", "jazz-guitar"]],
+    ["cassette-afterglow.md", ["Cassette Afterglow", "electric-piano"]],
+    ["mango-soda.md", ["Mango Soda", "marimba"]],
+    ["moon-garden-radio.md", ["Moon Garden Radio", "clean-electric-guitar"]],
+    ["paper-boat-daydream.md", ["Paper Boat Daydream", "music-box"]],
+    ["peach-horizon.md", ["Peach Horizon", "vibraphone"]],
+    ["starlight-thermos.md", ["Starlight Thermos", "jazz-guitar"]],
+    ["tiny-parade.md", ["Tiny Parade", "marimba"]],
+    ["velvet-sidewalk.md", ["Velvet Sidewalk", "electric-piano"]],
+    ["wildflower-postcard.md", ["Wildflower Postcard", "nylon-guitar"]]
   ]);
 
   const files = fs.readdirSync(listeningSongPackDir)
@@ -337,8 +346,7 @@ test("bundled listening song pack is long-form and uses the selected lead voices
     assert.equal(song.title, title);
     assert.equal(song.tracks.length, 4);
     assert.ok(song.tracks.every((track) => track.bars.length === 48));
-    const normalizedSource = source.replace(/\r\n/g, "\n");
-    assert.ok(normalizedSource.includes("track Gentle Lead\nsound: " + leadSound));
+    assert.equal(song.tracks[0].sound, leadSound);
     const seconds = 48 * 4 * 60 / song.config.tempo;
     assert.ok(seconds >= 120 && seconds <= 180);
   }

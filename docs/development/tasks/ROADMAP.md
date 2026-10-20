@@ -181,4 +181,17 @@ Evidence:
 
 `docs/development/reports/NOTESCRIPT-20261020-ten-song-listening-pack.md`
 
+
+
+## Post-v0.2.0 — Nine-song listening expansion — IMPLEMENTED / CI PENDING
+
+- [x] Promote nine selected songs from the second local trial batch.
+- [x] Expand the listening-song pack to 19 long-form songs.
+- [x] Bundle and validate the nine additions in portable output.
+- [ ] Exact-commit GitHub Actions GREEN.
+
+Evidence:
+
+`docs/development/reports/NOTESCRIPT-20261020-nine-song-listening-expansion.md`
+
 The NoteScript core remains AI-free.

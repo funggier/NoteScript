@@ -320,3 +320,17 @@ Status: **COMPLETE / GREEN / EXACT-COMMIT CI GREEN**
 Evidence:
 
 `docs/development/reports/NOTESCRIPT-20261020-ten-song-listening-pack.md`
+
+## Post-v0.2.0 nine-song listening expansion
+
+Status: **IMPLEMENTED / LOCAL GREEN / EXACT-COMMIT CI PENDING**
+
+- [x] Promote the nine selected second-batch trial songs into `examples/listening-songs/`.
+- [x] Expand the production listening-song pack from 10 to 19 songs.
+- [x] Bundle all nine new songs into portable `projects/`.
+- [x] Extend automated structure/source checks and portable CI validation.
+- [ ] Exact-commit GitHub Actions GREEN.
+
+Evidence:
+
+`docs/development/reports/NOTESCRIPT-20261020-nine-song-listening-expansion.md`
