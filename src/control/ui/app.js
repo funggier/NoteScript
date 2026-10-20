@@ -1,3 +1,9 @@
+import {
+  bindingCandidatesFromEvent,
+  bindingMatchesEvent,
+  canonicalBindingFromEvent
+} from "./keyboard.js";
+
 const ui = {
   engineStatus: document.querySelector("#engineStatus"),
   dirtyState: document.querySelector("#dirtyState"),
@@ -493,13 +499,38 @@ function computerKeyMap() {
   return map;
 }
 
+function mappedKeyForEvent(map, event) {
+  return bindingCandidatesFromEvent(event)
+    .map((candidate) => String(candidate).toLowerCase())
+    .find((candidate) => map.has(candidate)) || "";
+}
+
+const NON_TEXT_INPUT_TYPES = new Set([
+  "button",
+  "checkbox",
+  "color",
+  "file",
+  "hidden",
+  "image",
+  "radio",
+  "range",
+  "reset",
+  "submit"
+]);
+
+function isTextEntryTarget(target) {
+  if (!(target instanceof Element)) return false;
+  if (target.closest('[contenteditable="true"]')) return true;
+  if (target instanceof HTMLTextAreaElement) return true;
+  if (target instanceof HTMLInputElement) {
+    const type = String(target.type || "text").toLowerCase();
+    return !NON_TEXT_INPUT_TYPES.has(type);
+  }
+  return false;
+}
+
 function keyMatches(event, binding) {
-  if (!binding) return false;
-  if (binding === "Space") return event.code === "Space";
-  if (binding === "Escape") return event.key === "Escape";
-  if (binding === "Enter") return event.key === "Enter";
-  if (binding === "Backspace") return event.key === "Backspace";
-  return event.key.toLowerCase() === String(binding).toLowerCase();
+  return bindingMatchesEvent(event, binding);
 }
 
 const WHITE_CLASSES = new Set([0, 2, 4, 5, 7, 9, 11]);
@@ -4361,15 +4392,6 @@ function renderLibraries() {
 }
 
 
-function canonicalBindingFromEvent(event) {
-  if (event.code === "Space") return "Space";
-  if (event.key === "Escape") return "Escape";
-  if (event.key === "Enter") return "Enter";
-  if (event.key === "Backspace") return "Backspace";
-  if (event.key.length === 1) return event.key.toLowerCase();
-  return event.key;
-}
-
 function renderHotkeyEditor() {
   ui.hotkeyEditor.innerHTML = "";
   const current = hotkeys();
@@ -5086,12 +5108,7 @@ window.addEventListener("keydown", (event) => {
     return;
   }
 
-  if (
-    event.target instanceof HTMLInputElement ||
-    event.target instanceof HTMLSelectElement ||
-    event.target instanceof HTMLButtonElement ||
-    event.target instanceof HTMLTextAreaElement
-  ) return;
+  if (isTextEntryTarget(event.target)) return;
 
   if (state.playMode === "beatlane6") {
     if (event.key === "Escape") {
@@ -5099,7 +5116,7 @@ window.addEventListener("keydown", (event) => {
       stopBeatLaneGame(true);
       return;
     }
-    const lane = BEATLANE6_INPUT_KEYS.indexOf(event.key.toLowerCase());
+    const lane = BEATLANE6_INPUT_KEYS.indexOf(canonicalBindingFromEvent(event));
     if (lane >= 0) {
       event.preventDefault();
       beatLaneKeyDown(lane);
@@ -5149,11 +5166,10 @@ window.addEventListener("keydown", (event) => {
     return;
   }
 
-  const key = event.key.toLowerCase();
-
   if (state.sourceMode === "sound" && state.selected?.type === "soundpad") {
     const kitMap = soundPadComputerKeyMap();
-    if (!kitMap.has(key)) return;
+    const key = mappedKeyForEvent(kitMap, event);
+    if (!key) return;
     event.preventDefault();
     const trigger = kitMap.get(key);
     const pad = ui.soundPads.querySelector('[data-trigger="' + CSS.escape(trigger) + '"]');
@@ -5162,7 +5178,8 @@ window.addEventListener("keydown", (event) => {
   }
 
   const map = computerKeyMap();
-  if (!map.has(key) || state.keyHeld.has(key)) return;
+  const key = mappedKeyForEvent(map, event);
+  if (!key || state.keyHeld.has(key)) return;
 
   event.preventDefault();
   state.keyHeld.add(key);
@@ -5176,9 +5193,9 @@ window.addEventListener("keyup", (event) => {
     return;
   }
 
-  const key = event.key.toLowerCase();
+  const physicalKey = canonicalBindingFromEvent(event);
   if (state.playMode === "beatlane6") {
-    const lane = BEATLANE6_INPUT_KEYS.indexOf(key);
+    const lane = BEATLANE6_INPUT_KEYS.indexOf(physicalKey);
     if (lane >= 0) {
       event.preventDefault();
       beatLaneKeyUp(lane);
@@ -5198,7 +5215,8 @@ window.addEventListener("keyup", (event) => {
   if (state.sourceMode === "sound" && state.selected?.type === "soundpad") return;
 
   const map = computerKeyMap();
-  if (!map.has(key)) return;
+  const key = mappedKeyForEvent(map, event);
+  if (!key) return;
   event.preventDefault();
   state.keyHeld.delete(key);
   noteOff("keyboard:" + key);

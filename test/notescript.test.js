@@ -20,11 +20,44 @@ import { LivePlaybackManager } from "../src/playback/manager.js";
 import { createControlService } from "../src/control/service.js";
 import { loadNetworkConfig, resolveProgramRoot, studioUrl } from "../src/control/network-config.js";
 import { decodeAudioFile, getDecoderCapabilities } from "../src/audio/decoder.js";
+import {
+  bindingCandidatesFromEvent,
+  bindingMatchesEvent,
+  canonicalBindingFromEvent,
+  physicalBindingFromCode
+} from "../src/control/ui/keyboard.js";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(here, "..");
 const songFile = path.join(root, "examples", "evening-walk.md");
 const beatLaneStarterFile = path.join(root, "examples", "beatlane6-starter.md");
+
+test("keyboard hotkeys follow physical key positions across input languages", () => {
+  assert.equal(physicalBindingFromCode("KeyA"), "a");
+  assert.equal(physicalBindingFromCode("KeyS"), "s");
+  assert.equal(physicalBindingFromCode("KeyD"), "d");
+  assert.equal(physicalBindingFromCode("KeyJ"), "j");
+  assert.equal(physicalBindingFromCode("Semicolon"), ";");
+  assert.equal(physicalBindingFromCode("BracketLeft"), "[");
+
+  const thaiA = { code: "KeyA", key: "ฟ" };
+  const thaiS = { code: "KeyS", key: "ห" };
+  const thaiD = { code: "KeyD", key: "ก" };
+  const thaiJ = { code: "KeyJ", key: "่" };
+
+  assert.deepEqual(bindingCandidatesFromEvent(thaiA), ["a", "ฟ"]);
+  assert.equal(canonicalBindingFromEvent(thaiA), "a");
+  assert.equal(canonicalBindingFromEvent(thaiS), "s");
+  assert.equal(canonicalBindingFromEvent(thaiD), "d");
+  assert.equal(canonicalBindingFromEvent(thaiJ), "j");
+  assert.equal(bindingMatchesEvent(thaiA, "a"), true);
+  assert.equal(bindingMatchesEvent(thaiS, "s"), true);
+  assert.equal(bindingMatchesEvent(thaiD, "d"), true);
+  assert.equal(bindingMatchesEvent(thaiJ, "j"), true);
+
+  // Logical-key fallback keeps older custom bindings compatible.
+  assert.equal(bindingMatchesEvent(thaiA, "ฟ"), true);
+});
 
 test("parses the example song", () => {
   const song = parseSong(fs.readFileSync(songFile, "utf8"));
@@ -778,6 +811,11 @@ test("Studio UI exposes unified tabs, independent Tracks and remappable hotkeys"
   assert.doesNotMatch(html, /id="workspaceModeSetting"/);
   assert.match(html, /All Studio tabs are available together as one complete workspace/);
   assert.match(app, /\/v1\/transport\/audio/);
+  assert.match(app, /function isTextEntryTarget\(target\)/);
+  assert.match(app, /NON_TEXT_INPUT_TYPES/);
+  assert.match(app, /if \(isTextEntryTarget\(event\.target\)\) return;/);
+  assert.doesNotMatch(app, /event\.target instanceof HTMLSelectElement/);
+  assert.doesNotMatch(app, /event\.target instanceof HTMLButtonElement/);
   assert.match(app, /\/v1\/tracks\/track-audio/);
   assert.match(app, /\/v1\/tracks\/mix-audio/);
   assert.match(app, /downloadTracksStem/);

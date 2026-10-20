@@ -33,6 +33,8 @@ Transport checkpoint:
 - [x] Existing playable on-screen piano/SoundPad controls retained.
 - [x] Mouse/computer-keyboard/Web MIDI audition retained.
 - [x] Remappable game-style hotkeys.
+- [x] Performance hotkeys remain active after clicking buttons/selects/sliders; text-entry fields alone suppress performance keys while typing.
+- [x] Physical-key mapping uses `KeyboardEvent.code`, so Thai keyboard layout keeps A/S/D/J/K/L and piano/SoundPad positions without language switching.
 - [x] Piano keycaps reflect current hotkey bindings.
 - [x] Direct piano hotkey edit mode: click note -> press key -> Save/Cancel.
 - [x] Direct hotkey Cancel restores the pre-edit snapshot without persistence.

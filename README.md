@@ -246,6 +246,8 @@ Implemented:
 - BeatLane6 hit audio uses the source track's real NoteScript sound/instrument; an optional low-volume full-song guide track is available.
 - Bundled `BeatLane6 Starter.md` project teaches all six lanes with the Pluck sound pack.
 - Browser-based live playing: mouse keys, remappable computer-keyboard controls, polyphony, velocity, octave shift, sustain and panic.
+- Live hotkeys remain active after clicking non-text UI controls such as buttons, selects and sliders; only real text-entry fields suppress performance hotkeys while typing.
+- Performance hotkeys follow physical keyboard positions via `KeyboardEvent.code`, so layouts such as Thai still use the same A/S/D/J/K/L and piano/SoundPad positions without switching the OS input language first.
 - Direct piano hotkey edit mode: click a mapped piano key, press its new keyboard binding, then Save or Cancel; current bindings remain visible as faint keycaps beside note names.
 - SoundPad controls use the same game-style hotkey model: each pad shows its trigger name plus a faint current hotkey, keyboard hotkeys can trigger pads directly, and Edit Hotkeys works from the pad itself.
 - SoundPad has per-pad volume mixing from 0–100%, persisted per sound-pack ID, plus RESET MIX to return the current SoundPad to 100%.

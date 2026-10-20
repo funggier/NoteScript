@@ -124,6 +124,22 @@ jobs:
             }
 
             $page = Invoke-WebRequest -UseBasicParsing -Uri "$baseUri/" -TimeoutSec 5
+            $appScript = Invoke-WebRequest -UseBasicParsing -Uri "$baseUri/ui/app.js" -TimeoutSec 5
+            $keyboardScript = Invoke-WebRequest -UseBasicParsing -Uri "$baseUri/ui/keyboard.js" -TimeoutSec 5
+
+            if (
+              $appScript.StatusCode -ne 200 -or
+              $keyboardScript.StatusCode -ne 200 -or
+              $appScript.Content -notmatch 'isTextEntryTarget\(event\.target\)' -or
+              $appScript.Content -match 'event\.target instanceof HTMLSelectElement' -or
+              $appScript.Content -match 'event\.target instanceof HTMLButtonElement' -or
+              $keyboardScript.Content -notmatch 'physicalBindingFromCode' -or
+              $keyboardScript.Content -notmatch '\^Key\[A-Z\]\$' -or
+              $keyboardScript.Content -notmatch 'bindingCandidatesFromEvent'
+            ) {
+              throw "Portable global/physical hotkey smoke test failed."
+            }
+
             if (
               $page.StatusCode -ne 200 -or
               $page.Content -notmatch "NOTESCRIPT STUDIO" -or

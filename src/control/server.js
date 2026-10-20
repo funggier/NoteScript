@@ -67,6 +67,9 @@ const server = http.createServer(async (req, res) => {
     if (req.method === "GET" && url.pathname === "/ui/app.js") {
       return staticFile(res, path.join(uiRoot, "app.js"), "text/javascript; charset=utf-8");
     }
+    if (req.method === "GET" && url.pathname === "/ui/keyboard.js") {
+      return staticFile(res, path.join(uiRoot, "keyboard.js"), "text/javascript; charset=utf-8");
+    }
     if (req.method === "GET" && url.pathname === "/ui/style.css") {
       return staticFile(res, path.join(uiRoot, "style.css"), "text/css; charset=utf-8");
     }

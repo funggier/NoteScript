@@ -33,6 +33,8 @@ Input sources:
 
 - mouse/pointer;
 - remappable computer keyboard;
+- performance hotkeys stay active after non-text UI controls retain focus;
+- physical-key matching uses `KeyboardEvent.code`, so Thai/other layouts preserve the same piano, SoundPad and BeatLane6 key positions;
 - Web MIDI when the browser provides it.
 
 The Play page has one top-level **Play Source** selector:
