@@ -229,7 +229,7 @@ Implemented:
 - [x] Play Source is a single selector: `SoundPiano`, `SoundPad`, `GameBeatLane6`; separate Play Mode UI removed.
 - [x] SoundPiano can select a native pack or playable standard Instrument add-on.
 - [x] Project Transport is preview-only with temporary `Original Project` / SoundPiano / Instrument override.
-- [x] Project Transport changes require explicit `Reload`; Play does not silently rebuild a changed preview.
+- [x] Project Transport automatically rebuilds preview audio when Project or Preview voice changes; no separate Reload action is required.
 - [x] Project Transport override does not rewrite the `.md` project and has no WAV save/download control.
 - [x] Compose exposes Track + Source Type + Instrument / Sound + Volume controls across Text/Form/Node.
 - [x] Form track source is an installed-library selector rather than free-text source input.

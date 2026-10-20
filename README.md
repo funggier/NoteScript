@@ -226,7 +226,7 @@ Implemented:
 - MIDI export.
 - Windows preview via the default audio player for the legacy CLI preview command.
 - In-browser Project Transport preview with Play/Pause/Stop/Seek/Loop and no external player.
-- Project Transport can temporarily preview pitched tracks with `Original Project`, any installed SoundPiano pack, or any playable Instrument add-on; changing the preview voice does not rewrite the `.md` project and requires `Reload` before playback.
+- Project Transport can temporarily preview pitched tracks with `Original Project`, any installed SoundPiano pack, or any playable Instrument add-on; changing Project or Preview voice automatically rebuilds the preview without rewriting the `.md` project.
 - In-memory/cached project preview rendering through the Control API.
 - Non-destructive preview volume and stereo pan controls; pan is explicitly left-to-right (`L 100 -> C -> R 100`) and maps to Web Audio `-1 -> 0 -> +1`.
 - Browser audio-output selection when the browser exposes Web Audio `setSinkId`.

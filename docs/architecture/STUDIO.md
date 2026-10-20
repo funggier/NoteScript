@@ -45,7 +45,7 @@ The Play page has one top-level **Play Source** selector:
 
 There is no separate Play Mode switch. Future games can join the same Play Source selector.
 
-The Project Transport on this page is preview-only. It can temporarily render `Original Project`, a SoundPiano pack, or a playable Instrument across pitched tracks. Project/voice changes require an explicit `Reload`; the override does not rewrite Markdown.
+The Project Transport on this page is preview-only. It can temporarily render `Original Project`, a SoundPiano pack, or a playable Instrument across pitched tracks. Changing Project or Preview voice automatically rebuilds the preview; the override does not rewrite Markdown.
 
 The Play page retains the NTS-003 live and buffered playback paths.
 

@@ -796,7 +796,7 @@ test("Studio UI exposes unified tabs, independent Tracks and remappable hotkeys"
   assert.match(html, /id="transportPlay"/);
   assert.match(html, /id="transportSeek"/);
   assert.match(html, /id="transportVoiceSelect"/);
-  assert.match(html, /id="transportLoad"[^>]*>Reload</);
+  assert.doesNotMatch(html, /id="transportLoad"/);
   assert.match(html, /id="outputDevice"/);
   assert.doesNotMatch(html, /id="transportSaveWav"/);
   assert.match(html, /id="composeTrackSelect"/);
@@ -845,7 +845,10 @@ test("Studio UI exposes unified tabs, independent Tracks and remappable hotkeys"
   assert.match(app, /updateTrackVolumeInMarkdown/);
   assert.match(app, /updateTrackSourceInMarkdown/);
   assert.doesNotMatch(app, /Edit this track in Compose/);
-  assert.match(app, /Preview voice changed\. Press Reload before Play/);
+  assert.match(app, /transportVoiceSelect\.addEventListener\("change", async/);
+  assert.match(app, /projectSelect\.addEventListener\("change", async/);
+  assert.match(app, /await loadTransportProject\(ui\.projectSelect\.value\)/);
+  assert.doesNotMatch(app, /Press Reload before Play/);
   assert.match(app, /\/v1\/game\/beatlane6\/chart/);
   assert.match(app, /BEATLANE6_INPUT_KEYS/);
   assert.match(app, /beatLaneAnimationTick/);

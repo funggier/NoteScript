@@ -160,7 +160,7 @@ jobs:
               $page.Content -notmatch 'value="soundpad">SoundPad' -or
               $page.Content -notmatch 'value="gamebeatlane6">GameBeatLane6' -or
               $page.Content -notmatch 'id="transportVoiceSelect"' -or
-              $page.Content -notmatch 'id="transportLoad"[^>]*>Reload' -or
+              $page.Content -match 'id="transportLoad"' -or
               $page.Content -notmatch 'id="composeTrackSelect"' -or
               $page.Content -notmatch 'id="composeVoiceSelect"' -or
               $page.Content -notmatch 'id="composeTrackVolume"' -or

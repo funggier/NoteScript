@@ -116,9 +116,9 @@ Deferred follow-up:
 - [x] Preserve legacy flat sound-pack discovery for compatibility.
 - [x] Replace separate Play Mode with one Play Source selector: SoundPiano / SoundPad / GameBeatLane6.
 - [x] Let SoundPiano choose native packs or playable standard Instrument add-ons.
-- [x] Add temporary Project Transport preview-voice override with explicit Reload and no Markdown mutation.
+- [x] Add temporary Project Transport preview-voice override with automatic reload and no Markdown mutation.
 - [x] Add installed-library Track + Source Type + Instrument / Sound + Volume controls to Compose Text/Form/Node.
-- [x] Keep Project Transport preview-only with explicit Reload for temporary SoundPiano/Instrument overrides.
+- [x] Keep Project Transport preview-only with automatic preview rebuild for temporary SoundPiano/Instrument overrides.
 - [x] Keep Tracks as an independent multi-track `.md` workspace.
 - [x] Let Tracks import local Markdown into its own workspace and add tracks there.
 - [x] Add per-track Source Type + Instrument / Sound selection, persistent Volume and live Mute.

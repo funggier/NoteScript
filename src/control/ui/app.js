@@ -44,7 +44,6 @@ const ui = {
   playWorkspace: document.querySelector(".play-workspace"),
   projectTransportControls: document.querySelector(".transport-sidebar > .panel.transport-panel:not(.beatlane-controls)"),
   projectSelect: document.querySelector("#projectSelect"),
-  transportLoad: document.querySelector("#transportLoad"),
   transportPlay: document.querySelector("#transportPlay"),
   transportPause: document.querySelector("#transportPause"),
   transportStop: document.querySelector("#transportStop"),
@@ -1412,7 +1411,7 @@ function populateTransportVoiceSelect() {
   if (!ui.transportVoiceSelect.value) ui.transportVoiceSelect.value = "original";
 }
 
-async function loadTransportProject(project = ui.projectSelect.value, force = false) {
+async function loadTransportProject(project = ui.projectSelect.value) {
   const name = String(project || "").trim();
   if (!name) {
     ui.transportStatus.textContent = "No project selected.";
@@ -1421,14 +1420,12 @@ async function loadTransportProject(project = ui.projectSelect.value, force = fa
 
   const token = ++state.transport.loadToken;
   stopTransport();
-  ui.transportStatus.textContent = "Rendering preview…";
-  ui.transportLoad.disabled = true;
+  ui.transportStatus.textContent = "Rendering preview...";
+  ui.transportPlay.disabled = true;
+  ui.transportPause.disabled = true;
+  ui.transportStop.disabled = true;
 
   try {
-    if (force) {
-      await post("/v1/transport/cache/clear", { project: name });
-    }
-
     const response = await fetch(
       transportAudioUrl(name),
       { cache: "no-store" }
@@ -1468,7 +1465,12 @@ async function loadTransportProject(project = ui.projectSelect.value, force = fa
     }
     return false;
   } finally {
-    if (token === state.transport.loadToken) ui.transportLoad.disabled = false;
+    if (token === state.transport.loadToken) {
+      const ready = Boolean(state.transport.buffer);
+      ui.transportPlay.disabled = !ready;
+      ui.transportPause.disabled = !ready;
+      ui.transportStop.disabled = !ready;
+    }
   }
 }
 
@@ -1518,7 +1520,7 @@ function createTransportSource() {
 async function playTransport() {
   if (!state.transport.buffer) {
     ui.transportStatus.textContent =
-      "Preview is not loaded. Choose Project / Preview voice, then press Reload.";
+      "Preview is not ready yet. Choose a Project or Preview voice and wait for automatic loading.";
     return;
   }
 
@@ -2700,7 +2702,6 @@ function syncProjectSelects() {
       select.appendChild(option);
       select.disabled = true;
     }
-    ui.transportLoad.disabled = true;
     ui.transportPlay.disabled = true;
     ui.transportPause.disabled = true;
     ui.transportStop.disabled = true;
@@ -2710,7 +2711,6 @@ function syncProjectSelects() {
 
   ui.projectSelect.disabled = false;
   ui.beatLaneProject.disabled = false;
-  ui.transportLoad.disabled = false;
   ui.transportPlay.disabled = false;
   ui.transportPause.disabled = false;
   ui.transportStop.disabled = false;
@@ -4958,7 +4958,6 @@ async function initialize() {
     }
   });
 
-  ui.transportLoad.addEventListener("click", () => loadTransportProject(ui.projectSelect.value, true));
   ui.transportPlay.addEventListener("click", playTransport);
   ui.transportPause.addEventListener("click", pauseTransport);
   ui.transportStop.addEventListener("click", stopTransport);
@@ -4993,21 +4992,11 @@ async function initialize() {
     const ratio = Number(ui.advancedSeek.value) / 1000;
     seekAdvancedTransport(state.advancedTransport.duration * ratio);
   });
-  ui.transportVoiceSelect.addEventListener("change", () => {
-    stopTransport();
-    state.transport.buffer = null;
-    state.transport.duration = 0;
-    state.transport.offset = 0;
-    updateTransportDisplay(0);
-    ui.transportStatus.textContent = "Preview voice changed. Press Reload before Play.";
+  ui.transportVoiceSelect.addEventListener("change", async () => {
+    await loadTransportProject(ui.projectSelect.value);
   });
-  ui.projectSelect.addEventListener("change", () => {
-    stopTransport();
-    state.transport.buffer = null;
-    state.transport.duration = 0;
-    state.transport.offset = 0;
-    updateTransportDisplay(0);
-    ui.transportStatus.textContent = "Project changed. Press Reload before Play.";
+  ui.projectSelect.addEventListener("change", async () => {
+    await loadTransportProject(ui.projectSelect.value);
   });
 
   updateTransportGain();
@@ -5038,13 +5027,12 @@ async function initialize() {
     renderProjectList();
 
     if (state.studio.projects.length === 0) {
-      ui.transportLoad.disabled = true;
       ui.transportPlay.disabled = true;
       ui.transportPause.disabled = true;
       ui.transportStop.disabled = true;
       ui.transportStatus.textContent = "Create a NoteScript project from the Project tab.";
     } else {
-      ui.transportStatus.textContent = "Select a project and preview voice, then Reload.";
+      ui.transportStatus.textContent = "Loading preview...";
       ui.projectNameInput.value = state.studio.projects[0];
     }
 
@@ -5069,6 +5057,10 @@ async function initialize() {
 
     populateInstruments();
     populateTransportVoiceSelect();
+
+    if (state.studio.projects.length > 0) {
+      await loadTransportProject(ui.projectSelect.value);
+    }
 
     if (state.sounds.length === 0) {
       ui.engineStatus.classList.add("warn");

@@ -45,7 +45,7 @@ The Play page Project Transport includes:
 
 - project selector;
 - Preview voice selector with `Original Project`, installed SoundPiano packs and playable Instrument add-ons;
-- `Reload` to rebuild the preview using the currently selected project + preview voice;
+- automatic preview rebuild whenever the selected project or Preview voice changes;
 - Play;
 - Pause;
 - Stop;
@@ -55,7 +55,7 @@ The Play page Project Transport includes:
 - preview pan;
 - browser audio-output selector when supported.
 
-Changing either the project or Preview voice discards the currently decoded preview. Play does not silently rebuild it; the user presses `Reload` first so it is explicit which voice is being heard.
+Changing either the project or Preview voice stops the current preview, discards the decoded buffer and immediately rebuilds the preview for the new selection. Play remains disabled while that automatic load is in progress.
 
 A project preview is decoded into a browser AudioBuffer. Playback uses a new AudioBufferSourceNode for every start/resume/seek because Web Audio source nodes are single-use.
 
@@ -118,7 +118,7 @@ A browser may resample decoded audio to the active AudioContext/output sample ra
 
 Project Transport is preview-only.
 
-- Transport: choose project + temporary preview voice -> `Reload` -> in-memory/cached WAV -> Web Audio.
+- Transport: choose project + temporary preview voice -> automatic in-memory/cached WAV rebuild -> Web Audio.
 - Transport never changes the selected track source in Markdown.
 - Transport has no file-name field and no save/download action.
 - Compose owns user-facing audio creation: select track + Voice, apply it to Markdown, choose a WAV filename, then `Download WAV`.
