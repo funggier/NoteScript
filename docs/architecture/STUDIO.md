@@ -94,7 +94,7 @@ A shared Compose source toolbar is visible across Text/Form/Node editing:
 - set persistent per-track Volume;
 - Apply Track to rewrite the track's `sound:` / `instrument:` and `volume:` fields in the authoritative Markdown.
 
-Compose owns the simplest full-project WAV workflow. The user chooses an output filename and presses **Download WAV**. The browser sends the in-memory Markdown to `POST /v1/render/audio` and downloads the returned WAV directly. Project Transport remains preview-only. Tracks uses the same current Markdown for stem, mix and Track Set exports.
+Compose owns the simplest full-project preview/export workflow. A local `.md` can be imported as an unsaved in-memory Compose document. **Play / Pause / Stop** preview renders the current unsaved Markdown through `POST /v1/render/audio`, and **Download WAV** uses that same in-memory state with a user-chosen filename. Project Transport remains preview-only. Tracks remains an independent Markdown workspace for stem, mix and Track Set exports.
 
 #### Node
 
@@ -127,7 +127,7 @@ Tracks can:
 - download a Mix WAV, excluding tracks currently muted in the Tracks mixer;
 - download a Track Set ZIP containing Markdown, the current mix, every individual stem and `track-set.json` metadata.
 
-Instrument/Sound/Volume/Add Track edits rewrite only the in-memory Tracks Markdown. Project/Compose remain unchanged unless the user explicitly uses the downloaded `.md` there later.
+Instrument/Sound/Volume/Add Track edits rewrite only the in-memory Tracks Markdown. Project/Compose remain unchanged until the user explicitly chooses **Edit** on a Track. Edit copies the current Tracks Markdown into Compose as an unsaved document, switches to Form mode and focuses that Track; nothing is persisted until Save is pressed.
 
 ## Tracks multi-track playback and export
 

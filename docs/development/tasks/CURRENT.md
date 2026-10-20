@@ -233,12 +233,15 @@ Implemented:
 - [x] Project Transport override does not rewrite the `.md` project and has no WAV save/download control.
 - [x] Compose exposes Track + Source Type + Instrument / Sound + Volume controls across Text/Form/Node.
 - [x] Form track source is an installed-library selector rather than free-text source input.
+- [x] Compose can import a local `.md` as an unsaved in-memory document without overwriting a saved Project.
+- [x] Compose Play/Pause/Stop previews the current unsaved editor state through `/v1/render/audio`; Save is not required before listening.
 - [x] Compose has custom filename + direct browser `Download WAV` for the current Compose Markdown.
 - [x] Tracks is an independent multi-track `.md` workspace, separate from Project/Compose state.
 - [x] Tracks loads/imports a local `.md` directly into its own in-memory workspace.
 - [x] Add Track, Instrument / Sound and persistent Volume edits update only the current Tracks Markdown.
 - [x] Each Tracks row has Source Type + Instrument / Sound selection; pitched tracks can choose SoundPiano or playable Instrument add-ons and trigger tracks use SoundPad sets.
 - [x] Each Tracks row has persistent Volume (0-100%) plus temporary live Mute for stem playback.
+- [x] Each Tracks row has a compact Edit action that loads the current Tracks Markdown into Compose as an unsaved document, switches to Form mode and focuses that Track.
 - [x] Tracks stem audio is rendered directly from the current Tracks Markdown through `/v1/tracks/track-audio`.
 - [x] Tracks can download its edited `.md`, each individual Stem WAV, and a Mix WAV through `/v1/tracks/mix-audio`.
 - [x] Tracks Mix WAV excludes tracks currently muted in the mixer.

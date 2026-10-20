@@ -164,6 +164,11 @@ jobs:
               $page.Content -notmatch 'value="gamebeatlane6">GameBeatLane6' -or
               $page.Content -notmatch 'id="transportVoiceSelect"' -or
               $page.Content -match 'id="transportLoad"' -or
+              $page.Content -notmatch 'id="composeFileInput"' -or
+              $page.Content -notmatch 'id="composePreviewPlay"[^>]*>Play' -or
+              $page.Content -notmatch 'id="composePreviewPause"[^>]*>Pause' -or
+              $page.Content -notmatch 'id="composePreviewStop"[^>]*>Stop' -or
+              $page.Content -notmatch 'id="composePreviewStatus"' -or
               $page.Content -notmatch 'id="composeTrackSelect"' -or
               $page.Content -notmatch 'id="composeVoiceSelect"' -or
               $page.Content -notmatch 'id="composeTrackVolume"' -or
@@ -323,6 +328,12 @@ jobs:
               $tracksUiScript -notmatch '/v1/tracks/track-audio' -or
               $tracksUiScript -notmatch '/v1/tracks/mix-audio' -or
               $tracksUiScript -notmatch '/v1/tracks/set-zip' -or
+              $tracksUiScript -notmatch 'loadComposeFile' -or
+              $tracksUiScript -notmatch 'playComposePreview' -or
+              $tracksUiScript -notmatch 'pauseComposePreview' -or
+              $tracksUiScript -notmatch 'stopComposePreview' -or
+              $tracksUiScript -notmatch 'editTracksWorkspaceTrackInCompose' -or
+              $tracksUiScript -notmatch 'className = "track-edit"' -or
               $tracksUiScript -notmatch 'loadTracksWorkspaceFile' -or
               $tracksUiScript -match 'syncTracksFromStudio' -or
               $tracksUiScript -match 'syncStudioFromTracksWorkspace' -or

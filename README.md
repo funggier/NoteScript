@@ -236,8 +236,11 @@ Implemented:
 - SoundFont bank/preset selection through `instrument.md`.
 - NoteScript Studio with tabbed Play / Project / Compose / Tracks / Sounds / Settings workspaces.
 - Play Source selector with `SoundPiano`, `SoundPad`, and `GameBeatLane6`; future games can join the same source selector without a separate Play Mode switch.
-- Compose Track + Source Type + Instrument / Sound + Volume controls backed by installed SoundPiano/SoundPad/Instrument libraries across Text/Form/Node; source and volume write back to the current Compose Markdown.
+- Compose can import a local `.md` as an unsaved in-memory document, then edit it in Text/Form/Node without overwriting a Project until Save is pressed.
+- Compose Track + Source Type + Instrument / Sound + Volume controls are backed by installed SoundPiano/SoundPad/Instrument libraries across Text/Form/Node; source and volume write back to the current Compose Markdown.
+- Compose has Play/Pause/Stop preview for the current in-memory editor state; Play renders the latest unsaved Markdown, so Save is not required before listening.
 - Tracks is an independent `.md` multi-track workspace: import Markdown, choose Source Type + `Instrument / Sound` per track, persist Volume, use live Mute, download the edited `.md`, export each Stem WAV, export a Mix WAV, or download a Track Set ZIP containing the Markdown, mix, every stem and a manifest.
+- Every Tracks row has a compact Edit action that loads that Tracks Markdown into Compose as an unsaved document, switches directly to Compose Form mode and focuses the selected Track.
 - Compose can render the current `.md` project and download a user-named WAV directly from the browser.
 - Game-style Play page with performance HUD, on-key hotkey caps and playable piano/SoundPad controls.
 - BeatLane6 rhythm-game mode using NoteScript Markdown projects as level sources.

@@ -1088,6 +1088,30 @@ input[type="range"] {
   white-space: nowrap;
 }
 
+.compact-file-button {
+  position: relative;
+  overflow: hidden;
+  cursor: pointer;
+}
+
+.compact-file-button input[type="file"] {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.compose-preview-status {
+  max-width: 190px;
+  overflow: hidden;
+  color: #8792a8;
+  font-size: 9px;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .compact-output-name {
   width: 140px;
   min-width: 108px;
@@ -1610,6 +1634,7 @@ button.node-card.selected {
   letter-spacing: 0;
 }
 
+.track-edit,
 .track-mute,
 .track-download {
   min-height: 24px;
@@ -1624,10 +1649,21 @@ button.node-card.selected {
   white-space: nowrap;
 }
 
+.track-edit {
+  border-color: #4f5f92;
+  background: #1d2744;
+  color: #d7def5;
+}
+
 .track-download {
   border-color: #455172;
   background: #182033;
   color: #c6d0e6;
+}
+
+.track-form-row.edit-target {
+  border-color: #5e6dcc;
+  box-shadow: 0 0 0 1px rgba(94, 109, 204, .32);
 }
 
 .tracks-file-tools {

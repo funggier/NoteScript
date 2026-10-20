@@ -365,6 +365,14 @@
               <button class="sub-tab" data-compose-mode="node" type="button">Node</button>
             </div>
             <div class="compose-actions">
+              <label class="action-button secondary compact-action compact-file-button">
+                Import .md
+                <input id="composeFileInput" type="file" accept=".md,text/markdown,text/plain">
+              </label>
+              <button id="composePreviewPlay" class="action-button compact-action" type="button">Play</button>
+              <button id="composePreviewPause" class="action-button secondary compact-action" type="button" disabled>Pause</button>
+              <button id="composePreviewStop" class="action-button secondary compact-action" type="button" disabled>Stop</button>
+              <span id="composePreviewStatus" class="compose-preview-status">Current editor preview</span>
               <button id="analyzeProject" class="action-button secondary" type="button">Analyze</button>
               <button id="saveProject" class="action-button" type="button">Save</button>
               <input id="renderOutputName" class="text-input compact-output-name" type="text" placeholder="Output name.wav" aria-label="WAV output name">

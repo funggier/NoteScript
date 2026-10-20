@@ -85,6 +85,11 @@ const ui = {
   deleteProject: document.querySelector("#deleteProject"),
   projectFileMeta: document.querySelector("#projectFileMeta"),
   markdownEditor: document.querySelector("#markdownEditor"),
+  composeFileInput: document.querySelector("#composeFileInput"),
+  composePreviewPlay: document.querySelector("#composePreviewPlay"),
+  composePreviewPause: document.querySelector("#composePreviewPause"),
+  composePreviewStop: document.querySelector("#composePreviewStop"),
+  composePreviewStatus: document.querySelector("#composePreviewStatus"),
   analyzeProject: document.querySelector("#analyzeProject"),
   saveProject: document.querySelector("#saveProject"),
   renderProject: document.querySelector("#renderProject"),
@@ -207,6 +212,17 @@ const state = {
     audio: new Map(),
     noteElements: new Map(),
     judgementTimer: 0
+  },
+  composePreview: {
+    buffer: null,
+    source: null,
+    playing: false,
+    loading: false,
+    offset: 0,
+    startedAt: 0,
+    duration: 0,
+    markdown: "",
+    loadToken: 0
   },
   studio: {
     projects: [],
@@ -2610,24 +2626,206 @@ function escapeHtml(value) {
     .replaceAll("'", "&#39;");
 }
 
+function composePreviewPosition() {
+  const preview = state.composePreview;
+  if (!preview.playing || !state.audioContext) return preview.offset;
+  const elapsed = Math.max(0, state.audioContext.currentTime - preview.startedAt);
+  return Math.min(preview.duration, preview.offset + elapsed);
+}
+
+function updateComposePreviewButtons() {
+  const preview = state.composePreview;
+  ui.composePreviewPlay.disabled = preview.loading;
+  ui.composePreviewPause.disabled = !preview.playing || preview.loading;
+  ui.composePreviewStop.disabled =
+    preview.loading || (!preview.buffer && !preview.playing && preview.offset <= 0);
+}
+
+function stopComposePreviewSource(manual = true) {
+  const preview = state.composePreview;
+  if (!preview.source) return;
+  try {
+    preview.source.__manualStop = manual;
+    preview.source.stop();
+  } catch {}
+  try { preview.source.disconnect(); } catch {}
+  preview.source = null;
+}
+
+function invalidateComposePreview(
+  message = "Editor changed · Play renders the current Compose state."
+) {
+  const preview = state.composePreview;
+  preview.loadToken += 1;
+  preview.loading = false;
+  preview.playing = false;
+  stopComposePreviewSource(true);
+  preview.buffer = null;
+  preview.offset = 0;
+  preview.duration = 0;
+  preview.markdown = "";
+  ui.composePreviewStatus.textContent = message;
+  updateComposePreviewButtons();
+}
+
+async function loadComposePreview() {
+  const markdown = ui.markdownEditor.value;
+  const preview = state.composePreview;
+
+  if (preview.buffer && preview.markdown === markdown) return true;
+
+  const analysis = await analyzeCurrentMarkdown(false);
+  if (!analysis.valid) {
+    ui.composePreviewStatus.textContent = "Fix diagnostics before Play.";
+    return false;
+  }
+
+  const token = ++preview.loadToken;
+  preview.loading = true;
+  preview.playing = false;
+  stopComposePreviewSource(true);
+  preview.buffer = null;
+  preview.offset = 0;
+  preview.duration = 0;
+  ui.composePreviewStatus.textContent = "Rendering current editor...";
+  updateComposePreviewButtons();
+
+  try {
+    const response = await fetch("/v1/render/audio", {
+      method: "POST",
+      cache: "no-store",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        markdown,
+        fileName:
+          state.studio.currentProject ||
+          (analysis.song?.title || "Compose Preview") + ".md"
+      })
+    });
+
+    if (!response.ok) {
+      let message = response.statusText;
+      try {
+        const data = await response.json();
+        message = data.message || data.error || message;
+      } catch {}
+      throw new Error(message);
+    }
+
+    const bytes = await response.arrayBuffer();
+    const context = ensureAudio();
+    const buffer = await context.decodeAudioData(bytes.slice(0));
+
+    if (token !== preview.loadToken) return false;
+
+    preview.buffer = buffer;
+    preview.duration = buffer.duration;
+    preview.offset = 0;
+    preview.markdown = markdown;
+    ui.composePreviewStatus.textContent =
+      "Ready · " + formatTime(buffer.duration) + " · current editor";
+    return true;
+  } catch (error) {
+    if (token === preview.loadToken) {
+      preview.buffer = null;
+      preview.duration = 0;
+      preview.offset = 0;
+      preview.markdown = "";
+      ui.composePreviewStatus.textContent = "Preview error: " + error.message;
+    }
+    return false;
+  } finally {
+    if (token === preview.loadToken) {
+      preview.loading = false;
+      updateComposePreviewButtons();
+    }
+  }
+}
+
+async function playComposePreview() {
+  const preview = state.composePreview;
+  const markdown = ui.markdownEditor.value;
+
+  if (!preview.buffer || preview.markdown !== markdown) {
+    const loaded = await loadComposePreview();
+    if (!loaded) return;
+  }
+
+  if (preview.playing) return;
+  const context = ensureAudio();
+  if (context.state === "suspended") await context.resume();
+
+  if (preview.offset >= preview.duration) preview.offset = 0;
+
+  const source = context.createBufferSource();
+  source.buffer = preview.buffer;
+  source.connect(context.destination);
+  source.__manualStop = false;
+  source.onended = () => {
+    if (source.__manualStop || preview.source !== source) return;
+    preview.playing = false;
+    preview.source = null;
+    preview.offset = 0;
+    ui.composePreviewStatus.textContent = "Preview ended · current editor";
+    updateComposePreviewButtons();
+  };
+
+  preview.source = source;
+  preview.startedAt = context.currentTime;
+  preview.playing = true;
+  source.start(0, Math.max(0, Math.min(preview.duration, preview.offset)));
+  ui.composePreviewStatus.textContent =
+    "Playing current editor · " + formatTime(preview.duration);
+  updateComposePreviewButtons();
+}
+
+function pauseComposePreview() {
+  const preview = state.composePreview;
+  if (!preview.playing) return;
+  preview.offset = composePreviewPosition();
+  preview.playing = false;
+  stopComposePreviewSource(true);
+  ui.composePreviewStatus.textContent =
+    "Paused · " + formatTime(preview.offset) + " / " + formatTime(preview.duration);
+  updateComposePreviewButtons();
+}
+
+function stopComposePreview() {
+  const preview = state.composePreview;
+  preview.playing = false;
+  stopComposePreviewSource(true);
+  preview.offset = 0;
+  if (preview.buffer) {
+    ui.composePreviewStatus.textContent =
+      "Stopped · " + formatTime(preview.duration) + " · current editor";
+  }
+  updateComposePreviewButtons();
+}
+
 function setDirty(value) {
   state.studio.dirty = Boolean(value);
+  if (value) invalidateComposePreview();
   if (!ui.dirtyState) return;
   ui.dirtyState.textContent = state.studio.dirty ? "Unsaved" : "Saved";
   ui.dirtyState.classList.toggle("warn", state.studio.dirty);
   ui.dirtyState.classList.toggle("ok", !state.studio.dirty);
 }
 
-function isPlayTabActive() {
+function isMainTabActive(name) {
   return Boolean(
     [...ui.mainTabs].find(
-      (button) => button.classList.contains("active") && button.dataset.tab === "play"
+      (button) => button.classList.contains("active") && button.dataset.tab === name
     )
   );
 }
 
+function isPlayTabActive() {
+  return isMainTabActive("play");
+}
+
 function activateMainTab(name) {
   const leavingPlay = isPlayTabActive() && name !== "play";
+  const leavingCompose = isMainTabActive("compose") && name !== "compose";
 
   if (name !== "play" && state.studio.hotkeyEditMode) {
     cancelActiveHotkeyEdit();
@@ -2639,6 +2837,8 @@ function activateMainTab(name) {
     if (state.beatLane6.running) stopBeatLaneGame(true);
     panicAll();
   }
+
+  if (leavingCompose) invalidateComposePreview("Current editor preview");
 
   ui.mainTabs.forEach((button) => {
     button.classList.toggle("active", button.dataset.tab === name);
@@ -2812,6 +3012,7 @@ async function openStudioProject(name) {
   }
 
   const data = await api("/v1/project?project=" + encodeURIComponent(name));
+  invalidateComposePreview("Current editor preview");
   state.studio.currentProject = data.name;
   state.studio.markdown = data.markdown;
   state.studio.analysis = {
@@ -3773,6 +3974,39 @@ async function analyzeTracksWorkspace(markdown, fileName = null) {
   return analysis;
 }
 
+async function loadComposeFile(file) {
+  if (!file) return false;
+
+  const markdown = await file.text();
+  const fileName = String(file.name || "Imported.md").trim() || "Imported.md";
+
+  invalidateComposePreview("Imported file · Play renders current Compose state.");
+  state.studio.currentProject = null;
+  state.studio.markdown = markdown;
+  state.studio.analysis = null;
+
+  ui.projectNameInput.value = fileName;
+  ui.markdownEditor.value = markdown;
+  ui.renderOutputName.value = fileName.replace(/\.md$/i, "");
+  ui.projectFileMeta.textContent =
+    "Imported " + fileName + " into Compose · not saved yet.";
+
+  setDirty(true);
+  const analysis = await analyzeCurrentMarkdown(true);
+  if (!analysis.valid) {
+    ui.projectFileMeta.textContent =
+      "Imported " + fileName + " · fix diagnostics before Save/Play.";
+  } else {
+    ui.projectFileMeta.textContent =
+      "Imported " + fileName + " · " +
+      (analysis.song?.tracks?.length || 0) +
+      " track(s) · not saved yet.";
+  }
+
+  activateMainTab("compose");
+  return analysis.valid;
+}
+
 async function loadTracksWorkspaceFile(file) {
   if (!file) return false;
   const markdown = await file.text();
@@ -4197,6 +4431,57 @@ function qPerBar(song) {
   return song.config.timeNumerator * (4 / song.config.timeDenominator);
 }
 
+function editTracksWorkspaceTrackInCompose(trackIndex) {
+  const workspace = state.tracksWorkspace;
+  const index = Number(trackIndex);
+  const track = workspace.analysis?.song?.tracks?.[index];
+
+  if (!workspace.analysis?.valid || !workspace.markdown || !track) {
+    ui.advancedStatus.textContent = "Cannot edit this Track until a valid .md is loaded.";
+    return;
+  }
+
+  stopAdvancedTransport();
+  const fileName = workspace.fileName || "Tracks Workspace.md";
+  state.studio.currentProject = null;
+  state.studio.markdown = workspace.markdown;
+  state.studio.analysis = workspace.analysis;
+
+  ui.markdownEditor.value = workspace.markdown;
+  ui.projectNameInput.value = fileName;
+  ui.renderOutputName.value = fileName.replace(/\.md$/i, "");
+  ui.projectFileMeta.textContent =
+    "Loaded from Tracks · editing " + track.name + " · Save when ready.";
+
+  renderDiagnostics(state.studio.analysis);
+  renderComposeSourceToolbar();
+  renderNodeCanvas();
+  renderFormEditor();
+  setDirty(true);
+
+  activateMainTab("compose");
+  activateComposeMode("form");
+
+  ui.composeTrackSelect.value = String(index);
+  fillTrackSourceTypeSelect(ui.composeSourceType, track);
+  fillSourceItemSelect(
+    ui.composeVoiceSelect,
+    ui.composeSourceType.value,
+    voiceValueForTrack(track)
+  );
+  ui.composeTrackVolume.value = String(track.volume);
+  ui.composeTrackVolumeValue.textContent = Math.round(track.volume * 100) + "%";
+
+  requestAnimationFrame(() => {
+    const target = ui.formTracks.querySelectorAll(".track-form-row")[index];
+    if (!target) return;
+    target.classList.add("edit-target");
+    target.scrollIntoView({ behavior: "smooth", block: "center" });
+    target.querySelector(".form-track-name")?.focus({ preventScroll: true });
+    window.setTimeout(() => target.classList.remove("edit-target"), 1800);
+  });
+}
+
 function renderTrackTimeline() {
   const analysis = state.tracksWorkspace.analysis;
   ui.trackTimeline.innerHTML = "";
@@ -4315,6 +4600,15 @@ function renderTrackTimeline() {
     });
     volumeWrap.append(volumeLabel, volume, volumeValue);
 
+    const editTrack = document.createElement("button");
+    editTrack.type = "button";
+    editTrack.className = "track-edit";
+    editTrack.textContent = "Edit";
+    editTrack.setAttribute("aria-label", "Edit " + track.name + " in Compose");
+    editTrack.addEventListener("click", () =>
+      editTracksWorkspaceTrackInCompose(trackIndex)
+    );
+
     const mute = document.createElement("button");
     mute.type = "button";
     mute.className = "track-mute";
@@ -4330,7 +4624,14 @@ function renderTrackTimeline() {
     downloadStem.setAttribute("aria-label", "Download stem WAV for " + track.name);
     downloadStem.addEventListener("click", () => downloadTracksStem(trackIndex));
 
-    controls.append(sourceTypeWrap, voiceWrap, volumeWrap, mute, downloadStem);
+    controls.append(
+      sourceTypeWrap,
+      voiceWrap,
+      volumeWrap,
+      editTrack,
+      mute,
+      downloadStem
+    );
     head.append(title, controls);
 
     const lane = document.createElement("div");
@@ -4826,6 +5127,20 @@ function wireStudioUi() {
     if (target) openStudioProject(target);
   });
   ui.saveProject.addEventListener("click", saveCurrentProject);
+  ui.composeFileInput.addEventListener("change", async () => {
+    const file = ui.composeFileInput.files?.[0] || null;
+    if (!file) return;
+    try {
+      await loadComposeFile(file);
+    } catch (error) {
+      ui.projectFileMeta.textContent = "Compose import error: " + error.message;
+    } finally {
+      ui.composeFileInput.value = "";
+    }
+  });
+  ui.composePreviewPlay.addEventListener("click", playComposePreview);
+  ui.composePreviewPause.addEventListener("click", pauseComposePreview);
+  ui.composePreviewStop.addEventListener("click", stopComposePreview);
   ui.renameProject.addEventListener("click", renameCurrentProject);
   ui.deleteProject.addEventListener("click", deleteCurrentProject);
   ui.analyzeProject.addEventListener("click", () => analyzeCurrentMarkdown(true));
