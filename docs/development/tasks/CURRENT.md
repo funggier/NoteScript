@@ -334,3 +334,20 @@ Status: **COMPLETE / GREEN / EXACT-COMMIT CI GREEN**
 Evidence:
 
 `docs/development/reports/NOTESCRIPT-20261020-nine-song-listening-expansion.md`
+
+## v0.3.0 release
+
+Status: **LOCAL GREEN / RELEASE COMMIT PENDING / PUBLISH PENDING**
+
+- [x] Set package, CLI and Control API version metadata to 0.3.0.
+- [x] Release scope includes the expanded native sound library and 19-song listening pack.
+- [x] Exclude Desktop-only third-party SFZ testing libraries from release artifacts.
+- [x] Local release qualification GREEN.
+- [ ] Exact release-commit GitHub Actions GREEN.
+- [ ] Annotated `v0.3.0` tag created at exact release commit.
+- [ ] Portable ZIP + SHA-256 published.
+- [ ] Post-publish verification GREEN.
+
+Evidence:
+
+`docs/development/reports/NOTESCRIPT-20261021-v0.3.0-release-qualification.md`

@@ -194,4 +194,19 @@ Evidence:
 
 `docs/development/reports/NOTESCRIPT-20261020-nine-song-listening-expansion.md`
 
+
+
+## v0.3.0 — Expanded Sound Library & Listening Pack — LOCAL GREEN / RELEASE PENDING
+
+- [x] Promote the post-v0.2.0 expanded native sound library into the next release.
+- [x] Promote the complete 19-song listening pack into the next release.
+- [x] Align package / CLI / API version metadata to 0.3.0.
+- [x] Keep third-party Desktop-only instrument libraries outside the repository and release.
+- [ ] Exact release commit qualified by GitHub Actions.
+- [ ] Publish and verify `v0.3.0`.
+
+Evidence:
+
+`docs/development/reports/NOTESCRIPT-20261021-v0.3.0-release-qualification.md`
+
 The NoteScript core remains AI-free.
