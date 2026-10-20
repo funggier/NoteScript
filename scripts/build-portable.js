@@ -63,6 +63,19 @@ fs.copyFileSync(
   path.join(out, "projects", "BeatLane6 Starter.md")
 );
 
+for (const [sourceName, projectName] of [
+  ["sunlit-detour.md", "Sunlit Detour.md"],
+  ["paper-satellites.md", "Paper Satellites.md"],
+  ["lemon-sky-arcade.md", "Lemon Sky Arcade.md"],
+  ["windowseat-polaroid.md", "Windowseat Polaroid.md"],
+  ["afterimage-parade.md", "Afterimage Parade.md"]
+]) {
+  fs.copyFileSync(
+    path.join(root, "examples", "beatlane6-songs", sourceName),
+    path.join(out, "projects", projectName)
+  );
+}
+
 const cmd = [
   "@echo off",
   "setlocal",

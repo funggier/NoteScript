@@ -31,6 +31,7 @@ const here = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(here, "..");
 const songFile = path.join(root, "examples", "evening-walk.md");
 const beatLaneStarterFile = path.join(root, "examples", "beatlane6-starter.md");
+const beatLaneSongPackDir = path.join(root, "examples", "beatlane6-songs");
 
 test("keyboard hotkeys follow physical key positions across input languages", () => {
   assert.equal(physicalBindingFromCode("KeyA"), "a");
@@ -249,6 +250,50 @@ test("generates deterministic BeatLane6 charts from the canonical timeline", () 
     const key = event.timeSeconds.toFixed(6) + ":" + event.lane;
     assert.equal(laneAtTime.has(key), false, "same lane should not receive simultaneous notes");
     laneAtTime.add(key);
+  }
+});
+
+test("bundled BeatLane6 song pack is long-form, six-lane and game-ready", () => {
+  const expected = new Map([
+    ["afterimage-parade.md", "Afterimage Parade"],
+    ["lemon-sky-arcade.md", "Lemon Sky Arcade"],
+    ["paper-satellites.md", "Paper Satellites"],
+    ["sunlit-detour.md", "Sunlit Detour"],
+    ["windowseat-polaroid.md", "Windowseat Polaroid"]
+  ]);
+
+  const files = fs.readdirSync(beatLaneSongPackDir)
+    .filter((name) => expected.has(name))
+    .sort();
+  assert.deepEqual(files, [...expected.keys()].sort());
+
+  for (const fileName of files) {
+    const file = path.join(beatLaneSongPackDir, fileName);
+    const song = parseSong(fs.readFileSync(file, "utf8"));
+    assert.equal(song.title, expected.get(fileName));
+    assert.equal(song.tracks.length, 4);
+    assert.ok(song.tracks.every((track) => track.bars.length === 36));
+
+    const timeline = compileTimeline(song);
+    const charts = ["easy", "normal", "hard"].map((difficulty) =>
+      generateBeatLane6Chart(timeline, { difficulty })
+    );
+    const [easy, normal, hard] = charts;
+
+    assert.ok(normal.durationSeconds >= 60);
+    assert.ok(easy.events.length <= normal.events.length);
+    assert.ok(normal.events.length <= hard.events.length);
+    assert.ok(normal.stats.tapCount > 0);
+    assert.ok(normal.stats.holdCount > 0);
+    assert.ok(normal.events.length >= 300);
+    assert.ok(normal.events.length <= 650);
+
+    for (const chart of charts) {
+      assert.deepEqual(
+        [...new Set(chart.events.map((event) => event.lane))].sort((a, b) => a - b),
+        [0, 1, 2, 3, 4, 5]
+      );
+    }
   }
 });
 

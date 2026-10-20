@@ -110,6 +110,21 @@ Deferred follow-up:
 - manual chart overrides/editor
 - persistent local high scores
 
+## Post-NTS-007 — BeatLane6 long-form song pack — LOCAL + PORTABLE GREEN
+
+- [x] Add five original 36-bar BeatLane6 songs.
+- [x] Target roughly 1:01–1:23 per song for longer play sessions.
+- [x] Qualify Easy / Normal / Hard charts with all six lanes.
+- [x] Require Tap + Hold events on Normal.
+- [x] Render all songs through the deterministic offline renderer.
+- [x] Bundle the song pack into portable `projects/`.
+- [x] Add automated and portable CI gates.
+- [ ] Exact-commit CI GREEN.
+
+Evidence:
+
+`docs/development/reports/NOTESCRIPT-20261020-beatlane6-long-form-song-pack.md`
+
 ## Post-NTS-007 — Studio source taxonomy and render workflow — COMPLETE / v0.2.0 PUBLISHED
 
 - [x] Categorize native sounds under `sounds/soundpiano/<pack>` and `sounds/soundpad/<set>`.

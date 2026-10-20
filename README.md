@@ -248,6 +248,7 @@ Implemented:
 - BeatLane6 pre-roll highway, Tap/Hold/chord input, Perfect/Great/Good/Miss judgement, combo multiplier, score, accuracy, life/fail and success results.
 - BeatLane6 hit audio uses the source track's real NoteScript sound/instrument; an optional low-volume full-song guide track is available.
 - Bundled `BeatLane6 Starter.md` project teaches all six lanes with the Pluck sound pack.
+- Bundled long-form BeatLane6 song pack adds five original 36-bar projects: `Sunlit Detour`, `Paper Satellites`, `Lemon Sky Arcade`, `Windowseat Polaroid`, and `Afterimage Parade`. They run about 1:01–1:23, use all six lanes on Easy/Normal/Hard, and intentionally vary Tap/Hold density and tempo.
 - Browser-based live playing: mouse keys, remappable computer-keyboard controls, polyphony, velocity, octave shift, sustain and panic.
 - Live hotkeys remain active after clicking non-text UI controls such as buttons, selects and sliders while the Play tab is active; changing to another Studio tab disables performance hotkeys and releases held notes. Only real text-entry fields suppress performance hotkeys while typing.
 - Performance hotkeys follow physical keyboard positions via `KeyboardEvent.code`, so layouts such as Thai still use the same A/S/D/J/K/L and piano/SoundPad positions without switching the OS input language first.

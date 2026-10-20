@@ -214,6 +214,24 @@ Deferred extensions, not required for the completed baseline:
 - persistent high scores
 - input/audio offset calibration polish
 
+## Post-NTS-007 BeatLane6 long-form song pack
+
+Status: **IMPLEMENTED / LOCAL + PORTABLE GREEN / EXACT-COMMIT CI PENDING**
+
+- [x] Add five original long-form BeatLane6 songs.
+- [x] Extend every song to 36 bars per Track and at least 60 seconds.
+- [x] Keep four independent Tracks per song using bundled SoundPiano/SoundPad sources.
+- [x] Qualify Easy / Normal / Hard chart generation for all five songs.
+- [x] Use all six lanes on every difficulty.
+- [x] Keep both Tap and Hold events on Normal.
+- [x] Render all five songs to valid RIFF/WAV.
+- [x] Copy all five songs into portable `projects/` with human-readable names.
+- [x] Add portable CI validation and BeatLane6 API chart checks.
+
+Evidence:
+
+`docs/development/reports/NOTESCRIPT-20261020-beatlane6-long-form-song-pack.md`
+
 ## Post-NTS-007 Studio source/render workflow
 
 Status: **COMPLETE / GREEN / v0.2.0 PUBLISHED + VERIFIED**

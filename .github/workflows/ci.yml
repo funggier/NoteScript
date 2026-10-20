@@ -27,6 +27,11 @@ jobs:
           out\NoteScript-portable\NoteScript.cmd validate "out\NoteScript-portable\projects\Evening Walk.md"
           out\NoteScript-portable\NoteScript.cmd validate "out\NoteScript-portable\projects\SFZ Basic.md"
           out\NoteScript-portable\NoteScript.cmd validate "out\NoteScript-portable\projects\BeatLane6 Starter.md"
+          out\NoteScript-portable\NoteScript.cmd validate "out\NoteScript-portable\projects\Sunlit Detour.md"
+          out\NoteScript-portable\NoteScript.cmd validate "out\NoteScript-portable\projects\Paper Satellites.md"
+          out\NoteScript-portable\NoteScript.cmd validate "out\NoteScript-portable\projects\Lemon Sky Arcade.md"
+          out\NoteScript-portable\NoteScript.cmd validate "out\NoteScript-portable\projects\Windowseat Polaroid.md"
+          out\NoteScript-portable\NoteScript.cmd validate "out\NoteScript-portable\projects\Afterimage Parade.md"
           out\NoteScript-portable\NoteScript.cmd list-sounds "out\NoteScript-portable\projects\Evening Walk.md"
           out\NoteScript-portable\NoteScript.cmd list-instruments "out\NoteScript-portable\projects\SFZ Basic.md"
           out\NoteScript-portable\NoteScript.cmd render "out\NoteScript-portable\projects\Evening Walk.md" -o "out\NoteScript-portable\exports\Evening Walk.wav"
@@ -213,6 +218,35 @@ jobs:
               $beatLaneUsed.Count -ne 6
             ) {
               throw "Portable BeatLane6 starter chart API smoke test failed."
+            }
+
+            foreach ($songName in @(
+              "Sunlit Detour.md",
+              "Paper Satellites.md",
+              "Lemon Sky Arcade.md",
+              "Windowseat Polaroid.md",
+              "Afterimage Parade.md"
+            )) {
+              $songPath = Join-Path $root ("projects\" + $songName)
+              if (-not (Test-Path $songPath)) {
+                throw "Missing portable BeatLane6 song-pack project: $songName"
+              }
+
+              $encodedSong = [uri]::EscapeDataString($songName)
+              $songChart = Invoke-RestMethod -Uri "$baseUri/v1/game/beatlane6/chart?project=$encodedSong&difficulty=normal" -TimeoutSec 5
+              $songLanes = @($songChart.events | ForEach-Object { [int]$_.lane } | Sort-Object -Unique)
+              if (
+                $songChart.game -ne "BeatLane6" -or
+                $songChart.laneCount -ne 6 -or
+                [double]$songChart.durationSeconds -lt 60 -or
+                $songChart.events.Count -lt 300 -or
+                $songChart.events.Count -gt 650 -or
+                $songChart.stats.tapCount -lt 1 -or
+                $songChart.stats.holdCount -lt 1 -or
+                $songLanes.Count -ne 6
+              ) {
+                throw "Portable BeatLane6 long-form song-pack chart smoke test failed: $songName"
+              }
             }
 
             $capabilities = Invoke-RestMethod -Uri "$baseUri/v1/capabilities" -TimeoutSec 5
