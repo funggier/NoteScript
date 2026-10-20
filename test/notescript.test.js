@@ -812,6 +812,11 @@ test("Studio UI exposes unified tabs, independent Tracks and remappable hotkeys"
   assert.match(html, /All Studio tabs are available together as one complete workspace/);
   assert.match(app, /\/v1\/transport\/audio/);
   assert.match(app, /function isTextEntryTarget\(target\)/);
+  assert.match(app, /function isPlayTabActive\(\)/);
+  assert.match(app, /const leavingPlay = isPlayTabActive\(\) && name !== "play"/);
+  assert.match(app, /if \(!isPlayTabActive\(\)\) return;/);
+  assert.match(app, /if \(state\.beatLane6\.running\) stopBeatLaneGame\(true\)/);
+  assert.match(app, /panicAll\(\)/);
   assert.match(app, /NON_TEXT_INPUT_TYPES/);
   assert.match(app, /if \(isTextEntryTarget\(event\.target\)\) return;/);
   assert.doesNotMatch(app, /event\.target instanceof HTMLSelectElement/);

@@ -2618,9 +2618,26 @@ function setDirty(value) {
   ui.dirtyState.classList.toggle("ok", !state.studio.dirty);
 }
 
+function isPlayTabActive() {
+  return Boolean(
+    [...ui.mainTabs].find(
+      (button) => button.classList.contains("active") && button.dataset.tab === "play"
+    )
+  );
+}
+
 function activateMainTab(name) {
+  const leavingPlay = isPlayTabActive() && name !== "play";
+
   if (name !== "play" && state.studio.hotkeyEditMode) {
     cancelActiveHotkeyEdit();
+  }
+
+  if (leavingPlay) {
+    state.spaceSustain = false;
+    syncSustain();
+    if (state.beatLane6.running) stopBeatLaneGame(true);
+    panicAll();
   }
 
   ui.mainTabs.forEach((button) => {
@@ -5100,6 +5117,7 @@ window.addEventListener("keydown", (event) => {
     return;
   }
 
+  if (!isPlayTabActive()) return;
   if (isTextEntryTarget(event.target)) return;
 
   if (state.playMode === "beatlane6") {
@@ -5184,6 +5202,8 @@ window.addEventListener("keyup", (event) => {
     event.preventDefault();
     return;
   }
+
+  if (!isPlayTabActive()) return;
 
   const physicalKey = canonicalBindingFromEvent(event);
   if (state.playMode === "beatlane6") {

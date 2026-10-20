@@ -33,7 +33,7 @@ Transport checkpoint:
 - [x] Existing playable on-screen piano/SoundPad controls retained.
 - [x] Mouse/computer-keyboard/Web MIDI audition retained.
 - [x] Remappable game-style hotkeys.
-- [x] Performance hotkeys remain active after clicking buttons/selects/sliders; text-entry fields alone suppress performance keys while typing.
+- [x] Performance hotkeys remain active after clicking buttons/selects/sliders while Play is active; switching to any other Studio tab disables performance hotkeys and releases held notes/sustain.
 - [x] Physical-key mapping uses `KeyboardEvent.code`, so Thai keyboard layout keeps A/S/D/J/K/L and piano/SoundPad positions without language switching.
 - [x] Piano keycaps reflect current hotkey bindings.
 - [x] Direct piano hotkey edit mode: click note -> press key -> Save/Cancel.

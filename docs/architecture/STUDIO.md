@@ -33,7 +33,7 @@ Input sources:
 
 - mouse/pointer;
 - remappable computer keyboard;
-- performance hotkeys stay active after non-text UI controls retain focus;
+- performance hotkeys stay active after non-text UI controls retain focus, but only while the Play tab is active; leaving Play releases held notes/sustain and stops an active BeatLane6 run;
 - physical-key matching uses `KeyboardEvent.code`, so Thai/other layouts preserve the same piano, SoundPad and BeatLane6 key positions;
 - Web MIDI when the browser provides it.
 

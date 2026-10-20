@@ -131,6 +131,9 @@ jobs:
               $appScript.StatusCode -ne 200 -or
               $keyboardScript.StatusCode -ne 200 -or
               $appScript.Content -notmatch 'isTextEntryTarget\(event\.target\)' -or
+              $appScript.Content -notmatch 'function isPlayTabActive\(\)' -or
+              $appScript.Content -notmatch 'const leavingPlay = isPlayTabActive\(\) && name !== "play"' -or
+              $appScript.Content -notmatch 'if \(!isPlayTabActive\(\)\) return' -or
               $appScript.Content -match 'event\.target instanceof HTMLSelectElement' -or
               $appScript.Content -match 'event\.target instanceof HTMLButtonElement' -or
               $keyboardScript.Content -notmatch 'physicalBindingFromCode' -or
