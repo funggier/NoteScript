@@ -42,6 +42,8 @@ jobs:
             throw "NoteScript.cmd is missing from the portable build."
           }
 
+          Copy-Item -LiteralPath "test\fixtures\basic-project.md" -Destination (Join-Path $root "projects\Test Fixture.md") -Force
+
           foreach ($legacy in @(
             "Start-Control-API.cmd",
             "Stop-Control-API.cmd",
