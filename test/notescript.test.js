@@ -84,13 +84,26 @@ test("loads pitched and SoundPad sound add-ons", () => {
     assert.equal(soundPad.triggers.has(trigger), true, "missing SoundPad trigger: " + trigger);
   }
 
-  for (const id of [
-    "electric-piano", "music-box", "organ", "synth-bass",
-    "synth-lead", "warm-pad", "pluck"
-  ]) {
+  const pitchedIds = [
+    "piano", "electric-piano", "music-box", "organ", "synth-bass",
+    "synth-lead", "warm-pad", "pluck", "acoustic-guitar", "nylon-guitar",
+    "clean-electric-guitar", "jazz-guitar", "strings", "flute", "marimba",
+    "vibraphone", "choir", "soft-brass"
+  ];
+  for (const id of pitchedIds) {
     const pack = loadSoundPack(path.join(root, "examples", "sounds", "soundpiano", id));
     assert.equal(pack.type, "pitched", id + " should be pitched");
     assert.equal(pack.samples.size, 5, id + " should expose five root samples");
+    assert.equal(pack.license, "MIT");
+  }
+
+  const soundPadIds = [
+    "soundpad", "acoustic-drums", "brush-drums", "electronic-drums", "lofi-drums"
+  ];
+  for (const id of soundPadIds) {
+    const pack = loadSoundPack(path.join(root, "examples", "sounds", "soundpad", id));
+    assert.equal(pack.type, "soundpad", id + " should be SoundPad");
+    assert.equal(pack.triggers.size, 16, id + " should expose sixteen triggers");
     assert.equal(pack.license, "MIT");
   }
 
@@ -114,9 +127,13 @@ test("loads pitched and SoundPad sound add-ons", () => {
   assert.equal(loadSoundPack(legacyDir).type, "soundpad");
 
   const discovered = listSoundAddons([path.join(root, "examples", "sounds")]);
-  assert.equal(discovered.length, 9);
-  assert.equal(discovered.find((item) => item.name === "piano")?.category, "soundpiano");
-  assert.equal(discovered.find((item) => item.name === "soundpad")?.category, "soundpad");
+  assert.equal(discovered.length, pitchedIds.length + soundPadIds.length);
+  for (const id of pitchedIds) {
+    assert.equal(discovered.find((item) => item.name === id)?.category, "soundpiano");
+  }
+  for (const id of soundPadIds) {
+    assert.equal(discovered.find((item) => item.name === id)?.category, "soundpad");
+  }
 
   const categoryRoot = fs.mkdtempSync(path.join(os.tmpdir(), "notescript-sound-categories-"));
   const forcedPad = path.join(categoryRoot, "soundpad", "forced-pad");
@@ -722,7 +739,10 @@ test("control service exposes sound details and audition WAV", () => {
 
   for (const id of [
     "piano", "electric-piano", "music-box", "organ", "synth-bass",
-    "synth-lead", "warm-pad", "pluck", "soundpad"
+    "synth-lead", "warm-pad", "pluck", "acoustic-guitar", "nylon-guitar",
+    "clean-electric-guitar", "jazz-guitar", "strings", "flute", "marimba",
+    "vibraphone", "choir", "soft-brass", "soundpad", "acoustic-drums",
+    "brush-drums", "electronic-drums", "lofi-drums"
   ]) {
     assert.ok(sounds.some((item) => item.id === id), "missing production sound: " + id);
   }
@@ -733,7 +753,9 @@ test("control service exposes sound details and audition WAV", () => {
 
   for (const id of [
     "electric-piano", "music-box", "organ", "synth-bass",
-    "synth-lead", "warm-pad", "pluck"
+    "synth-lead", "warm-pad", "pluck", "acoustic-guitar", "nylon-guitar",
+    "clean-electric-guitar", "jazz-guitar", "strings", "flute", "marimba",
+    "vibraphone", "choir", "soft-brass"
   ]) {
     const audition = service.getAuditionAudio(id, { note: 60 });
     assert.equal(audition.buffer.toString("ascii", 0, 4), "RIFF", id + " audition should be WAV");
@@ -744,6 +766,13 @@ test("control service exposes sound details and audition WAV", () => {
     const audition = service.getAuditionAudio("soundpad", { trigger });
     assert.equal(audition.buffer.toString("ascii", 0, 4), "RIFF", trigger + " should be WAV");
     assert.ok(audition.buffer.length > 44);
+  }
+  for (const kit of ["acoustic-drums", "brush-drums", "electronic-drums", "lofi-drums"]) {
+    for (const trigger of ["kick", "snare", "closed-hat", "ride"]) {
+      const audition = service.getAuditionAudio(kit, { trigger });
+      assert.equal(audition.buffer.toString("ascii", 0, 4), "RIFF", kit + ":" + trigger + " should be WAV");
+      assert.ok(audition.buffer.length > 44);
+    }
   }
 
   const instruments = service.listInstruments();

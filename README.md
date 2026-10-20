@@ -140,6 +140,8 @@ NoteScript ships a deterministic, redistributable native sound library generated
 `scripts/generate-core-sounds.js`. These packs are authored by the NoteScript project
 and distributed under the repository MIT license:
 
+Pitched SoundPiano packs:
+
 - `piano` — Piano
 - `electric-piano` — Electric Piano
 - `music-box` — Music Box
@@ -148,9 +150,26 @@ and distributed under the repository MIT license:
 - `synth-lead` — Synth Lead
 - `warm-pad` — Warm Pad
 - `pluck` — Pluck
-- `soundpad` — 16-pad drums, percussion and effects
+- `acoustic-guitar` — Acoustic Guitar
+- `nylon-guitar` — Nylon Guitar
+- `clean-electric-guitar` — Clean Electric Guitar
+- `jazz-guitar` — Jazz Guitar
+- `strings` — Strings
+- `flute` — Flute
+- `marimba` — Marimba
+- `vibraphone` — Vibraphone
+- `choir` — Choir
+- `soft-brass` — Soft Brass
 
-The built-in SoundPad currently contains:
+SoundPad sets:
+
+- `soundpad` — Core drums, percussion and effects
+- `acoustic-drums` — Fuller acoustic-style drum kit
+- `brush-drums` — Soft brushed drum kit
+- `electronic-drums` — Punchy synthesized drum kit
+- `lofi-drums` — Filtered and lightly saturated lo-fi kit
+
+All five built-in SoundPad sets expose the same 16 trigger names so a drum track can switch kits without rewriting its pattern:
 
 `kick`, `snare`, `clap`, `closed-hat`, `open-hat`, `shaker`,
 `tom-low`, `tom-high`, `rim`, `cowbell`, `crash`, `ride`,
@@ -219,7 +238,7 @@ Implemented:
 - Categorized `sounds/soundpiano/<pack>` and `sounds/soundpad/<set>` add-ons with legacy flat-layout compatibility.
 - Pitched SoundPiano sample packs with nearest-root pitch shifting.
 - SoundPad named-trigger sample packs whose category folder enforces SoundPad semantics.
-- Built-in MIT sound library with 8 pitched packs and a 16-trigger SoundPad.
+- Built-in MIT sound library with 18 pitched packs and five interchangeable 16-trigger SoundPad sets, including four guitar voices and four additional drum kits.
 - PCM16 WAV loading and deterministic WAV rendering.
 - Decoder abstraction with optional FFmpeg support for FLAC/OGG/OPUS/AIFF/MP3/M4A.
 - First SFZ subset parser/renderer with key/velocity regions, pitch center, tune/transpose, gain and simple envelope handling.

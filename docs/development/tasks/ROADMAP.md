@@ -150,4 +150,21 @@ Evidence:
 
 `docs/development/reports/NOTESCRIPT-20261020-v0.2.0-release-qualification.md`
 
+
+
+## Post-v0.2.0 — Expanded instrument and drum library — IMPLEMENTED / CI PENDING
+
+- [x] Add Acoustic Guitar, Nylon Guitar, Clean Electric Guitar and Jazz Guitar.
+- [x] Add Strings, Flute, Marimba, Vibraphone, Choir and Soft Brass.
+- [x] Add Acoustic Drums, Brush Drums, Electronic Drums and Lo-Fi Drums.
+- [x] Keep all five SoundPad sets on one interchangeable 16-trigger contract.
+- [x] Keep all bundled audio deterministic and MIT redistributable.
+- [x] Extend automated discovery/audition tests and portable CI expectations to all 23 production packs.
+- [x] Local syntax, tests and portable qualification GREEN.
+- [ ] Exact-commit GitHub Actions GREEN.
+
+Evidence:
+
+`docs/development/reports/NOTESCRIPT-20261020-expanded-instrument-drum-library.md`
+
 The NoteScript core remains AI-free.

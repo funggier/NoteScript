@@ -283,7 +283,21 @@ jobs:
               "synth-lead",
               "warm-pad",
               "pluck",
-              "soundpad"
+              "acoustic-guitar",
+              "nylon-guitar",
+              "clean-electric-guitar",
+              "jazz-guitar",
+              "strings",
+              "flute",
+              "marimba",
+              "vibraphone",
+              "choir",
+              "soft-brass",
+              "soundpad",
+              "acoustic-drums",
+              "brush-drums",
+              "electronic-drums",
+              "lofi-drums"
             )
             foreach ($requiredSoundId in $requiredSoundIds) {
               if (@($sounds.sounds | Where-Object { $_.id -eq $requiredSoundId }).Count -ne 1) {
@@ -291,15 +305,22 @@ jobs:
               }
             }
             $soundPad = @($sounds.sounds | Where-Object { $_.id -eq "soundpad" })
+            $acousticDrums = @($sounds.sounds | Where-Object { $_.id -eq "acoustic-drums" })
             $piano = @($sounds.sounds | Where-Object { $_.id -eq "piano" })
+            $acousticGuitar = @($sounds.sounds | Where-Object { $_.id -eq "acoustic-guitar" })
             if (
               $sounds.sounds.Count -ne $requiredSoundIds.Count -or
               $soundPad[0].type -ne "soundpad" -or
               $soundPad[0].category -ne "soundpad" -or
               $soundPad[0].triggers.Count -ne 16 -or
               -not ($soundPad[0].triggers -contains "impact") -or
+              $acousticDrums[0].type -ne "soundpad" -or
+              $acousticDrums[0].category -ne "soundpad" -or
+              $acousticDrums[0].triggers.Count -ne 16 -or
               $piano[0].type -ne "pitched" -or
-              $piano[0].category -ne "soundpiano"
+              $piano[0].category -ne "soundpiano" -or
+              $acousticGuitar[0].type -ne "pitched" -or
+              $acousticGuitar[0].category -ne "soundpiano"
             ) {
               throw "Portable production sound category / SoundPad discovery smoke test failed."
             }
