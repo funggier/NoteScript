@@ -323,13 +323,13 @@ Evidence:
 
 ## Post-v0.2.0 nine-song listening expansion
 
-Status: **IMPLEMENTED / LOCAL GREEN / EXACT-COMMIT CI PENDING**
+Status: **COMPLETE / GREEN / EXACT-COMMIT CI GREEN**
 
 - [x] Promote the nine selected second-batch trial songs into `examples/listening-songs/`.
 - [x] Expand the production listening-song pack from 10 to 19 songs.
 - [x] Bundle all nine new songs into portable `projects/`.
 - [x] Extend automated structure/source checks and portable CI validation.
-- [ ] Exact-commit GitHub Actions GREEN.
+- [x] Exact-commit GitHub Actions GREEN: run `39450835736` for commit `fccdc8634372c3e30615cdc779a9b261365f99f5`.
 
 Evidence:
 

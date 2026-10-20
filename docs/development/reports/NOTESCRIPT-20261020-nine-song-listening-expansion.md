@@ -2,7 +2,7 @@
 
 Date: 2026-10-20 (Asia/Bangkok)
 
-Status: **IMPLEMENTED / LOCAL GREEN / EXACT-COMMIT CI PENDING**
+Status: **COMPLETE / GREEN / EXACT-COMMIT CI GREEN**
 
 ## Scope
 
@@ -45,8 +45,14 @@ All promoted songs:
 
 ## GitHub exact-commit evidence
 
-Implementation commit: **PENDING**
+Implementation commit:
 
-GitHub Actions run: **PENDING**
+`fccdc8634372c3e30615cdc779a9b261365f99f5`
 
-Final result: **PENDING**
+Exact-commit GitHub Actions run:
+
+`39450835736`
+
+Final result: **SUCCESS**
+
+All workflow stages passed, including 25/25 tests, portable build, validation of the nine promoted projects, portable CLI smoke, and Studio / Control API smoke.

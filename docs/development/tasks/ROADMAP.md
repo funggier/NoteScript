@@ -183,12 +183,12 @@ Evidence:
 
 
 
-## Post-v0.2.0 — Nine-song listening expansion — IMPLEMENTED / CI PENDING
+## Post-v0.2.0 — Nine-song listening expansion — COMPLETE / GREEN
 
 - [x] Promote nine selected songs from the second local trial batch.
 - [x] Expand the listening-song pack to 19 long-form songs.
 - [x] Bundle and validate the nine additions in portable output.
-- [ ] Exact-commit GitHub Actions GREEN.
+- [x] Exact-commit GitHub Actions GREEN: run `39450835736` for commit `fccdc8634372c3e30615cdc779a9b261365f99f5`.
 
 Evidence:
 
