@@ -29,7 +29,7 @@ import {
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(here, "..");
-const songFile = path.join(root, "examples", "evening-walk.md");
+const songFile = path.join(root, "test", "fixtures", "basic-project.md");
 const beatLaneStarterFile = path.join(root, "examples", "beatlane6-starter.md");
 const beatLaneSongPackDir = path.join(root, "examples", "beatlane6-songs");
 
@@ -62,7 +62,7 @@ test("keyboard hotkeys follow physical key positions across input languages", ()
 
 test("parses the example song", () => {
   const song = parseSong(fs.readFileSync(songFile, "utf8"));
-  assert.equal(song.title, "Evening Walk");
+  assert.equal(song.title, "Test Fixture");
   assert.equal(song.config.tempo, 82);
   assert.equal(song.tracks.length, 2);
   assert.equal(song.tracks[0].sound, "piano");
@@ -182,7 +182,7 @@ test("renders deterministic WAV output", () => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "notescript-"));
   const out = path.join(dir, "song.wav");
   const song = parseSong(fs.readFileSync(songFile, "utf8"));
-  const report = renderToWav(song, songFile, out);
+  const report = renderToWav(song, beatLaneStarterFile, out);
   assert.ok(fs.statSync(out).size > 44);
   assert.equal(report.sampleRate, 44100);
   assert.equal(fs.readFileSync(out).toString("ascii", 0, 4), "RIFF");
@@ -190,7 +190,7 @@ test("renders deterministic WAV output", () => {
 
 test("renders an in-memory WAV preview without writing a file", () => {
   const song = parseSong(fs.readFileSync(songFile, "utf8"));
-  const rendered = renderToWavBuffer(song, songFile);
+  const rendered = renderToWavBuffer(song, beatLaneStarterFile);
   assert.equal(rendered.buffer.toString("ascii", 0, 4), "RIFF");
   assert.ok(rendered.buffer.length > 44);
   assert.equal(rendered.report.sampleRate, 44100);
@@ -255,11 +255,7 @@ test("generates deterministic BeatLane6 charts from the canonical timeline", () 
 
 test("bundled BeatLane6 song pack is long-form, six-lane and game-ready", () => {
   const expected = new Map([
-    ["afterimage-parade.md", "Afterimage Parade"],
-    ["lemon-sky-arcade.md", "Lemon Sky Arcade"],
-    ["paper-satellites.md", "Paper Satellites"],
-    ["sunlit-detour.md", "Sunlit Detour"],
-    ["windowseat-polaroid.md", "Windowseat Polaroid"]
+    ["sunlit-detour.md", "Sunlit Detour"]
   ]);
 
   const files = fs.readdirSync(beatLaneSongPackDir)
@@ -474,7 +470,7 @@ test("control service saves and validates a project inside portable workspace", 
 
   const saved = service.saveProject("Evening Test", markdown);
   assert.ok(saved.file.startsWith(path.join(dir, "projects")));
-  assert.equal(saved.title, "Evening Walk");
+  assert.equal(saved.title, "Test Fixture");
 
   const validated = service.validateProject("Evening Test.md");
   assert.equal(validated.valid, true);
@@ -593,28 +589,28 @@ test("control service caches project transport preview audio", () => {
     recursive: true,
     force: true
   });
-  fs.copyFileSync(songFile, path.join(dir, "projects", "Evening Walk.md"));
+  fs.copyFileSync(songFile, path.join(dir, "projects", "Test Fixture.md"));
 
-  const projectFile = path.join(dir, "projects", "Evening Walk.md");
+  const projectFile = path.join(dir, "projects", "Test Fixture.md");
   const sourceBeforeOverride = fs.readFileSync(projectFile, "utf8");
   const service = createControlService(dir);
-  const first = service.getTransportPreview("Evening Walk.md");
-  const second = service.getTransportPreview("Evening Walk.md");
+  const first = service.getTransportPreview("Test Fixture.md");
+  const second = service.getTransportPreview("Test Fixture.md");
   const electric = service.getTransportPreview(
-    "Evening Walk.md",
+    "Test Fixture.md",
     { type: "sound", id: "electric-piano" }
   );
   const electricCached = service.getTransportPreview(
-    "Evening Walk.md",
+    "Test Fixture.md",
     { type: "sound", id: "electric-piano" }
   );
   const sfzOverride = service.getTransportPreview(
-    "Evening Walk.md",
+    "Test Fixture.md",
     { type: "instrument", id: "SFZ/basic-sfz" }
   );
-  const stem0 = service.getTransportTrackPreview("Evening Walk.md", 0);
-  const stem0Cached = service.getTransportTrackPreview("Evening Walk.md", 0);
-  const stem1 = service.getTransportTrackPreview("Evening Walk.md", 1);
+  const stem0 = service.getTransportTrackPreview("Test Fixture.md", 0);
+  const stem0Cached = service.getTransportTrackPreview("Test Fixture.md", 0);
+  const stem1 = service.getTransportTrackPreview("Test Fixture.md", 1);
   const importedStem0 = service.getMarkdownTrackPreview(
     sourceBeforeOverride,
     0,
@@ -638,7 +634,7 @@ test("control service caches project transport preview audio", () => {
 
   assert.equal(first.buffer.toString("ascii", 0, 4), "RIFF");
   assert.strictEqual(first, second);
-  assert.equal(first.project, "Evening Walk.md");
+  assert.equal(first.project, "Test Fixture.md");
   assert.ok(first.durationSeconds > 1);
   assert.equal(electric.buffer.toString("ascii", 0, 4), "RIFF");
   assert.strictEqual(electric, electricCached);
@@ -646,7 +642,7 @@ test("control service caches project transport preview audio", () => {
   assert.equal(sfzOverride.buffer.toString("ascii", 0, 4), "RIFF");
   assert.notDeepEqual(sfzOverride.buffer, first.buffer);
   assert.equal(fs.readFileSync(projectFile, "utf8"), sourceBeforeOverride);
-  const downloadAudio = service.getProjectRenderAudio("Evening Walk.md");
+  const downloadAudio = service.getProjectRenderAudio("Test Fixture.md");
   assert.equal(downloadAudio.buffer.toString("ascii", 0, 4), "RIFF");
   assert.ok(downloadAudio.buffer.length > 44);
   assert.equal(fs.readFileSync(projectFile, "utf8"), sourceBeforeOverride);
@@ -676,13 +672,13 @@ test("control service caches project transport preview audio", () => {
   assert.equal(stem1.durationSeconds, first.durationSeconds);
   assert.notDeepEqual(stem0.buffer, stem1.buffer);
   assert.throws(
-    () => service.getTransportTrackPreview("Evening Walk.md", 99),
+    () => service.getTransportTrackPreview("Test Fixture.md", 99),
     /Track index is outside/
   );
 
-  service.clearTransportCache("Evening Walk.md");
-  const third = service.getTransportPreview("Evening Walk.md");
-  const stem0AfterClear = service.getTransportTrackPreview("Evening Walk.md", 0);
+  service.clearTransportCache("Test Fixture.md");
+  const third = service.getTransportPreview("Test Fixture.md");
+  const stem0AfterClear = service.getTransportTrackPreview("Test Fixture.md", 0);
   assert.notStrictEqual(first, third);
   assert.notStrictEqual(stem0, stem0AfterClear);
   assert.equal(third.buffer.toString("ascii", 0, 4), "RIFF");
@@ -701,12 +697,12 @@ test("control service exposes sound details and audition WAV", () => {
   });
   fs.mkdirSync(path.join(dir, "projects"), { recursive: true });
   fs.copyFileSync(
-    path.join(root, "examples", "evening-walk.md"),
-    path.join(dir, "projects", "Evening Walk.md")
+    path.join(root, "test", "fixtures", "basic-project.md"),
+    path.join(dir, "projects", "Test Fixture.md")
   );
 
   const service = createControlService(dir);
-  const gameChart = service.getBeatLane6Chart("Evening Walk.md", "normal");
+  const gameChart = service.getBeatLane6Chart("Test Fixture.md", "normal");
   assert.equal(gameChart.game, "BeatLane6");
   assert.equal(gameChart.laneCount, 6);
   assert.ok(gameChart.events.length > 0);

@@ -24,17 +24,14 @@ jobs:
         shell: cmd
         run: |
           out\NoteScript-portable\NoteScript.cmd capabilities
-          out\NoteScript-portable\NoteScript.cmd validate "out\NoteScript-portable\projects\Evening Walk.md"
+          copy /Y "test\fixtures\basic-project.md" "out\NoteScript-portable\projects\Test Fixture.md"
+          out\NoteScript-portable\NoteScript.cmd validate "out\NoteScript-portable\projects\Test Fixture.md"
           out\NoteScript-portable\NoteScript.cmd validate "out\NoteScript-portable\projects\SFZ Basic.md"
           out\NoteScript-portable\NoteScript.cmd validate "out\NoteScript-portable\projects\BeatLane6 Starter.md"
           out\NoteScript-portable\NoteScript.cmd validate "out\NoteScript-portable\projects\Sunlit Detour.md"
-          out\NoteScript-portable\NoteScript.cmd validate "out\NoteScript-portable\projects\Paper Satellites.md"
-          out\NoteScript-portable\NoteScript.cmd validate "out\NoteScript-portable\projects\Lemon Sky Arcade.md"
-          out\NoteScript-portable\NoteScript.cmd validate "out\NoteScript-portable\projects\Windowseat Polaroid.md"
-          out\NoteScript-portable\NoteScript.cmd validate "out\NoteScript-portable\projects\Afterimage Parade.md"
-          out\NoteScript-portable\NoteScript.cmd list-sounds "out\NoteScript-portable\projects\Evening Walk.md"
+          out\NoteScript-portable\NoteScript.cmd list-sounds "out\NoteScript-portable\projects\Test Fixture.md"
           out\NoteScript-portable\NoteScript.cmd list-instruments "out\NoteScript-portable\projects\SFZ Basic.md"
-          out\NoteScript-portable\NoteScript.cmd render "out\NoteScript-portable\projects\Evening Walk.md" -o "out\NoteScript-portable\exports\Evening Walk.wav"
+          out\NoteScript-portable\NoteScript.cmd render "out\NoteScript-portable\projects\Test Fixture.md" -o "out\NoteScript-portable\exports\Test Fixture.wav"
           out\NoteScript-portable\NoteScript.cmd render "out\NoteScript-portable\projects\SFZ Basic.md" -o "out\NoteScript-portable\exports\SFZ Basic.wav"
       - name: Portable Studio and Control API smoke test
         shell: pwsh
@@ -200,7 +197,7 @@ jobs:
               throw "Portable Studio HTML smoke test failed."
             }
 
-            $project = Invoke-RestMethod -Uri "$baseUri/v1/project?project=Evening%20Walk.md" -TimeoutSec 5
+            $project = Invoke-RestMethod -Uri "$baseUri/v1/project?project=Test%20Fixture.md" -TimeoutSec 5
             if (-not $project.valid -or $project.song.tracks.Count -ne 2) {
               throw "Portable project API smoke test failed."
             }
@@ -221,11 +218,7 @@ jobs:
             }
 
             foreach ($songName in @(
-              "Sunlit Detour.md",
-              "Paper Satellites.md",
-              "Lemon Sky Arcade.md",
-              "Windowseat Polaroid.md",
-              "Afterimage Parade.md"
+              "Sunlit Detour.md"
             )) {
               $songPath = Join-Path $root ("projects\" + $songName)
               if (-not (Test-Path $songPath)) {
@@ -312,14 +305,14 @@ jobs:
             }
 
             $preview = Join-Path $env:RUNNER_TEMP "notescript-transport-preview.wav"
-            Invoke-WebRequest -UseBasicParsing -Uri "$baseUri/v1/transport/audio?project=Evening%20Walk.md" -OutFile $preview -TimeoutSec 15
+            Invoke-WebRequest -UseBasicParsing -Uri "$baseUri/v1/transport/audio?project=Test%20Fixture.md" -OutFile $preview -TimeoutSec 15
             $bytes = [System.IO.File]::ReadAllBytes($preview)
             if ($bytes.Length -le 44 -or [System.Text.Encoding]::ASCII.GetString($bytes, 0, 4) -ne "RIFF") {
               throw "Portable transport preview is not a valid WAV."
             }
 
             $previewOverride = Join-Path $env:RUNNER_TEMP "notescript-transport-electric-piano.wav"
-            Invoke-WebRequest -UseBasicParsing -Uri "$baseUri/v1/transport/audio?project=Evening%20Walk.md&sourceType=sound&sourceId=electric-piano" -OutFile $previewOverride -TimeoutSec 15
+            Invoke-WebRequest -UseBasicParsing -Uri "$baseUri/v1/transport/audio?project=Test%20Fixture.md&sourceType=sound&sourceId=electric-piano" -OutFile $previewOverride -TimeoutSec 15
             $overrideBytes = [System.IO.File]::ReadAllBytes($previewOverride)
             if (
               $overrideBytes.Length -le 44 -or
@@ -330,7 +323,7 @@ jobs:
             }
 
             $previewInstrument = Join-Path $env:RUNNER_TEMP "notescript-transport-sfz.wav"
-            Invoke-WebRequest -UseBasicParsing -Uri "$baseUri/v1/transport/audio?project=Evening%20Walk.md&sourceType=instrument&sourceId=SFZ%2Fbasic-sfz" -OutFile $previewInstrument -TimeoutSec 15
+            Invoke-WebRequest -UseBasicParsing -Uri "$baseUri/v1/transport/audio?project=Test%20Fixture.md&sourceType=instrument&sourceId=SFZ%2Fbasic-sfz" -OutFile $previewInstrument -TimeoutSec 15
             $instrumentBytes = [System.IO.File]::ReadAllBytes($previewInstrument)
             if (
               $instrumentBytes.Length -le 44 -or
@@ -341,7 +334,7 @@ jobs:
             }
 
             $downloadWav = Join-Path $env:RUNNER_TEMP "notescript-compose-download.wav"
-            $composeMarkdown = Get-Content -Raw (Join-Path $root "projects\Evening Walk.md")
+            $composeMarkdown = Get-Content -Raw (Join-Path $root "projects\Test Fixture.md")
             $composeBody = [pscustomobject]@{
               markdown = [string]$composeMarkdown
               fileName = "Compose CI.md"
@@ -354,8 +347,8 @@ jobs:
 
             $stem0 = Join-Path $env:RUNNER_TEMP "notescript-track-0.wav"
             $stem1 = Join-Path $env:RUNNER_TEMP "notescript-track-1.wav"
-            Invoke-WebRequest -UseBasicParsing -Uri "$baseUri/v1/transport/track-audio?project=Evening%20Walk.md&track=0" -OutFile $stem0 -TimeoutSec 15
-            Invoke-WebRequest -UseBasicParsing -Uri "$baseUri/v1/transport/track-audio?project=Evening%20Walk.md&track=1" -OutFile $stem1 -TimeoutSec 15
+            Invoke-WebRequest -UseBasicParsing -Uri "$baseUri/v1/transport/track-audio?project=Test%20Fixture.md&track=0" -OutFile $stem0 -TimeoutSec 15
+            Invoke-WebRequest -UseBasicParsing -Uri "$baseUri/v1/transport/track-audio?project=Test%20Fixture.md&track=1" -OutFile $stem1 -TimeoutSec 15
 
             $tracksUiScript = Get-Content -Raw (Join-Path $root "app\src\control\ui\app.js")
             if (

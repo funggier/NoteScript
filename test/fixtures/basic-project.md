@@ -1,6 +1,6 @@
-# Evening Walk
+# Test Fixture
 
-A small deterministic background-music project. The prose is ordinary Markdown; only the NoteScript fenced block is executable music data.
+Internal deterministic NoteScript fixture used by automated tests.
 
 ```notescript
 tempo: 82

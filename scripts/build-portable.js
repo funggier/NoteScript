@@ -51,10 +51,6 @@ if (fs.existsSync(path.join(root, "tools"))) {
 }
 
 fs.copyFileSync(
-  path.join(root, "examples", "evening-walk.md"),
-  path.join(out, "projects", "Evening Walk.md")
-);
-fs.copyFileSync(
   path.join(root, "examples", "sfz-basic.md"),
   path.join(out, "projects", "SFZ Basic.md")
 );
@@ -64,11 +60,7 @@ fs.copyFileSync(
 );
 
 for (const [sourceName, projectName] of [
-  ["sunlit-detour.md", "Sunlit Detour.md"],
-  ["paper-satellites.md", "Paper Satellites.md"],
-  ["lemon-sky-arcade.md", "Lemon Sky Arcade.md"],
-  ["windowseat-polaroid.md", "Windowseat Polaroid.md"],
-  ["afterimage-parade.md", "Afterimage Parade.md"]
+  ["sunlit-detour.md", "Sunlit Detour.md"]
 ]) {
   fs.copyFileSync(
     path.join(root, "examples", "beatlane6-songs", sourceName),

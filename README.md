@@ -184,7 +184,7 @@ Current baseline can discover and validate SFZ/SF2/SF3 instrument add-ons. The f
 ## Example song
 
 ```markdown
-# Evening Walk
+# Example Song
 
 ```notescript
 tempo: 82
@@ -248,7 +248,7 @@ Implemented:
 - BeatLane6 pre-roll highway, Tap/Hold/chord input, Perfect/Great/Good/Miss judgement, combo multiplier, score, accuracy, life/fail and success results.
 - BeatLane6 hit audio uses the source track's real NoteScript sound/instrument; an optional low-volume full-song guide track is available.
 - Bundled `BeatLane6 Starter.md` project teaches all six lanes with the Pluck sound pack.
-- Bundled long-form BeatLane6 song pack adds five original 36-bar projects: `Sunlit Detour`, `Paper Satellites`, `Lemon Sky Arcade`, `Windowseat Polaroid`, and `Afterimage Parade`. They run about 1:01–1:23, use all six lanes on Easy/Normal/Hard, and intentionally vary Tap/Hold density and tempo.
+- Bundled long-form BeatLane6 example `Sunlit Detour` is a 36-bar, four-track project that runs about 1:09 and uses all six lanes on Easy/Normal/Hard with both Tap and Hold events on Normal.
 - Browser-based live playing: mouse keys, remappable computer-keyboard controls, polyphony, velocity, octave shift, sustain and panic.
 - Live hotkeys remain active after clicking non-text UI controls such as buttons, selects and sliders while the Play tab is active; changing to another Studio tab disables performance hotkeys and releases held notes. Only real text-entry fields suppress performance hotkeys while typing.
 - Performance hotkeys follow physical keyboard positions via `KeyboardEvent.code`, so layouts such as Thai still use the same A/S/D/J/K/L and piano/SoundPad positions without switching the OS input language first.
@@ -375,8 +375,8 @@ NoteScript.cmd studio
 NoteScript.cmd start
 NoteScript.cmd status
 NoteScript.cmd stop
-NoteScript.cmd validate "projects\Evening Walk.md"
-NoteScript.cmd render "projects\Evening Walk.md" -o "exports\Evening Walk.wav"
+NoteScript.cmd validate "projects\BeatLane6 Starter.md"
+NoteScript.cmd render "projects\BeatLane6 Starter.md" -o "exports\BeatLane6 Starter.wav"
 ```
 
 Convenience shortcuts call the same entry point:
@@ -386,22 +386,22 @@ Studio.bat
 Start.bat
 Status.bat
 Stop.bat
-Validate.bat "projects\Evening Walk.md"
-Render.bat "projects\Evening Walk.md" -o "exports\Evening Walk.wav"
+Validate.bat "projects\BeatLane6 Starter.md"
+Render.bat "projects\BeatLane6 Starter.md" -o "exports\BeatLane6 Starter.wav"
 ```
 
 Direct source commands include:
 
 ```powershell
 node src/cli.js capabilities
-node src/cli.js validate examples/evening-walk.md
-node src/cli.js list-sounds examples/evening-walk.md
-node src/cli.js list-instruments examples/evening-walk.md
+node src/cli.js validate examples/beatlane6-starter.md
+node src/cli.js list-sounds examples/beatlane6-starter.md
+node src/cli.js list-instruments examples/beatlane6-starter.md
 node src/cli.js validate-pack examples/sounds/soundpiano/piano
 node src/cli.js validate-instrument examples/instruments/SFZ/basic-sfz
-node src/cli.js render examples/evening-walk.md -o out/evening-walk.wav
+node src/cli.js render examples/beatlane6-starter.md -o out/beatlane6-starter.wav
 node src/cli.js render examples/sfz-basic.md -o out/sfz-basic.wav
-node src/cli.js midi examples/evening-walk.md -o out/evening-walk.mid
+node src/cli.js midi examples/beatlane6-starter.md -o out/beatlane6-starter.mid
 ```
 
 ## Free instrument libraries

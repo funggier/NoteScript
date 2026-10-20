@@ -10,10 +10,10 @@
     "generate:sounds": "node scripts/generate-core-sounds.js",
     "check": "node scripts/check-syntax.js",
     "test": "node scripts/generate-core-sounds.js && node --test test/*.test.js",
-    "validate:example": "node src/cli.js validate examples/evening-walk.md",
+    "validate:example": "node src/cli.js validate examples/beatlane6-starter.md",
     "validate:pack": "node src/cli.js validate-pack examples/sounds/soundpiano/piano",
-    "render:example": "node src/cli.js render examples/evening-walk.md -o out/evening-walk.wav",
-    "midi:example": "node src/cli.js midi examples/evening-walk.md -o out/evening-walk.mid",
+    "render:example": "node src/cli.js render examples/beatlane6-starter.md -o out/beatlane6-starter.wav",
+    "midi:example": "node src/cli.js midi examples/beatlane6-starter.md -o out/beatlane6-starter.mid",
     "portable": "node scripts/generate-core-sounds.js && node scripts/build-portable.js",
     "control": "node src/control/server.js"
   },
