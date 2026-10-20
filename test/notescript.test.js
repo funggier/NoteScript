@@ -337,7 +337,8 @@ test("bundled listening song pack is long-form and uses the selected lead voices
     assert.equal(song.title, title);
     assert.equal(song.tracks.length, 4);
     assert.ok(song.tracks.every((track) => track.bars.length === 48));
-    assert.ok(source.includes("track Gentle Lead\nsound: " + leadSound));
+    const normalizedSource = source.replace(/\r\n/g, "\n");
+    assert.ok(normalizedSource.includes("track Gentle Lead\nsound: " + leadSound));
     const seconds = 48 * 4 * 60 / song.config.tempo;
     assert.ok(seconds >= 120 && seconds <= 180);
   }
