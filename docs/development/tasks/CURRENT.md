@@ -274,7 +274,7 @@ Release evidence:
 
 ## Post-v0.2.0 expanded instrument and drum library
 
-Status: **IMPLEMENTED / LOCAL GREEN / EXACT-COMMIT CI PENDING**
+Status: **COMPLETE / GREEN / EXACT-COMMIT CI GREEN**
 
 Production native sound baseline:
 
@@ -293,7 +293,10 @@ Local qualification:
 - automated tests: **24/24 PASS**
 - portable build: **PASS**
 - representative guitar/drum SHA-256 values are distinct
-- exact-commit GitHub CI: **PENDING**
+- implementation commit: `40c897b1659f3c5af6f0e70d54fad61c02793cea`
+- implementation CI run `39440016684`: **FAILURE** only because the Studio/API CI step did not create `Test Fixture.md`
+- CI fixture fix commit: `ba23f6089b559de0a0cc28aaed75f6c3135b37a3`
+- exact-commit GitHub CI run `39440640809`: **SUCCESS**
 
 Evidence:
 

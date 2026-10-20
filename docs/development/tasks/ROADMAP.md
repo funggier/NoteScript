@@ -152,7 +152,7 @@ Evidence:
 
 
 
-## Post-v0.2.0 — Expanded instrument and drum library — IMPLEMENTED / CI PENDING
+## Post-v0.2.0 — Expanded instrument and drum library — COMPLETE / GREEN
 
 - [x] Add Acoustic Guitar, Nylon Guitar, Clean Electric Guitar and Jazz Guitar.
 - [x] Add Strings, Flute, Marimba, Vibraphone, Choir and Soft Brass.
@@ -161,7 +161,7 @@ Evidence:
 - [x] Keep all bundled audio deterministic and MIT redistributable.
 - [x] Extend automated discovery/audition tests and portable CI expectations to all 23 production packs.
 - [x] Local syntax, tests and portable qualification GREEN.
-- [ ] Exact-commit GitHub Actions GREEN.
+- [x] Exact-commit GitHub Actions GREEN: run `39440640809` for commit `ba23f6089b559de0a0cc28aaed75f6c3135b37a3`.
 
 Evidence:
 

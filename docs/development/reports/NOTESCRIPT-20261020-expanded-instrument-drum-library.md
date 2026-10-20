@@ -2,7 +2,7 @@
 
 Date: 2026-10-20 (Asia/Bangkok)
 
-Status: **IMPLEMENTED / LOCAL GREEN / EXACT-COMMIT CI PENDING**
+Status: **COMPLETE / GREEN / EXACT-COMMIT CI GREEN**
 
 ## Goal
 
@@ -118,8 +118,20 @@ Preserved:
 
 ## GitHub exact-commit evidence
 
-Implementation commit: **PENDING**
+Implementation commit:
 
-GitHub Actions run: **PENDING**
+`40c897b1659f3c5af6f0e70d54fad61c02793cea`
 
-Final result: **PENDING**
+The first implementation CI run `39440016684` completed with **FAILURE** after code checks, unit tests, portable build and portable CLI smoke had already passed. The failure was isolated to the Studio/API smoke setup: `Test Fixture.md` had not been copied into that step's portable `projects/` directory.
+
+CI fixture fix commit:
+
+`ba23f6089b559de0a0cc28aaed75f6c3135b37a3`
+
+Exact-commit GitHub Actions run:
+
+`39440640809`
+
+Result: **SUCCESS**
+
+All workflow stages passed, including syntax check, 24/24 tests, portable build, portable CLI smoke, and Portable Studio / Control API smoke with all 23 production native sound packs discoverable.
