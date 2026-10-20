@@ -337,16 +337,16 @@ Evidence:
 
 ## v0.3.0 release
 
-Status: **LOCAL GREEN / RELEASE COMMIT PENDING / PUBLISH PENDING**
+Status: **COMPLETE / PUBLISHED / POST-PUBLISH VERIFIED**
 
 - [x] Set package, CLI and Control API version metadata to 0.3.0.
 - [x] Release scope includes the expanded native sound library and 19-song listening pack.
 - [x] Exclude Desktop-only third-party SFZ testing libraries from release artifacts.
 - [x] Local release qualification GREEN.
-- [ ] Exact release-commit GitHub Actions GREEN.
-- [ ] Annotated `v0.3.0` tag created at exact release commit.
-- [ ] Portable ZIP + SHA-256 published.
-- [ ] Post-publish verification GREEN.
+- [x] Exact release-commit GitHub Actions GREEN: run `39463899318` for commit `c57f27286459f8731cb5a8b5bf2e789bfe7e0d8c`.
+- [x] Annotated `v0.3.0` tag created at exact release commit.
+- [x] Portable ZIP + SHA-256 published.
+- [x] Post-publish verification GREEN.
 
 Evidence:
 

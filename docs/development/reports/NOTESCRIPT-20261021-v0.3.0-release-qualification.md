@@ -2,7 +2,7 @@
 
 Date: 2026-10-21 (Asia/Bangkok)
 
-Status: **LOCAL GREEN / RELEASE COMMIT PENDING / PUBLISH PENDING**
+Status: **COMPLETE / PUBLISHED / POST-PUBLISH VERIFIED**
 
 Repository: `funggier/NoteScript`
 
@@ -23,10 +23,13 @@ Release title: **NoteScript v0.3.0 - Expanded Sound Library & Listening Pack**
 
 ## Release commit and CI
 
-- release commit: **PENDING**
-- annotated tag: `v0.3.0` **PENDING**
-- exact-commit GitHub Actions run: **PENDING**
-- result: **PENDING**
+- release commit: `c57f27286459f8731cb5a8b5bf2e789bfe7e0d8c`
+- annotated tag: `v0.3.0`
+- tag resolves to the exact release commit above
+- exact-commit GitHub Actions run: `39463899318`
+- workflow: `CI`
+- result: **SUCCESS**
+- normal published release; not draft and not prerelease
 
 ## Local qualification
 
@@ -50,8 +53,40 @@ Planned assets:
 - `NoteScript-v0.3.0-portable.zip`
 - `NoteScript-v0.3.0-portable.zip.sha256`
 
-Artifact size and checksum: **PENDING**
+Portable ZIP size: `59869697` bytes
+
+ZIP entries: `275`
+
+SHA-256:
+
+`c820c7e66f435cc7897fdb1b1e68f31e084541959faa9d37e1bcef460df2d5ef`
+
+GitHub asset digest:
+
+`sha256:c820c7e66f435cc7897fdb1b1e68f31e084541959faa9d37e1bcef460df2d5ef`
+
+ZIP inspection found no `.git` or `node_modules`, and embedded package version is `0.3.0`.
 
 ## Publish and post-publish verification
 
-**PENDING**
+Published release:
+
+`https://github.com/funggier/NoteScript/releases/tag/v0.3.0`
+
+Published at:
+
+`2026-10-20T17:13:45Z`
+
+Post-publish verification downloaded both assets from GitHub into a fresh directory and confirmed:
+
+- downloaded ZIP size: `59869697` bytes
+- downloaded SHA-256 matches the published checksum file
+- downloaded SHA-256 matches the pre-publish artifact hash
+- embedded package version: `0.3.0`
+- portable CLI reports `NoteScript v0.3.0`
+- portable Control API health: **OK**
+- portable Control API core version: `0.3.0`
+
+## Final disposition
+
+`v0.3.0` is **COMPLETE / PUBLISHED / VERIFIED**.

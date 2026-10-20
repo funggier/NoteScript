@@ -196,14 +196,14 @@ Evidence:
 
 
 
-## v0.3.0 — Expanded Sound Library & Listening Pack — LOCAL GREEN / RELEASE PENDING
+## v0.3.0 — Expanded Sound Library & Listening Pack — COMPLETE / PUBLISHED / VERIFIED
 
 - [x] Promote the post-v0.2.0 expanded native sound library into the next release.
 - [x] Promote the complete 19-song listening pack into the next release.
 - [x] Align package / CLI / API version metadata to 0.3.0.
 - [x] Keep third-party Desktop-only instrument libraries outside the repository and release.
-- [ ] Exact release commit qualified by GitHub Actions.
-- [ ] Publish and verify `v0.3.0`.
+- [x] Exact release commit qualified by GitHub Actions: run `39463899318`.
+- [x] Publish and verify `v0.3.0`.
 
 Evidence:
 
