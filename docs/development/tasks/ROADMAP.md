@@ -169,13 +169,13 @@ Evidence:
 
 
 
-## Post-v0.2.0 — Ten-song listening pack — IMPLEMENTED / CI PENDING
+## Post-v0.2.0 — Ten-song listening pack — COMPLETE / GREEN
 
 - [x] Promote all ten original two-to-three-minute trial songs into the repository.
 - [x] Bundle the pack into portable projects.
 - [x] Qualify 48 bars per track and the selected lead voices.
 - [x] Local tests and portable build GREEN.
-- [ ] Exact-commit GitHub Actions GREEN.
+- [x] Exact-commit GitHub Actions GREEN: run `39445880482` for commit `718328258ba0f98c3aeab78af84e5d2cc0cca5c0`.
 
 Evidence:
 

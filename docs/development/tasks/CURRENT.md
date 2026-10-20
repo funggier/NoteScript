@@ -304,7 +304,7 @@ Evidence:
 
 ## Post-v0.2.0 ten-song listening pack
 
-Status: **IMPLEMENTED / LOCAL GREEN / EXACT-COMMIT CI PENDING**
+Status: **COMPLETE / GREEN / EXACT-COMMIT CI GREEN**
 
 - [x] Promote all ten local trial songs into `examples/listening-songs/`.
 - [x] Use Synth Bass as the Quiet Neon lead.
@@ -315,7 +315,7 @@ Status: **IMPLEMENTED / LOCAL GREEN / EXACT-COMMIT CI PENDING**
 - [x] Bundle all ten songs into portable `projects/`.
 - [x] Add automated structure/source checks and portable CI validation.
 - [x] Local syntax/test/portable qualification GREEN.
-- [ ] Exact-commit GitHub Actions GREEN.
+- [x] Exact-commit GitHub Actions GREEN: run `39445880482` for commit `718328258ba0f98c3aeab78af84e5d2cc0cca5c0`.
 
 Evidence:
 

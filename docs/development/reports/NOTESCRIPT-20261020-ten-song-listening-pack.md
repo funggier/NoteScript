@@ -2,7 +2,7 @@
 
 Date: 2026-10-20 (Asia/Bangkok)
 
-Status: **IMPLEMENTED / LOCAL GREEN / EXACT-COMMIT CI PENDING**
+Status: **COMPLETE / GREEN / EXACT-COMMIT CI GREEN**
 
 ## Scope
 
@@ -53,8 +53,20 @@ The portable build copies all ten projects into `projects/` using their human-re
 
 ## GitHub exact-commit evidence
 
-Implementation commit: **PENDING**
+Implementation commit:
 
-GitHub Actions run: **PENDING**
+`8e158ac955857ccd4e0a391745e94a6aecfd4282`
 
-Final result: **PENDING**
+The first CI run `39445659005` failed only in the new listening-pack assertion because the Windows runner checked out CRLF line endings while the assertion searched for a literal LF separator.
+
+Line-ending normalization fix commit:
+
+`718328258ba0f98c3aeab78af84e5d2cc0cca5c0`
+
+Exact-commit GitHub Actions run:
+
+`39445880482`
+
+Final result: **SUCCESS**
+
+All workflow stages passed, including 25/25 tests, portable build, validation of all ten listening projects, portable CLI smoke, and Studio / Control API smoke.
