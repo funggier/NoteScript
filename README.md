@@ -268,6 +268,7 @@ Implemented:
 - BeatLane6 hit audio uses the source track's real NoteScript sound/instrument; an optional low-volume full-song guide track is available.
 - Bundled `BeatLane6 Starter.md` project teaches all six lanes with the Pluck sound pack.
 - Bundled long-form BeatLane6 example `Sunlit Detour` is a 36-bar, four-track project that runs about 1:09 and uses all six lanes on Easy/Normal/Hard with both Tap and Hold events on Normal.
+- Bundled listening-song pack adds ten original four-track, 48-bar projects running about 2:05–2:40, including `Morning Window`, `Rain on the Balcony`, `Slow Train Home`, `Cafe After Rain`, `Cloud Pillow`, `River Lanterns`, `Sunday Pages`, `Quiet Neon`, `Garden at Four`, and `Moonlit Tea`.
 - Browser-based live playing: mouse keys, remappable computer-keyboard controls, polyphony, velocity, octave shift, sustain and panic.
 - Live hotkeys remain active after clicking non-text UI controls such as buttons, selects and sliders while the Play tab is active; changing to another Studio tab disables performance hotkeys and releases held notes. Only real text-entry fields suppress performance hotkeys while typing.
 - Performance hotkeys follow physical keyboard positions via `KeyboardEvent.code`, so layouts such as Thai still use the same A/S/D/J/K/L and piano/SoundPad positions without switching the OS input language first.

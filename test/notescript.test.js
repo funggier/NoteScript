@@ -32,6 +32,7 @@ const root = path.resolve(here, "..");
 const songFile = path.join(root, "test", "fixtures", "basic-project.md");
 const beatLaneStarterFile = path.join(root, "examples", "beatlane6-starter.md");
 const beatLaneSongPackDir = path.join(root, "examples", "beatlane6-songs");
+const listeningSongPackDir = path.join(root, "examples", "listening-songs");
 
 test("keyboard hotkeys follow physical key positions across input languages", () => {
   assert.equal(physicalBindingFromCode("KeyA"), "a");
@@ -307,6 +308,38 @@ test("bundled BeatLane6 song pack is long-form, six-lane and game-ready", () => 
         [0, 1, 2, 3, 4, 5]
       );
     }
+  }
+});
+
+test("bundled listening song pack is long-form and uses the selected lead voices", () => {
+  const expected = new Map([
+    ["morning-window.md", ["Morning Window", "clean-electric-guitar"]],
+    ["rain-on-the-balcony.md", ["Rain on the Balcony", "marimba"]],
+    ["slow-train-home.md", ["Slow Train Home", "jazz-guitar"]],
+    ["cafe-after-rain.md", ["Cafe After Rain", "acoustic-guitar"]],
+    ["cloud-pillow.md", ["Cloud Pillow", "vibraphone"]],
+    ["river-lanterns.md", ["River Lanterns", "vibraphone"]],
+    ["sunday-pages.md", ["Sunday Pages", "marimba"]],
+    ["quiet-neon.md", ["Quiet Neon", "synth-bass"]],
+    ["garden-at-four.md", ["Garden at Four", "nylon-guitar"]],
+    ["moonlit-tea.md", ["Moonlit Tea", "jazz-guitar"]]
+  ]);
+
+  const files = fs.readdirSync(listeningSongPackDir)
+    .filter((name) => name.endsWith(".md") && name !== "README.md")
+    .sort();
+  assert.deepEqual(files, [...expected.keys()].sort());
+
+  for (const fileName of files) {
+    const source = fs.readFileSync(path.join(listeningSongPackDir, fileName), "utf8");
+    const song = parseSong(source);
+    const [title, leadSound] = expected.get(fileName);
+    assert.equal(song.title, title);
+    assert.equal(song.tracks.length, 4);
+    assert.ok(song.tracks.every((track) => track.bars.length === 48));
+    assert.ok(source.includes("track Gentle Lead\nsound: " + leadSound));
+    const seconds = 48 * 4 * 60 / song.config.tempo;
+    assert.ok(seconds >= 120 && seconds <= 180);
   }
 });
 

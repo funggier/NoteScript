@@ -68,6 +68,24 @@ for (const [sourceName, projectName] of [
   );
 }
 
+for (const [sourceName, projectName] of [
+  ["morning-window.md", "Morning Window.md"],
+  ["rain-on-the-balcony.md", "Rain on the Balcony.md"],
+  ["slow-train-home.md", "Slow Train Home.md"],
+  ["cafe-after-rain.md", "Cafe After Rain.md"],
+  ["cloud-pillow.md", "Cloud Pillow.md"],
+  ["river-lanterns.md", "River Lanterns.md"],
+  ["sunday-pages.md", "Sunday Pages.md"],
+  ["quiet-neon.md", "Quiet Neon.md"],
+  ["garden-at-four.md", "Garden at Four.md"],
+  ["moonlit-tea.md", "Moonlit Tea.md"]
+]) {
+  fs.copyFileSync(
+    path.join(root, "examples", "listening-songs", sourceName),
+    path.join(out, "projects", projectName)
+  );
+}
+
 const cmd = [
   "@echo off",
   "setlocal",

@@ -167,4 +167,18 @@ Evidence:
 
 `docs/development/reports/NOTESCRIPT-20261020-expanded-instrument-drum-library.md`
 
+
+
+## Post-v0.2.0 — Ten-song listening pack — IMPLEMENTED / CI PENDING
+
+- [x] Promote all ten original two-to-three-minute trial songs into the repository.
+- [x] Bundle the pack into portable projects.
+- [x] Qualify 48 bars per track and the selected lead voices.
+- [x] Local tests and portable build GREEN.
+- [ ] Exact-commit GitHub Actions GREEN.
+
+Evidence:
+
+`docs/development/reports/NOTESCRIPT-20261020-ten-song-listening-pack.md`
+
 The NoteScript core remains AI-free.

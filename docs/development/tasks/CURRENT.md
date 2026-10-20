@@ -301,3 +301,22 @@ Local qualification:
 Evidence:
 
 `docs/development/reports/NOTESCRIPT-20261020-expanded-instrument-drum-library.md`
+
+## Post-v0.2.0 ten-song listening pack
+
+Status: **IMPLEMENTED / LOCAL GREEN / EXACT-COMMIT CI PENDING**
+
+- [x] Promote all ten local trial songs into `examples/listening-songs/`.
+- [x] Use Synth Bass as the Quiet Neon lead.
+- [x] Use Marimba as the Rain on the Balcony lead.
+- [x] Use Vibraphone as the River Lanterns lead.
+- [x] Keep all songs at four tracks and 48 bars per track.
+- [x] Keep every song in the two-to-three-minute target window.
+- [x] Bundle all ten songs into portable `projects/`.
+- [x] Add automated structure/source checks and portable CI validation.
+- [x] Local syntax/test/portable qualification GREEN.
+- [ ] Exact-commit GitHub Actions GREEN.
+
+Evidence:
+
+`docs/development/reports/NOTESCRIPT-20261020-ten-song-listening-pack.md`
