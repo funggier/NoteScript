@@ -27,7 +27,7 @@ Transport checkpoint:
 ### Studio shell / Play
 
 - [x] Studio launcher/name distinct from the old Audition-only prototype.
-- [x] Tabbed Play / Project / Compose / Tracks / Sounds / Settings layout.
+- [x] Top-level Play / Project / Compose / Sounds / Settings layout, with Tracks merged into Compose as a fourth editor view.
 - [x] Play is the default first tab.
 - [x] Game-style piano/performance HUD.
 - [x] Existing playable on-screen piano/SoundPad controls retained.
@@ -216,7 +216,7 @@ Deferred extensions, not required for the completed baseline:
 
 ## Post-NTS-007 Studio source/render workflow
 
-Status: **IMPLEMENTED / LOCAL + PORTABLE GREEN / EXACT-COMMIT CI PENDING**
+Status: **COMPLETE / GREEN / v0.2.0 PUBLISHED + VERIFIED**
 
 Implemented:
 
@@ -243,10 +243,12 @@ Implemented:
 - [x] Tracks Mix WAV excludes tracks currently muted in the mixer.
 - [x] Tracks can download a Track Set ZIP containing Markdown + current mix + every stem WAV + manifest; all stems are included even when a track is muted in the mix.
 - [x] Studio settings schema v4 removes the legacy workspace-level selector; old `workspaceMode` data is discarded on migration. There is no Basic/Advanced product mode.
-- [x] Local syntax check: 27 JavaScript files PASS.
-- [x] Automated tests: 22/22 PASS.
+- [x] Local syntax check: 28 JavaScript files PASS.
+- [x] Automated tests: 23/23 PASS.
 - [x] Portable build/API/browser UI smoke GREEN.
+- [x] Exact-commit GitHub Actions GREEN: run `39361275178` for release commit `143c239941db19a1abf39de045e3e83dea00f5d8`.
+- [x] GitHub Release `v0.2.0` published and post-publish verified.
 
-Remaining gate:
+Release evidence:
 
-- [ ] exact-commit GitHub Actions GREEN.
+`docs/development/reports/NOTESCRIPT-20261020-v0.2.0-release-qualification.md`

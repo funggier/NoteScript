@@ -110,7 +110,7 @@ Deferred follow-up:
 - manual chart overrides/editor
 - persistent local high scores
 
-## Post-NTS-007 — Studio source taxonomy and render workflow — LOCAL GREEN
+## Post-NTS-007 — Studio source taxonomy and render workflow — COMPLETE / v0.2.0 PUBLISHED
 
 - [x] Categorize native sounds under `sounds/soundpiano/<pack>` and `sounds/soundpad/<set>`.
 - [x] Preserve legacy flat sound-pack discovery for compatibility.
@@ -128,6 +128,11 @@ Deferred follow-up:
 - [x] Add Track Set ZIP export with current Markdown + mix + every stem + manifest.
 - [x] Remove the legacy workspace-level selector and the Basic/Advanced product split; all Studio tabs are first-class.
 - [x] Local tests, portable API and browser UI qualification GREEN.
-- [ ] Exact-commit CI GREEN.
+- [x] Exact-commit CI GREEN: run `39361275178` for release commit `143c239941db19a1abf39de045e3e83dea00f5d8`.
+- [x] GitHub Release `v0.2.0` published and post-publish verified.
+
+Evidence:
+
+`docs/development/reports/NOTESCRIPT-20261020-v0.2.0-release-qualification.md`
 
 The NoteScript core remains AI-free.
