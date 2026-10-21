@@ -17,6 +17,60 @@ The core does not contain AI. A NoteScript song is an ordinary `.md` file that c
 
 This supports the intended ChatGPT workflow without embedding AI in the application: ChatGPT can create/update the `.md`; NoteScript remains the deterministic music engine.
 
+## Portable Quick Start
+
+1. Download the latest `NoteScript-vX.Y.Z-portable.zip` from GitHub Releases and extract the whole `NoteScript-portable` folder.
+2. Double-click `NoteScript.cmd` or `Studio.bat`.
+3. NoteScript starts its Control API in the background when needed and opens Studio in your default browser.
+
+Default browser URL:
+
+```text
+http://127.0.0.1:19427/
+```
+
+Network host/port are configured in one file:
+
+```text
+config/network.json
+```
+
+Default configuration:
+
+```json
+{
+  "host": "127.0.0.1",
+  "port": 19427
+}
+```
+
+For access from another computer, phone, LAN device, or a private network such as Tailscale, change `host` to `0.0.0.0`, restart NoteScript, then browse to the real reachable IP address of the NoteScript computer:
+
+```text
+http://<NOTESCRIPT-PC-IP>:19427/
+```
+
+Example:
+
+```text
+http://192.168.1.50:19427/
+```
+
+Do not use `0.0.0.0` as the browser URL; it is only the server bind address. Windows Firewall may need to allow the selected port for access from other devices.
+
+Useful launch/control commands:
+
+```text
+NoteScript.cmd studio
+NoteScript.cmd start
+NoteScript.cmd status
+NoteScript.cmd stop
+```
+
+The equivalent convenience wrappers are `Studio.bat`, `Start.bat`, `Status.bat`, and `Stop.bat`.
+
+GitHub hosts the source and release downloads. NoteScript Studio itself is served by the local portable application and is used through your web browser.
+
 ## Portable-first layout
 
 ```text
