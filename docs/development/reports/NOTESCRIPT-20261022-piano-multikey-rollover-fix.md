@@ -2,7 +2,7 @@
 
 Date: 2026-10-22 (Asia/Bangkok)
 
-Status: **IMPLEMENTED / LOCAL GREEN**
+Status: **COMPLETE / GREEN / EXACT-COMMIT CI GREEN / DESKTOP LIVE**
 
 ## User symptom
 
@@ -38,6 +38,14 @@ In Piano mode, pressing many computer-keyboard notes simultaneously could stop r
 - Desktop portable refresh copied only `app/src/control/ui/app.js`, `app/src/control/ui/index.html`, and `README.md`; hashes match the freshly built portable files.
 - Desktop network configuration remained `127.0.0.1:19432` and the refreshed Control API reports **Health: OK**.
 - Desktop `instruments/` was not modified. At refresh time its live state contained one `instrument.md` manifest / 212050 bytes; the previously observed large SSO/GM local library was no longer present at this path before the refresh.
+
+## Exact-commit CI
+
+- implementation commit: `278fcf5aa581c4b5844b450c4bcfd1b347fcb76f`
+- GitHub Actions run: `39757804146`
+- workflow: `CI`
+- result: **SUCCESS**
+- CI includes syntax, automated tests, portable build, portable CLI smoke, and Studio/Control API smoke.
 
 ## Scope note
 

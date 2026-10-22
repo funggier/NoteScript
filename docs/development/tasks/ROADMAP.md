@@ -211,14 +211,14 @@ Evidence:
 
 
 
-## Post-v0.3.0 — Piano multi-key / rollover resilience — IMPLEMENTED / LOCAL GREEN
+## Post-v0.3.0 — Piano multi-key / rollover resilience — COMPLETE / GREEN
 
 - [x] Diagnose physical-keyboard rollover separately from NoteScript polyphony.
 - [x] Add opt-in Piano `CHORD HOLD` for building large chords on low-rollover keyboards.
 - [x] Fix async note-on/key-up race while sample buffers are loading.
 - [x] Preserve existing direct simultaneous polyphony for compatible keyboards and MIDI controllers.
 - [x] Local tests and portable build GREEN.
-- [ ] Exact-commit CI GREEN.
+- [x] Exact-commit CI GREEN: run `39757804146` for commit `278fcf5aa581c4b5844b450c4bcfd1b347fcb76f`.
 
 Evidence:
 

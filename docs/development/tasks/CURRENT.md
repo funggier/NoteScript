@@ -354,7 +354,7 @@ Evidence:
 
 ## Post-v0.3.0 Piano multi-key / rollover fix
 
-Status: **IMPLEMENTED / LOCAL GREEN / CI PENDING**
+Status: **COMPLETE / GREEN / EXACT-COMMIT CI GREEN / DESKTOP LIVE**
 
 - [x] Confirm Piano has no explicit 7/8-voice software polyphony cap.
 - [x] Add `CHORD HOLD` workaround for low-rollover computer keyboards.
@@ -365,7 +365,7 @@ Status: **IMPLEMENTED / LOCAL GREEN / CI PENDING**
 - [x] Automated tests GREEN: 25/25.
 - [x] Portable build GREEN.
 - [x] Firefox live UI confirms `CHORD HOLD` toggles and Piano keys remain playable.
-- [ ] Exact-commit GitHub Actions GREEN.
+- [x] Exact-commit GitHub Actions GREEN: run `39757804146` for commit `278fcf5aa581c4b5844b450c4bcfd1b347fcb76f`.
 - [x] Desktop portable refreshed by copying only UI/README files; existing `config/network.json` (`127.0.0.1:19432`) and current `instruments/` contents were left untouched.
 
 Evidence:
