@@ -371,3 +371,22 @@ Status: **COMPLETE / GREEN / EXACT-COMMIT CI GREEN / DESKTOP LIVE**
 Evidence:
 
 `docs/development/reports/NOTESCRIPT-20261022-piano-multikey-rollover-fix.md`
+
+## v0.3.1 release
+
+Status: **ACTIVE / LOCAL GREEN / RELEASE-COMMIT CI PENDING**
+
+- [x] Select patch version `v0.3.1`; no tag/release collision exists.
+- [x] Align package, CLI and Control API version metadata to 0.3.1.
+- [x] Define release scope as post-v0.3.0 Piano multi-key/rollover maintenance plus current main documentation state.
+- [x] Preserve historical releases/tags unchanged.
+- [x] Full local release qualification GREEN: audit 0 vulnerabilities, syntax 28 files, tests 25/25, portable/API/version smoke GREEN.
+- [ ] Release commit pushed and exact-commit GitHub Actions GREEN.
+- [ ] Annotated `v0.3.1` tag created/pushed at exact release commit.
+- [ ] Portable ZIP + SHA-256 built from tagged source tree.
+- [ ] GitHub Release published.
+- [ ] Post-publish download/hash/version verification GREEN.
+
+Evidence:
+
+`docs/development/reports/NOTESCRIPT-20261022-v0.3.1-release-qualification.md`

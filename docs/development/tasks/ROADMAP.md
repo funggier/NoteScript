@@ -224,4 +224,19 @@ Evidence:
 
 `docs/development/reports/NOTESCRIPT-20261022-piano-multikey-rollover-fix.md`
 
+
+
+## v0.3.1 — Piano Multi-Key Input Fix — ACTIVE
+
+- [x] Freeze patch-release scope after v0.3.0.
+- [x] Align runtime/package version metadata to 0.3.1.
+- [x] Full local qualification GREEN.
+- [ ] Exact release-commit CI GREEN.
+- [ ] Publish immutable `v0.3.1` tag and portable artifacts.
+- [ ] Post-publish verification GREEN.
+
+Evidence:
+
+`docs/development/reports/NOTESCRIPT-20261022-v0.3.1-release-qualification.md`
+
 The NoteScript core remains AI-free.

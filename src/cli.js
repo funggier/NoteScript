@@ -18,7 +18,7 @@ const programRoot = process.env.NOTESCRIPT_ROOT ? path.resolve(process.env.NOTES
 
 function usage() {
   console.log([
-    "NoteScript v0.3.0",
+    "NoteScript v0.3.1",
     "",
     "Usage:",
     "  notescript capabilities",
