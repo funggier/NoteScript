@@ -374,18 +374,18 @@ Evidence:
 
 ## v0.3.1 release
 
-Status: **ACTIVE / LOCAL GREEN / RELEASE-COMMIT CI PENDING**
+Status: **COMPLETE / PUBLISHED / POST-PUBLISH VERIFIED**
 
 - [x] Select patch version `v0.3.1`; no tag/release collision exists.
 - [x] Align package, CLI and Control API version metadata to 0.3.1.
 - [x] Define release scope as post-v0.3.0 Piano multi-key/rollover maintenance plus current main documentation state.
 - [x] Preserve historical releases/tags unchanged.
 - [x] Full local release qualification GREEN: audit 0 vulnerabilities, syntax 28 files, tests 25/25, portable/API/version smoke GREEN.
-- [ ] Release commit pushed and exact-commit GitHub Actions GREEN.
-- [ ] Annotated `v0.3.1` tag created/pushed at exact release commit.
-- [ ] Portable ZIP + SHA-256 built from tagged source tree.
-- [ ] GitHub Release published.
-- [ ] Post-publish download/hash/version verification GREEN.
+- [x] Release commit `05a418f487647dc695cf04df5d1bb186a51bf2c5` pushed and exact-commit GitHub Actions run `39759210409` GREEN.
+- [x] Annotated `v0.3.1` tag created/pushed at exact release commit.
+- [x] Portable ZIP + SHA-256 built from tagged source tree.
+- [x] GitHub Release published.
+- [x] Post-publish download/hash/version/runtime verification GREEN.
 
 Evidence:
 

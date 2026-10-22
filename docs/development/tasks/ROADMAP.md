@@ -226,14 +226,14 @@ Evidence:
 
 
 
-## v0.3.1 — Piano Multi-Key Input Fix — ACTIVE
+## v0.3.1 — Piano Multi-Key Input Fix — COMPLETE / PUBLISHED / VERIFIED
 
 - [x] Freeze patch-release scope after v0.3.0.
 - [x] Align runtime/package version metadata to 0.3.1.
 - [x] Full local qualification GREEN.
-- [ ] Exact release-commit CI GREEN.
-- [ ] Publish immutable `v0.3.1` tag and portable artifacts.
-- [ ] Post-publish verification GREEN.
+- [x] Exact release-commit CI GREEN: run `39759210409` for commit `05a418f487647dc695cf04df5d1bb186a51bf2c5`.
+- [x] Publish immutable `v0.3.1` tag and portable artifacts.
+- [x] Post-publish verification GREEN.
 
 Evidence:
 

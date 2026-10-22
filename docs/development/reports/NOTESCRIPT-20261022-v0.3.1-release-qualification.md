@@ -2,7 +2,7 @@
 
 Date: 2026-10-22 (Asia/Bangkok)
 
-Status: **LOCAL GREEN / RELEASE-COMMIT CI PENDING**
+Status: **COMPLETE / PUBLISHED / POST-PUBLISH VERIFIED**
 
 Repository: `funggier/NoteScript`
 
@@ -76,12 +76,60 @@ Two pre-qualification hygiene issues were detected and corrected before this fin
 
 ## Release commit and exact CI
 
-Pending.
+- release commit: `05a418f487647dc695cf04df5d1bb186a51bf2c5`
+- exact-commit GitHub Actions run: `39759210409`
+- workflow: `CI`
+- result: **SUCCESS**
+- annotated tag: `v0.3.1`
+- local and remote peeled tag target: `05a418f487647dc695cf04df5d1bb186a51bf2c5`
 
 ## Tag / assets / publication
 
-Pending.
+Published GitHub Release:
+
+`https://github.com/funggier/NoteScript/releases/tag/v0.3.1`
+
+Release title: **NoteScript v0.3.1 - Piano Multi-Key Input Fix**
+
+Release state:
+
+- draft: `false`
+- prerelease: `false`
+- published at: `2026-10-22T09:58:51Z`
+
+Published assets:
+
+- `NoteScript-v0.3.1-portable.zip` — `59872122` bytes
+- `NoteScript-v0.3.1-portable.zip.sha256` — `96` bytes
+
+Portable ZIP SHA-256:
+
+`32635ed7c334f03d7da086abd2f33e2252c48b1ee0745b665a5f32f71495d440`
+
+GitHub asset digest:
+
+`sha256:32635ed7c334f03d7da086abd2f33e2252c48b1ee0745b665a5f32f71495d440`
+
+The portable asset was rebuilt from the tagged Git tree rather than from the working directory. The resulting ZIP contains `275` entries rooted at `NoteScript-portable/` and contains no `.git` or `node_modules` directories.
+
+## Post-publish verification
+
+Both published assets were downloaded from GitHub into a fresh verification directory.
+
+Verified:
+
+- downloaded ZIP SHA-256 matches the downloaded checksum file: **PASS**
+- downloaded ZIP SHA-256 matches the pre-publish artifact hash: **PASS**
+- downloaded ZIP size: `59872122` bytes
+- ZIP entries: `275`
+- embedded package version: `0.3.1`
+- portable CLI reports `NoteScript v0.3.1`
+- portable Control API status: **Health: OK**
+- portable Control API `coreVersion`: `0.3.1`
+- bundled projects: `22`
+- bundled instrument manifests: `1`
+- `.git` / `node_modules` inside portable: `0`
 
 ## Final disposition
 
-Pending.
+`v0.3.1` is **COMPLETE / PUBLISHED / VERIFIED**.
