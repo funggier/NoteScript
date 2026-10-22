@@ -332,6 +332,7 @@ Implemented:
 - SoundPad MIX LOCK is enabled by default for every SoundPad. It persists per sound-pack ID and protects all pad-volume sliders plus RESET MIX while keeping pad playback and hotkeys active.
 - Piano note/hotkey labels are centered inside the actual white/black key bounds rather than relying on browser static-position behavior.
 - Optional Web MIDI input for note on/off, velocity, sustain and all-notes-off.
+- Piano `CHORD HOLD` mode keeps released notes latched so large chords can be built even on low-rollover computer keyboards; normal simultaneous keyboard/MIDI polyphony remains unchanged when it is off.
 - Project create/open/save/rename/delete flow inside the portable workspace.
 - Compose Text / Form / Node / Tracks modes edit the same authoritative Markdown project.
 - Node palette plus Bar/Event Node Inspector with edits written back to Markdown before Save.

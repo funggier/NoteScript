@@ -351,3 +351,23 @@ Status: **COMPLETE / PUBLISHED / POST-PUBLISH VERIFIED**
 Evidence:
 
 `docs/development/reports/NOTESCRIPT-20261021-v0.3.0-release-qualification.md`
+
+## Post-v0.3.0 Piano multi-key / rollover fix
+
+Status: **IMPLEMENTED / LOCAL GREEN / CI PENDING**
+
+- [x] Confirm Piano has no explicit 7/8-voice software polyphony cap.
+- [x] Add `CHORD HOLD` workaround for low-rollover computer keyboards.
+- [x] Keep normal simultaneous keyboard/MIDI behavior unchanged when Chord Hold is off.
+- [x] Preserve key-up state while sample buffers load asynchronously.
+- [x] Cancel unresolved pending voices on panic/source changes.
+- [x] Syntax check GREEN: 28 JavaScript files.
+- [x] Automated tests GREEN: 25/25.
+- [x] Portable build GREEN.
+- [x] Firefox live UI confirms `CHORD HOLD` toggles and Piano keys remain playable.
+- [ ] Exact-commit GitHub Actions GREEN.
+- [x] Desktop portable refreshed by copying only UI/README files; existing `config/network.json` (`127.0.0.1:19432`) and current `instruments/` contents were left untouched.
+
+Evidence:
+
+`docs/development/reports/NOTESCRIPT-20261022-piano-multikey-rollover-fix.md`

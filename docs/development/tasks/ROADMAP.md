@@ -209,4 +209,19 @@ Evidence:
 
 `docs/development/reports/NOTESCRIPT-20261021-v0.3.0-release-qualification.md`
 
+
+
+## Post-v0.3.0 — Piano multi-key / rollover resilience — IMPLEMENTED / LOCAL GREEN
+
+- [x] Diagnose physical-keyboard rollover separately from NoteScript polyphony.
+- [x] Add opt-in Piano `CHORD HOLD` for building large chords on low-rollover keyboards.
+- [x] Fix async note-on/key-up race while sample buffers are loading.
+- [x] Preserve existing direct simultaneous polyphony for compatible keyboards and MIDI controllers.
+- [x] Local tests and portable build GREEN.
+- [ ] Exact-commit CI GREEN.
+
+Evidence:
+
+`docs/development/reports/NOTESCRIPT-20261022-piano-multikey-rollover-fix.md`
+
 The NoteScript core remains AI-free.

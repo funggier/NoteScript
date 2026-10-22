@@ -136,6 +136,7 @@ const ui = {
   hotkeyLegendOctave: document.querySelector("#hotkeyLegendOctave"),
   hotkeyLegendSustain: document.querySelector("#hotkeyLegendSustain"),
   pianoDeckMode: document.querySelector("#pianoDeckMode"),
+  pianoChordHold: document.querySelector("#pianoChordHold"),
   pianoHotkeyEdit: document.querySelector("#pianoHotkeyEdit"),
   pianoHotkeyPanel: document.querySelector("#pianoHotkeyPanel"),
   pianoHotkeyStatus: document.querySelector("#pianoHotkeyStatus"),
@@ -179,7 +180,9 @@ const state = {
   liveQueue: Promise.resolve(),
   liveReady: false,
   buffers: new Map(),
+  pendingVoices: new Map(),
   keyHeld: new Set(),
+  chordHold: false,
   midiAccess: null,
   beatLane6: {
     chart: null,
@@ -548,7 +551,24 @@ function noteName(midi) {
 }
 
 function currentSustain() {
-  return ui.sustain.checked || state.spaceSustain || state.midiSustain;
+  return ui.sustain.checked || state.spaceSustain || state.midiSustain || state.chordHold;
+}
+
+function updateChordHoldUi() {
+  ui.pianoChordHold.classList.toggle("active", state.chordHold);
+  ui.pianoChordHold.setAttribute("aria-pressed", String(state.chordHold));
+  ui.pianoChordHold.textContent = state.chordHold ? "CHORD HOLD ON" : "CHORD HOLD";
+}
+
+function toggleChordHold() {
+  state.chordHold = !state.chordHold;
+  updateChordHoldUi();
+  syncSustain();
+  setMonitor(
+    state.chordHold
+      ? "Chord Hold ON · released notes stay latched so you can build large chords beyond keyboard rollover limits."
+      : "Chord Hold OFF · latched notes released."
+  );
 }
 
 function setMonitor(text) {
@@ -1837,6 +1857,16 @@ async function noteOn(midi, id) {
 
   if (state.voices.has(id)) return;
 
+  const existingPending = state.pendingVoices.get(id);
+  if (existingPending) {
+    existingPending.released = false;
+    existingPending.sustain = false;
+    return;
+  }
+
+  const pending = { released: false, sustain: false, cancelled: false };
+  state.pendingVoices.set(id, pending);
+
   try {
     const context = ensureAudio();
     let buffer;
@@ -1864,6 +1894,7 @@ async function noteOn(midi, id) {
       description = "Playing " + noteName(midi) + " from root " + noteName(root.midi) + ".";
     }
 
+    if (pending.cancelled || state.pendingVoices.get(id) !== pending) return;
     if (state.voices.has(id)) return;
 
     const source = context.createBufferSource();
@@ -1883,8 +1914,15 @@ async function noteOn(midi, id) {
     setKeyActive(midi, true);
     setVoiceCount();
     setMonitor(description);
+
+    if (pending.released) {
+      if (pending.sustain) state.sustained.add(voice);
+      else releaseVoice(voice);
+    }
   } catch (error) {
     setMonitor("Audio error: " + error.message);
+  } finally {
+    if (state.pendingVoices.get(id) === pending) state.pendingVoices.delete(id);
   }
 }
 
@@ -1895,7 +1933,14 @@ function noteOff(id) {
   }
 
   const voice = state.voices.get(id);
-  if (!voice) return;
+  if (!voice) {
+    const pending = state.pendingVoices.get(id);
+    if (pending) {
+      pending.released = true;
+      pending.sustain = currentSustain();
+    }
+    return;
+  }
   if (currentSustain()) {
     state.sustained.add(voice);
     return;
@@ -2427,7 +2472,13 @@ async function selectSound(id) {
   }
 }
 
+function cancelPendingVoices() {
+  for (const pending of state.pendingVoices.values()) pending.cancelled = true;
+  state.pendingVoices.clear();
+}
+
 function stopAllVoices(fast = false) {
+  cancelPendingVoices();
   for (const voice of state.voices.values()) releaseVoice(voice, fast);
   state.sustained.clear();
 }
@@ -5225,6 +5276,7 @@ function wireStudioUi() {
 
   ui.saveSettings.addEventListener("click", saveStudioSettings);
   ui.resetHotkeys.addEventListener("click", resetHotkeys);
+  ui.pianoChordHold.addEventListener("click", toggleChordHold);
   ui.pianoHotkeyEdit.addEventListener("click", beginPianoHotkeyEdit);
   ui.pianoHotkeySave.addEventListener("click", savePianoHotkeys);
   ui.pianoHotkeyCancel.addEventListener("click", cancelPianoHotkeyEdit);
