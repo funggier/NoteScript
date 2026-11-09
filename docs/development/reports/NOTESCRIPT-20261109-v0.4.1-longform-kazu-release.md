@@ -2,7 +2,7 @@
 
 Date: 2026-11-09 (Asia/Bangkok)
 
-Status: **LOCAL QUALIFIED; GitHub CI, release publication and tagged ZIP verification pending**.
+Status: **COMPLETE / PUBLISHED / TAGGED-TREE VERIFIED / POST-DOWNLOAD VERIFIED**.
 
 ## Scope and source
 
@@ -37,9 +37,29 @@ Both songs include slower, thinner passages and occasional faster note runs; bot
 - Bundled Kazu Guitar sample verified in portable.
 - Source and portable version both report `0.4.1`; packaged project count = 25.
 
-## Release qualification / follow-up
+## Exact GitHub CI and release identity
 
-- Intended release: `v0.4.1`.
-- GitHub Actions must complete on the exact release commit before tagging/publishing.
-- Build an untouched tagged-tree portable ZIP and matching SHA-256 asset, then verify published artifacts after upload.
-- Keep the previous `v0.4.0` tag and release unchanged.
+- Release version: `0.4.1`, annotated tag: `v0.4.1`.
+- Tagged source commit: `43c0a9d018c573b4ce85ea93cdd47e7f139a771a`.
+- Exact-commit GitHub Actions: [run 42649647826](https://github.com/funggier/NoteScript/actions/runs/42649647826) — **SUCCESS**, including `npm ci`, syntax, unit tests, portable build, Portable CLI validation, Studio UI and Control API smoke tests on Windows.
+- Tag `v0.4.1` points at the exact qualified commit; previously published `v0.4.0` tag/release were not modified.
+
+## Tagged-tree packaging
+
+- Created a disposable detached worktree checked out at `v0.4.1`; rebuilt the portable folder from that tag, not mutable `main`.
+- Git-on-Windows checkout converted LF to CRLF in the song sources. The two packaged project files were reloaded as **raw Git-tag blobs** before compression, preserving byte-for-byte identity with the originally supplied compositions. SHA-256 matches the source values above.
+- ZIP: `NoteScript-v0.4.1-portable.zip` — **65,531,883 bytes**, **287 entries**, **25 Markdown projects**.
+- ZIP SHA-256: `7bb12066b162f0e64d2415923b038d89864388438753b70cafd652f528399fa7`.
+- Sidecar: `NoteScript-v0.4.1-portable.zip.sha256` — 98 bytes; its content matches the ZIP SHA-256.
+- Fresh unzip / portable `NoteScript.cmd validate` passed for both hour-long projects; resulting `.md` SHA-256 hashes match the owner's original Desktop source files.
+- Extracted portable package reports version `0.4.1`, includes all 25 projects and six Kazu Guitar sample recordings.
+- No full-hour WAVs shipped in the ZIP. Source/release documents explain how to render them separately and how to remove the default half-second WAV tail for loop playback.
+
+## Published release and post-publish verification
+
+- Public release: [NoteScript v0.4.1](https://github.com/funggier/NoteScript/releases/tag/v0.4.1), published 2026-11-09T16:03:50Z.
+- Published ZIP: [NoteScript-v0.4.1-portable.zip](https://github.com/funggier/NoteScript/releases/download/v0.4.1/NoteScript-v0.4.1-portable.zip).
+- Published SHA-256 sidecar: [NoteScript-v0.4.1-portable.zip.sha256](https://github.com/funggier/NoteScript/releases/download/v0.4.1/NoteScript-v0.4.1-portable.zip.sha256).
+- Downloaded both GitHub Release assets back to the Windows workspace and compared against the original release build: **both asset SHA-256 hashes are identical**.
+- GitHub's published ZIP digest and byte count match the local checked artifact. Sidecar hash: `d0016195506e02056b6d845dbd3637b3b6a77069c3ba8bfbf775c27a1ba39f1a`.
+- Final disposition: **COMPLETE / PUBLISHED / VERIFIED**. Documentation-only follow-up on `main` does not move the `v0.4.1` tag.
