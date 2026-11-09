@@ -390,3 +390,22 @@ Status: **COMPLETE / PUBLISHED / POST-PUBLISH VERIFIED**
 Evidence:
 
 `docs/development/reports/NOTESCRIPT-20261022-v0.3.1-release-qualification.md`
+
+## v0.4.0 Kazu Guitar recorded instruments
+
+Status: **ACTIVE / LOCAL GREEN**
+
+- [x] Inspect six original 192 kHz, PCM32, stereo WAV guitar recordings.
+- [x] Estimate actual root notes and prepare pitch-corrected 48 kHz PCM16 copies.
+- [x] Add `kazu-guitar` SoundPiano pack and `SFZ/kazu-guitar` sample-based instrument.
+- [x] Avoid duplicated sample audio; retain original source files unchanged.
+- [x] Document contributor permission and separate audio rights from MIT code.
+- [x] Add `Kazu Guitar Demo.md` to the portable project list.
+- [x] Local syntax/tests/portable and demo-render gates GREEN (29 files; 26/26 tests).
+- [ ] Exact release-commit CI GREEN.
+- [ ] Annotated tag and portable GitHub Release published.
+- [ ] Post-publish artifact and Desktop portable verification GREEN.
+
+Evidence:
+
+`docs/development/reports/NOTESCRIPT-20261109-v0.4.0-kazu-guitar-release.md`

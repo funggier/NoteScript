@@ -51,6 +51,10 @@ if (fs.existsSync(path.join(root, "tools"))) {
 }
 
 fs.copyFileSync(
+  path.join(root, "examples", "kazu-guitar-demo.md"),
+  path.join(out, "projects", "Kazu Guitar Demo.md")
+);
+fs.copyFileSync(
   path.join(root, "examples", "sfz-basic.md"),
   path.join(out, "projects", "SFZ Basic.md")
 );

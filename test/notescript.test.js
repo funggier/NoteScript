@@ -128,7 +128,8 @@ test("loads pitched and SoundPad sound add-ons", () => {
   assert.equal(loadSoundPack(legacyDir).type, "soundpad");
 
   const discovered = listSoundAddons([path.join(root, "examples", "sounds")]);
-  assert.equal(discovered.length, pitchedIds.length + soundPadIds.length);
+  assert.equal(discovered.length, pitchedIds.length + soundPadIds.length + 1);
+  assert.equal(discovered.find((item) => item.name === "kazu-guitar")?.category, "soundpiano");
   for (const id of pitchedIds) {
     assert.equal(discovered.find((item) => item.name === id)?.category, "soundpiano");
   }
@@ -224,6 +225,54 @@ test("renders a NoteScript project through the SFZ instrument adapter", () => {
   assert.ok(fs.statSync(out).size > 44);
   assert.equal(report.sampleRate, 44100);
   assert.equal(fs.readFileSync(out).toString("ascii", 0, 4), "RIFF");
+});
+
+test("Kazu Guitar real recordings are playable as SoundPiano and SFZ", () => {
+  const soundDir = path.join(root, "examples", "sounds", "soundpiano", "kazu-guitar");
+  const instrumentDir = path.join(root, "examples", "instruments", "SFZ", "kazu-guitar");
+  const pack = loadSoundPack(soundDir);
+  const instrument = loadInstrumentAddon(instrumentDir);
+  const sfz = parseSfzFile(instrument.entryPath);
+  const roots = [39, 44, 49, 54, 58, 63];
+
+  assert.equal(pack.type, "pitched");
+  assert.equal(pack.name, "Kazu Guitar");
+  assert.equal(pack.samples.size, 6);
+  assert.notEqual(pack.license, "MIT");
+  assert.equal(instrument.id, "SFZ/kazu-guitar");
+  assert.equal(instrument.name, "Kazu Guitar (SFZ)");
+  assert.equal(sfz.regionCount, 6);
+
+  for (const midi of roots) {
+    const sample = pack.samples.get(midi);
+    assert.ok(sample && fs.existsSync(sample), "missing recorded root note " + midi);
+    const bytes = fs.readFileSync(sample);
+    assert.equal(bytes.toString("ascii", 0, 4), "RIFF");
+    assert.equal(bytes.readUInt16LE(20), 1, "PCM encoding required");
+    assert.equal(bytes.readUInt16LE(22), 2, "stereo encoding required");
+    assert.equal(bytes.readUInt32LE(24), 48000);
+    assert.equal(bytes.readUInt16LE(34), 16);
+    const zone = selectSfzRegions(sfz, midi, 96);
+    assert.equal(zone.length, 1, "SFZ must choose exactly one root zone");
+    assert.equal(zone[0].sampleFile, sample, "SFZ must share the SoundPiano sample");
+    assert.equal(zone[0].rootNote, midi);
+    assert.equal(sfzPitchRatio(zone[0], midi), 1);
+  }
+
+  for (let midi = 0; midi <= 127; midi += 1) {
+    assert.equal(selectSfzRegions(sfz, midi, 96).length, 1,
+      "SFZ must cover all MIDI notes with one non-overlapping zone: " + midi);
+  }
+
+  const demoFile = path.join(root, "examples", "kazu-guitar-demo.md");
+  const song = parseSong(fs.readFileSync(demoFile, "utf8"));
+  assert.equal(song.tracks.length, 2);
+  assert.equal(song.tracks[0].sound, "kazu-guitar");
+  assert.equal(song.tracks[1].instrument, "SFZ/kazu-guitar");
+  const preview = renderToWavBuffer(song, demoFile);
+  assert.equal(preview.buffer.toString("ascii", 0, 4), "RIFF");
+  assert.ok(preview.report.durationSeconds > 8);
+  assert.ok(preview.buffer.length > 100000);
 });
 
 test("generates deterministic BeatLane6 charts from the canonical timeline", () => {

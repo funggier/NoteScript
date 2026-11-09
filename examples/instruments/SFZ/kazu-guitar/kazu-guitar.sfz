@@ -1,0 +1,7 @@
+<global> ampeg_attack=0 ampeg_release=0.20 loop_mode=no_loop
+<region> sample=../../../sounds/soundpiano/kazu-guitar/GR-01.wav lokey=0 hikey=41 pitch_keycenter=39
+<region> sample=../../../sounds/soundpiano/kazu-guitar/GR-02.wav lokey=42 hikey=46 pitch_keycenter=44
+<region> sample=../../../sounds/soundpiano/kazu-guitar/GR-03.wav lokey=47 hikey=51 pitch_keycenter=49
+<region> sample=../../../sounds/soundpiano/kazu-guitar/GR-04.wav lokey=52 hikey=56 pitch_keycenter=54
+<region> sample=../../../sounds/soundpiano/kazu-guitar/GR-05.wav lokey=57 hikey=60 pitch_keycenter=58
+<region> sample=../../../sounds/soundpiano/kazu-guitar/GR-06.wav lokey=61 hikey=127 pitch_keycenter=63

@@ -27,6 +27,7 @@ jobs:
           copy /Y "test\fixtures\basic-project.md" "out\NoteScript-portable\projects\Test Fixture.md"
           out\NoteScript-portable\NoteScript.cmd validate "out\NoteScript-portable\projects\Test Fixture.md"
           out\NoteScript-portable\NoteScript.cmd validate "out\NoteScript-portable\projects\SFZ Basic.md"
+          out\NoteScript-portable\NoteScript.cmd validate "out\NoteScript-portable\projects\Kazu Guitar Demo.md"
           out\NoteScript-portable\NoteScript.cmd validate "out\NoteScript-portable\projects\BeatLane6 Starter.md"
           out\NoteScript-portable\NoteScript.cmd validate "out\NoteScript-portable\projects\Sunlit Detour.md"
           out\NoteScript-portable\NoteScript.cmd validate "out\NoteScript-portable\projects\Morning Window.md"
@@ -314,6 +315,7 @@ jobs:
               "vibraphone",
               "choir",
               "soft-brass",
+              "kazu-guitar",
               "soundpad",
               "acoustic-drums",
               "brush-drums",
@@ -329,6 +331,7 @@ jobs:
             $acousticDrums = @($sounds.sounds | Where-Object { $_.id -eq "acoustic-drums" })
             $piano = @($sounds.sounds | Where-Object { $_.id -eq "piano" })
             $acousticGuitar = @($sounds.sounds | Where-Object { $_.id -eq "acoustic-guitar" })
+            $kazuGuitar = @($sounds.sounds | Where-Object { $_.id -eq "kazu-guitar" })
             if (
               $sounds.sounds.Count -ne $requiredSoundIds.Count -or
               $soundPad[0].type -ne "soundpad" -or
@@ -341,7 +344,10 @@ jobs:
               $piano[0].type -ne "pitched" -or
               $piano[0].category -ne "soundpiano" -or
               $acousticGuitar[0].type -ne "pitched" -or
-              $acousticGuitar[0].category -ne "soundpiano"
+              $acousticGuitar[0].category -ne "soundpiano" -or
+              $kazuGuitar[0].category -ne "soundpiano" -or
+              $kazuGuitar[0].samples.Count -ne 6 -or
+              $kazuGuitar[0].license -notmatch "permission"
             ) {
               throw "Portable production sound category / SoundPad discovery smoke test failed."
             }

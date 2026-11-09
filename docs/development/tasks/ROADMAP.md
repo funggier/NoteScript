@@ -239,4 +239,19 @@ Evidence:
 
 `docs/development/reports/NOTESCRIPT-20261022-v0.3.1-release-qualification.md`
 
+
+
+## v0.4.0 — Kazu Guitar Recorded Instruments — LOCAL GREEN
+
+- [x] Package six genuine user-recorded guitar notes as SoundPiano and SFZ.
+- [x] Convert/retune playable copies without changing recording originals.
+- [x] Cover both types through one sample library and a two-track demo.
+- [x] Document user-authorized distribution and separate sample rights.
+- [x] Local tests and portable build GREEN.
+- [ ] Exact-commit CI, tag, publication, and post-publish qualification GREEN.
+
+Evidence:
+
+`docs/development/reports/NOTESCRIPT-20261109-v0.4.0-kazu-guitar-release.md`
+
 The NoteScript core remains AI-free.

@@ -215,6 +215,13 @@ Pitched SoundPiano packs:
 - `choir` — Choir
 - `soft-brass` — Soft Brass
 
+The separately licensed **Kazu Guitar** recording pack (`kazu-guitar`) is also
+included under SoundPiano, along with an SFZ instrument (`SFZ/kazu-guitar`).
+Both formats reuse the same six real guitar-string recordings, supplied and
+approved for inclusion in NoteScript by their owner. The samples are **not MIT
+licensed**; see `docs/development/reports/KAZU-GUITAR-RECORDINGS.md` for rights
+and provenance. Try `Kazu Guitar Demo.md` from the portable Studio project list.
+
 SoundPad sets:
 
 - `soundpad` — Core drums, percussion and effects
@@ -292,7 +299,7 @@ Implemented:
 - Categorized `sounds/soundpiano/<pack>` and `sounds/soundpad/<set>` add-ons with legacy flat-layout compatibility.
 - Pitched SoundPiano sample packs with nearest-root pitch shifting.
 - SoundPad named-trigger sample packs whose category folder enforces SoundPad semantics.
-- Built-in MIT sound library with 18 pitched packs and five interchangeable 16-trigger SoundPad sets, including four guitar voices and four additional drum kits.
+- Built-in MIT sound library with 18 synthetic pitched packs and five interchangeable 16-trigger SoundPad sets, plus the separately owner-authorized Kazu Guitar recording pack and SFZ instrument.
 - PCM16 WAV loading and deterministic WAV rendering.
 - Decoder abstraction with optional FFmpeg support for FLAC/OGG/OPUS/AIFF/MP3/M4A.
 - First SFZ subset parser/renderer with key/velocity regions, pitch center, tune/transpose, gain and simple envelope handling.
