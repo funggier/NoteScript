@@ -330,6 +330,7 @@ Implemented:
 - Bundled `BeatLane6 Starter.md` project teaches all six lanes with the Pluck sound pack.
 - Bundled long-form BeatLane6 example `Sunlit Detour` is a 36-bar, four-track project that runs about 1:09 and uses all six lanes on Easy/Normal/Hard with both Tap and Hold events on Normal.
 - Bundled listening-song pack now contains nineteen original four-track, 48-bar projects running about 2:00–2:49, including the original ten-song pack plus `Cassette Afterglow`, `Mango Soda`, `Moon Garden Radio`, `Paper Boat Daydream`, `Peach Horizon`, `Starlight Thermos`, `Tiny Parade`, `Velvet Sidewalk`, and `Wildflower Postcard`.
+- Two **60-minute Kazu Guitar listening suites** are bundled as editable Markdown projects: `Peach Horizon - Kazu Guitar One Hour Journey.md` (92 BPM, 1380 bars, 6 tracks) and `Golden Canopy - Kazu Guitar Canon Journey.md` (96 BPM, 1440 bars, 7 tracks). Both use contrasting musical density and a harmonically prepared return to the opening for looping. See `examples/longform-songs/README.md` for playback/export advice.
 - Browser-based live playing: mouse keys, remappable computer-keyboard controls, polyphony, velocity, octave shift, sustain and panic.
 - Live hotkeys remain active after clicking non-text UI controls such as buttons, selects and sliders while the Play tab is active; changing to another Studio tab disables performance hotkeys and releases held notes. Only real text-entry fields suppress performance hotkeys while typing.
 - Performance hotkeys follow physical keyboard positions via `KeyboardEvent.code`, so layouts such as Thai still use the same A/S/D/J/K/L and piano/SoundPad positions without switching the OS input language first.
@@ -367,6 +368,22 @@ Planned:
 - Effects, automation, loops, articulations, velocity layers and round-robin.
 - BeatLane6 slide/drag notes, manual chart editing, persistent high scores and timing-calibration polish.
 - ChatGPT Plugin/MCP adapter over the Control API.
+
+## 60-minute Kazu Guitar suites (v0.4.1)
+
+Two additional **editable** NoteScript projects ship in the portable `projects/` folder:
+
+- `Peach Horizon - Kazu Guitar One Hour Journey.md` — 92 BPM, C major, 6 tracks, 1,380 bars; relaxed and busier guitar passages across 17 movements.
+- `Golden Canopy - Kazu Guitar Canon Journey.md` — 96 BPM, D major, 7 tracks, 1,440 bars; original canon-inspired harmonies and interleaving melodies across 18 movements.
+
+Open `NoteScript.cmd`, select the project, and edit it in Compose. For long uninterrupted background playback, render from the portable directory and use an audio player with Repeat One:
+
+```bat
+NoteScript.cmd validate "projects\Golden Canopy - Kazu Guitar Canon Journey.md"
+NoteScript.cmd render "projects\Golden Canopy - Kazu Guitar Canon Journey.md" -o "exports\Golden Canopy.wav"
+```
+
+The standard WAV renderer appends a 0.5-second tail; strict one-hour looping needs `tailSeconds: 0` through the renderer API. A one-hour WAV is roughly 303 MiB, and browser preview/stem rendering may consume substantial memory. The portable ZIP includes the two Markdown scores and playback samples, **not** the pre-rendered hour-long WAV files. Both scores have a harmonically prepared last-to-first transition, but listen to the boundary in the intended player to confirm smoothness. See `examples/longform-songs/README.md` in the repository for more information.
 
 ## Control API
 

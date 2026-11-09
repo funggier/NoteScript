@@ -28,6 +28,8 @@ jobs:
           out\NoteScript-portable\NoteScript.cmd validate "out\NoteScript-portable\projects\Test Fixture.md"
           out\NoteScript-portable\NoteScript.cmd validate "out\NoteScript-portable\projects\SFZ Basic.md"
           out\NoteScript-portable\NoteScript.cmd validate "out\NoteScript-portable\projects\Kazu Guitar Demo.md"
+          out\NoteScript-portable\NoteScript.cmd validate "out\NoteScript-portable\projects\Peach Horizon - Kazu Guitar One Hour Journey.md"
+          out\NoteScript-portable\NoteScript.cmd validate "out\NoteScript-portable\projects\Golden Canopy - Kazu Guitar Canon Journey.md"
           out\NoteScript-portable\NoteScript.cmd validate "out\NoteScript-portable\projects\BeatLane6 Starter.md"
           out\NoteScript-portable\NoteScript.cmd validate "out\NoteScript-portable\projects\Sunlit Detour.md"
           out\NoteScript-portable\NoteScript.cmd validate "out\NoteScript-portable\projects\Morning Window.md"

@@ -401,6 +401,40 @@ test("bundled listening song pack contains all promoted long-form songs and sele
   }
 });
 
+test("bundled Kazu Guitar hour-long suites are complete, varied, and loop-ready", () => {
+  const dir = path.join(root, "examples", "longform-songs");
+  const expected = [
+    ["peach-horizon-kazu-one-hour.md", "Peach Horizon - Kazu Guitar One Hour Journey", 92, 1380, 6],
+    ["golden-canopy-kazu-canon-one-hour.md", "Golden Canopy - Kazu Guitar Canon Journey", 96, 1440, 7]
+  ];
+  const found = fs.readdirSync(dir).filter((name) => name.endsWith(".md") && name !== "README.md").sort();
+  assert.deepEqual(found, expected.map(([filename]) => filename).sort());
+
+  for (const [filename, title, tempo, bars, tracks] of expected) {
+    const score = parseSong(fs.readFileSync(path.join(dir, filename), "utf8"));
+    const timeline = compileTimeline(score);
+    assert.equal(score.title, title);
+    assert.equal(score.config.tempo, tempo);
+    assert.equal(score.tracks.length, tracks);
+    assert.equal(timeline.endQuarter, bars * 4);
+    assert.equal(timeline.endQuarter * 60 / tempo, 3600);
+    assert.equal(score.tracks[0].sound, "kazu-guitar");
+    assert.equal(score.tracks[1].sound, "kazu-guitar");
+    for (const track of score.tracks) {
+      assert.equal(track.bars.length, bars);
+      assert.equal(track.bars[0].number, 1);
+      assert.equal(track.bars.at(-1).number, bars);
+      for (const bar of track.bars) {
+        assert.equal(bar.events.reduce((sum, event) => sum + event.durationQuarterNotes, 0), 4);
+      }
+    }
+    const durations = new Set(score.tracks[0].bars.flatMap((bar) => bar.events.map((event) => event.durationQuarterNotes)));
+    assert.ok(durations.has(0.25), filename + " needs fast sixteenth notes");
+    assert.ok(durations.has(2), filename + " needs sparse half-note phrases");
+    assert.ok(timeline.tracks[0].events.length > 5000);
+  }
+});
+
 test("builds format-0 MIDI for isolated instrument rendering", () => {
   const file = path.join(root, "examples", "sfz-basic.md");
   const song = parseSong(fs.readFileSync(file, "utf8"));
