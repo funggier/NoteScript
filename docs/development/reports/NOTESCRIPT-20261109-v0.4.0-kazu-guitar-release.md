@@ -2,7 +2,7 @@
 
 Date: 2026-11-09 (Asia/Bangkok)
 
-Status: **LOCAL GREEN / RELEASE COMMIT CI PENDING**
+Status: **COMPLETE / PUBLISHED / POST-PUBLISH VERIFIED / DESKTOP LIVE**
 
 ## Scope
 
@@ -57,12 +57,43 @@ Existing v0.1.0 through v0.3.1 tags and releases are unchanged.
 
 ## Exact release commit / CI
 
-PENDING.
+- Release commit: `2d9b23437fba9b7fc48599c1954483e22358fd1c`
+- Exact-commit CI: run `42631282093` — **SUCCESS**
+- All CI steps passed, including npm ci, syntax, tests, portable build, portable CLI smoke and Studio / Control API smoke.
+- Local and remote annotated `v0.4.0` tags both peel to the exact release commit.
 
 ## Tagged-tree build and checksums
 
-PENDING.
+- Created from `git archive v0.4.0`, not from the mutable working tree.
+- ZIP: `NoteScript-v0.4.0-portable.zip` — **65,430,255 bytes** / **285 entries**.
+- SHA-256: `a90248bf7314a1c2d787eca91c0f282d636ba219453962f5843d382180a9a52b`
+- Checksum asset: `NoteScript-v0.4.0-portable.zip.sha256` — 96 bytes.
+- Contains six and only six Kazu Guitar PCM16 WAV samples; SFZ references SoundPiano files without copying them.
+- Contains 23 portable Markdown projects, including `Kazu Guitar Demo.md`.
+- Portable package and CLI report 0.4.0, with no `.git` or `node_modules` entries.
 
 ## Published release and post-download validation
 
-PENDING.
+- Release URL: `https://github.com/funggier/NoteScript/releases/tag/v0.4.0`
+- Published at: 2026-11-09T14:08:32Z; stable release, not draft or prerelease.
+- Both published assets downloaded from GitHub into a fresh verification directory.
+- Downloaded ZIP checksum matches downloaded `.sha256` and the original published GitHub digest: **PASS**.
+- Downloaded ZIP extracts and reports version 0.4.0: **PASS**.
+- Extracted portable Control API starts and reports Health OK / `coreVersion: 0.4.0`: **PASS**.
+- Extracted portable includes 6 Kazu WAV, 1 Kazu SFZ and 23 projects: **PASS**.
+
+## Desktop portable update
+
+- Existing Desktop portable updated selectively; original 192 kHz recordings are untouched.
+- `config/network.json` hash unchanged: `127.0.0.1:19432`.
+- Existing WAV count 170 → 176 (exactly the six added samples).
+- Existing instrument manifest count 1 → 2 (one added SFZ instrument).
+- Six installed WAV SHA-256 values match the tagged release copies.
+- Existing program files backed up outside the Desktop portable before being replaced.
+- Desktop Control API `coreVersion: 0.4.0` / Health OK.
+- Desktop Studio API lists `kazu-guitar` (6 samples) and `SFZ/kazu-guitar`.
+- Desktop `Kazu Guitar Demo.md` validates and renders a WAV successfully.
+
+## Final disposition
+
+`v0.4.0` is **COMPLETE / PUBLISHED / VERIFIED**.

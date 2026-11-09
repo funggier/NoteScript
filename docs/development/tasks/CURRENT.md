@@ -393,7 +393,7 @@ Evidence:
 
 ## v0.4.0 Kazu Guitar recorded instruments
 
-Status: **ACTIVE / LOCAL GREEN**
+Status: **COMPLETE / PUBLISHED / VERIFIED / DESKTOP LIVE**
 
 - [x] Inspect six original 192 kHz, PCM32, stereo WAV guitar recordings.
 - [x] Estimate actual root notes and prepare pitch-corrected 48 kHz PCM16 copies.
@@ -402,9 +402,9 @@ Status: **ACTIVE / LOCAL GREEN**
 - [x] Document contributor permission and separate audio rights from MIT code.
 - [x] Add `Kazu Guitar Demo.md` to the portable project list.
 - [x] Local syntax/tests/portable and demo-render gates GREEN (29 files; 26/26 tests).
-- [ ] Exact release-commit CI GREEN.
-- [ ] Annotated tag and portable GitHub Release published.
-- [ ] Post-publish artifact and Desktop portable verification GREEN.
+- [x] Exact release-commit CI GREEN: run `42631282093`, commit `2d9b23437fba9b7fc48599c1954483e22358fd1c`.
+- [x] Annotated `v0.4.0` tag and portable GitHub Release published with ZIP + SHA-256.
+- [x] Post-publish SHA/version/Control API and Desktop portable verification GREEN at `127.0.0.1:19432`.
 
 Evidence:
 

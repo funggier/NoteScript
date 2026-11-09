@@ -241,14 +241,14 @@ Evidence:
 
 
 
-## v0.4.0 — Kazu Guitar Recorded Instruments — LOCAL GREEN
+## v0.4.0 — Kazu Guitar Recorded Instruments — COMPLETE / PUBLISHED / VERIFIED
 
 - [x] Package six genuine user-recorded guitar notes as SoundPiano and SFZ.
 - [x] Convert/retune playable copies without changing recording originals.
 - [x] Cover both types through one sample library and a two-track demo.
 - [x] Document user-authorized distribution and separate sample rights.
 - [x] Local tests and portable build GREEN.
-- [ ] Exact-commit CI, tag, publication, and post-publish qualification GREEN.
+- [x] Exact-commit CI `42631282093` GREEN; `v0.4.0` tagged/published and post-publish verification GREEN.
 
 Evidence:
 
