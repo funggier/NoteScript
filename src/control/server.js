@@ -246,6 +246,22 @@ const server = http.createServer(async (req, res) => {
       );
       return binary(res, 200, "audio/wav", rendered.buffer);
     }
+    if (req.method === "POST" && url.pathname === "/v1/render/hq") {
+      const input = await body(req);
+      return json(res, 202, service.startHighQualityRender(
+        input.markdown,
+        input.fileName || "Studio HQ.md",
+        input.output,
+        input.sampleRate
+      ));
+    }
+    if (req.method === "GET" && url.pathname === "/v1/render/hq/status") {
+      return json(res, 200, service.getHighQualityRenderStatus(url.searchParams.get("id")));
+    }
+    if (req.method === "POST" && url.pathname === "/v1/render/hq/cancel") {
+      const input = await body(req);
+      return json(res, 200, service.cancelHighQualityRender(input.id));
+    }
     if (req.method === "POST" && url.pathname === "/v1/render") {
       const input = await body(req);
       const sourceOverride =

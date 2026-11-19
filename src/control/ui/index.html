@@ -378,6 +378,12 @@
               <button id="saveProject" class="action-button" type="button">Save</button>
               <input id="renderOutputName" class="text-input compact-output-name" type="text" placeholder="Output name.wav" aria-label="WAV output name">
               <button id="renderProject" class="action-button secondary" type="button">Download WAV</button>
+              <select id="hqRenderRate" aria-label="HQ WAV sample rate" title="HQ Stereo export quality">
+                <option value="48000">HQ 48 kHz / 24-bit Stereo</option>
+                <option value="96000">HQ 96 kHz / 24-bit Stereo</option>
+              </select>
+              <button id="renderHighQuality" class="action-button secondary" type="button" title="Render HQ Stereo WAV to the local exports folder without loading the whole song into browser memory">HQ Export</button>
+              <button id="cancelHighQuality" class="action-button secondary" type="button" disabled>Cancel HQ</button>
               <button id="exportMidi" class="action-button secondary" type="button">Export MIDI</button>
             </div>
           </div>

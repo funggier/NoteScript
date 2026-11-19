@@ -11,6 +11,10 @@ Four original **60-minute** NoteScript projects (two initial scores and two mixe
 
 The short project `Peach Horizon.md` remains a distinct existing example; the long-form versions do not replace the Kazu-only originals. In Compose → Tracks or Form, the SoundPiano source of **any pitched-note track in any song** can be changed to any discovered SoundPiano pack, including `uki-guitar` or a compatible user-installed custom pack. To add one later, copy a complete folder with valid `pack.md` and referenced WAV files to `sounds/soundpiano/<folder>` and click **Sounds → Refresh Libraries** (no restart required). The choice is per track and persists in the saved `.md`.
 
+## HQ Stereo export (v0.4.2)
+
+Original Uki Guitar 192 kHz / 32-bit Stereo masters are included in `sounds/soundpiano/uki-guitar/masters/` and used automatically by the separate **HQ Export** renderer. Choose **48 kHz / 24-bit Stereo** or **96 kHz / 24-bit Stereo** in Compose; rendered WAVs are saved locally in `exports/` with progress and cancellation controls. The ordinary Piano playback and quick Mono WAV export still use compact live samples. One-hour HQ WAVs use approximately 0.97–1.93 GiB and are not shipped pre-rendered. See the main README for CLI examples and supported sample formats.
+
 ## Listening and editing
 
 1. Open `NoteScript.cmd` or `Studio.bat` in an extracted portable package.

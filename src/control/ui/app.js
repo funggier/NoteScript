@@ -95,6 +95,9 @@ const ui = {
   analyzeProject: document.querySelector("#analyzeProject"),
   saveProject: document.querySelector("#saveProject"),
   renderProject: document.querySelector("#renderProject"),
+  renderHighQuality: document.querySelector("#renderHighQuality"),
+  cancelHighQuality: document.querySelector("#cancelHighQuality"),
+  hqRenderRate: document.querySelector("#hqRenderRate"),
   renderOutputName: document.querySelector("#renderOutputName"),
   exportMidi: document.querySelector("#exportMidi"),
   diagnosticBadge: document.querySelector("#diagnosticBadge"),
@@ -5260,6 +5263,72 @@ async function renderCurrentProjectToWav() {
   }
 }
 
+let currentHqJobId = null;
+
+async function renderCurrentHighQualityWav() {
+  if (currentHqJobId) {
+    ui.projectFileMeta.textContent = "An HQ export is already active.";
+    return;
+  }
+  const analysis = await analyzeCurrentMarkdown(false);
+  if (!analysis.valid) {
+    ui.projectFileMeta.textContent = "Fix validation errors before HQ export.";
+    return;
+  }
+  const name = normalizedDownloadName(
+    ui.renderOutputName.value,
+    state.studio.currentProject?.replace(/\.md$/i, "") || analysis.song?.title || "NoteScript"
+  );
+  const sampleRate = Number(ui.hqRenderRate.value);
+  ui.renderHighQuality.disabled = true;
+  ui.cancelHighQuality.disabled = false;
+  ui.projectFileMeta.textContent = "Starting 24-bit Stereo HQ export to the local exports folder...";
+  try {
+    const job = await post("/v1/render/hq", {
+      markdown: ui.markdownEditor.value,
+      fileName: state.studio.currentProject || (analysis.song?.title || "Studio Render") + ".md",
+      output: name.replace(/\.wav$/i, "") + " - HQ " + (sampleRate/1000) + "k.wav",
+      sampleRate
+    });
+    currentHqJobId = job.id;
+    while (true) {
+      const status = await api("/v1/render/hq/status?id=" + encodeURIComponent(job.id));
+      if (status.status === "complete") {
+        ui.projectFileMeta.textContent =
+          "HQ export complete: exports/" + status.output +
+          " (" + (status.bytes / 1048576).toFixed(1) + " MiB, 24-bit Stereo).";
+        break;
+      }
+      if (status.status === "failed" || status.status === "cancelled") {
+        ui.projectFileMeta.textContent = "HQ export " + status.status +
+          (status.error ? ": " + status.error : ".");
+        break;
+      }
+      ui.projectFileMeta.textContent =
+        "Rendering HQ WAV to exports/" + status.output + " — " +
+        Number(status.progress || 0).toFixed(1) + "% (" + (sampleRate/1000) + " kHz Stereo).";
+      await new Promise((resolve) => window.setTimeout(resolve, 1000));
+    }
+  } catch(error) {
+    ui.projectFileMeta.textContent = "HQ export error: " + error.message;
+  } finally {
+    currentHqJobId = null;
+    ui.cancelHighQuality.disabled = true;
+    ui.renderHighQuality.disabled = false;
+  }
+}
+
+async function cancelCurrentHighQualityRender() {
+  if (!currentHqJobId) return;
+  ui.cancelHighQuality.disabled = true;
+  try {
+    await post("/v1/render/hq/cancel", { id: currentHqJobId });
+    ui.projectFileMeta.textContent = "Cancelling HQ export...";
+  } catch(error) {
+    ui.projectFileMeta.textContent = "HQ cancellation error: " + error.message;
+  }
+}
+
 async function exportCurrentProjectMidi() {
   const saved = await saveCurrentProject();
   if (!saved) return;
@@ -5301,6 +5370,8 @@ function wireStudioUi() {
   ui.deleteProject.addEventListener("click", deleteCurrentProject);
   ui.analyzeProject.addEventListener("click", () => analyzeCurrentMarkdown(true));
   ui.renderProject.addEventListener("click", renderCurrentProjectToWav);
+  ui.renderHighQuality.addEventListener("click", renderCurrentHighQualityWav);
+  ui.cancelHighQuality.addEventListener("click", cancelCurrentHighQualityRender);
   ui.exportMidi.addEventListener("click", exportCurrentProjectMidi);
   ui.formAddTrack.addEventListener("click", addFormTrack);
   ui.nodeInspectorApply.addEventListener("click", applyNodeInspector);

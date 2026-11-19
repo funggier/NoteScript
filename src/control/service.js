@@ -1,5 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
+import { spawn } from "node:child_process";
+import { randomUUID } from "node:crypto";
 import { parseSong } from "../parser.js";
 import { renderInstrumentNoteToWavBuffer, renderToWav, renderToWavBuffer } from "../renderer.js";
 import { exportMidi } from "../midi.js";
@@ -66,6 +68,7 @@ export function createControlService(programRoot) {
   const configRoot = path.join(root, "config");
   const studioSettingsFile = path.join(configRoot, "studio.json");
   const livePlayback = new LivePlaybackManager(root);
+  const hqJobs = new Map();
   const transportCache = new Map();
   const transportStemCache = new Map();
 
@@ -821,6 +824,80 @@ export function createControlService(programRoot) {
         songFile: path.join(projectsRoot, "__audition__.md")
       });
       return { buffer };
+    },
+
+    startHighQualityRender(markdown, fileName = "Studio HQ.md", outputName = null, sampleRate = 48000) {
+      const rate = Number(sampleRate);
+      if (![48000, 96000].includes(rate)) throw new NoteScriptError("HQ sample rate must be 48000 or 96000.");
+      if ([...hqJobs.values()].some((job) => job.status === "running")) {
+        throw new NoteScriptError("An HQ export is already running. Wait or cancel it first.");
+      }
+      const parsed = parseSong(String(markdown));
+      const safeFileName = normalizeProjectName(fileName);
+      const stem = outputName ? safeName(outputName) : safeName(parsed.title + " - HQ Stereo");
+      const filename = stem.toLowerCase().endsWith(".wav") ? stem : stem + ".wav";
+      const outputFile = assertInside(exportsRoot, path.join(exportsRoot, filename));
+      if (fs.existsSync(outputFile)) throw new NoteScriptError("An export already exists: " + filename);
+      const stage = fs.mkdtempSync(path.join(exportsRoot, ".hq-"));
+      const inputFile = path.join(stage, safeFileName);
+      fs.writeFileSync(inputFile, String(markdown), "utf8");
+      const script = fs.existsSync(path.join(root, "app", "src", "cli.js"))
+        ? path.join(root, "app", "src", "cli.js")
+        : path.join(root, "src", "cli.js");
+      const id = randomUUID(), job = {
+        id, status: "running", progress: 0, output: filename,
+        sampleRate: rate, channels: 2, bitsPerSample: 24, error: null
+      };
+      hqJobs.set(id, job);
+      const child = spawn(process.execPath, [
+        script, "render-hq", inputFile, "-o", outputFile, "--rate", String(rate)
+      ], {
+        cwd: root, windowsHide: true, env: { ...process.env, NOTESCRIPT_ROOT: root },
+        stdio: ["ignore", "pipe", "pipe"]
+      });
+      job.child = child;
+      let stderr = "";
+      child.stdout.on("data", (chunk) => {
+        const message = chunk.toString("utf8");
+        for (const match of message.matchAll(/HQ_PROGRESS\s+([\d.]+)/g)) {
+          job.progress = Math.max(0, Math.min(100, Number(match[1])));
+        }
+      });
+      child.stderr.on("data", (chunk) => { stderr = (stderr + chunk.toString("utf8")).slice(-5000); });
+      child.on("error", (error) => { job.error = error.message; });
+      child.on("close", (code) => {
+        if (job.status === "cancelling") {
+          job.status = "cancelled";
+        } else if (code === 0 && fs.existsSync(outputFile)) {
+          job.status = "complete";
+          job.progress = 100;
+          job.bytes = fs.statSync(outputFile).size;
+        } else {
+          job.status = "failed";
+          job.error = job.error || stderr.trim() || "HQ renderer exited with " + code;
+        }
+        if (job.status !== "complete") fs.rmSync(outputFile, { force: true });
+        try { fs.rmSync(stage, { recursive: true, force: true }); } catch {}
+        delete job.child;
+      });
+      return { ...job, child: undefined };
+    },
+
+    getHighQualityRenderStatus(id) {
+      const job = hqJobs.get(String(id));
+      if (!job) throw new NoteScriptError("Unknown HQ render job.");
+      const {child, ...publicJob} = job;
+      return publicJob;
+    },
+
+    cancelHighQualityRender(id) {
+      const job = hqJobs.get(String(id));
+      if (!job) throw new NoteScriptError("Unknown HQ render job.");
+      if (job.status === "running") {
+        job.status = "cancelling";
+        job.child?.kill();
+      }
+      return this.getHighQualityRenderStatus(id);
     },
 
     renderProject(fileOrName, outputName = null, sourceOverride = null) {

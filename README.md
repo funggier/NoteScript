@@ -401,6 +401,25 @@ Planned:
 - BeatLane6 slide/drag notes, manual chart editing, persistent high scores and timing-calibration polish.
 - ChatGPT Plugin/MCP adapter over the Control API.
 
+## High Quality Render — PCM24 Stereo (v0.4.2)
+
+NoteScript includes a **separate, offline HQ export engine**. It does **not** change the default Piano, live playback, or quick mono WAV exporter.
+
+- **48 kHz / 24-bit Stereo** (default HQ) or **96 kHz / 24-bit Stereo** (larger export); both preserve source left/right channels and apply track panning, volume and velocity.
+- HQ performs windowed-sinc sample-rate conversion for source preparation, cubic pitch resampling for notes, and a two-pass peak check to prevent clipping. It writes output in small chunks rather than loading a full-hour mix in browser memory.
+- The owner's six **original Uki Guitar masters (192 kHz / 32-bit PCM / Stereo)** ship unchanged in `sounds/soundpiano/uki-guitar/masters/`. HQ automatically prefers `masters/<same-file-name>` beside a sound-pack sample when available. The live Piano uses the smaller 48 kHz / 16-bit samples.
+- HQ supports **PCM WAV sample packs and SFZ** (16/24/32-bit integer or Float32, mono/stereo). SF2/SF3 and compressed samples are not supported by the HQ path; use standard render or convert samples to PCM WAV. This is not lossless processing: retuning, interpolation, mixing and output sample-rate conversion still occur.
+- HQ WAVs omit the usual half-second tail for **exact-score-length looping**; songs also need musically compatible endings and beginnings.
+- **Studio:** Open any `.md` in **Compose**, select HQ 48/96 kHz, click **HQ Export**, watch progress near Project File, then find the completed WAV in the same Portable folder's `exports/`. **Cancel HQ** stops the job and removes partial output. HQ saves locally rather than downloading multi-gigabyte WAVs through the browser.
+- **Portable CLI:**
+
+```bat
+NoteScript.cmd render-hq "projects\Peach Horizon - Kazu & Uki Guitar One Hour Journey.md" -o "exports\Peach Horizon HQ.wav" --rate 48000
+NoteScript.cmd render-hq "projects\Golden Canopy - Kazu & Uki Guitar Canon Journey.md" -o "exports\Golden Canopy HQ 96k.wav" --rate 96000
+```
+
+A 60-minute PCM24 Stereo WAV uses approximately **0.97 GiB (48 kHz)** or **1.93 GiB (96 kHz)**. The classic RIFF/WAV limit is about 4 GiB, so very long scores may need to be split. HQ rendering is CPU- and disk-intensive; the release ZIP includes editable scores and the two Uki audio tiers, **not pre-rendered hour-long WAV files**.
+
 ## 60-minute Kazu and Uki Guitar suites (v0.4.2)
 
 The original two **editable** NoteScript suites and two new mixed Kazu/Uki arrangements ship in the portable `projects/` folder:

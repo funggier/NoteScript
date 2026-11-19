@@ -23,6 +23,10 @@ Credit: **Uki — original guitar recordings**. Distribution with this NoteScrip
 
 These are the note targets, not laboratory measurements of each file; pitch was evaluated using periodicity over several windows.
 
+## High-resolution masters for HQ Render (v0.4.2)
+
+The six untouched original PCM32 / Stereo / 192 kHz WAV recordings are copied byte-for-byte into `examples/sounds/soundpiano/uki-guitar/masters/UKI-01.wav` through `UKI-06.wav`. The SoundPiano root-level samples remain compact PCM16 / Stereo / 48 kHz for live play. **HQ Export** automatically prefers the matching master; it creates 48 or 96 kHz / 24-bit Stereo WAV output without installing FFmpeg. The 192 kHz masters are not passed through directly: each note is resampled and mixed, and output is 24-bit. The original files remain independently owned and are not licensed as MIT.
+
 ## Use in any song
 
 - SoundPiano track: `sound: uki-guitar`

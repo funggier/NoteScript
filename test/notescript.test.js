@@ -11,6 +11,7 @@ import { listSoundAddons } from "../src/sound/resolver.js";
 import { loadInstrumentAddon, listInstrumentAddons } from "../src/instrument/addon.js";
 import { parseSfzFile, selectSfzRegions, sfzPitchRatio } from "../src/instrument/sfz.js";
 import { renderToWav, renderToWavBuffer } from "../src/renderer.js";
+import { renderHighQualityToWav } from "../src/audio/hq-renderer.js";
 import { buildSingleTrackMidiBuffer } from "../src/midi.js";
 import { compileTimeline } from "../src/timeline.js";
 import { generateBeatLane6Chart, BEATLANE6_KEYS } from "../src/game/beatlane6.js";
@@ -347,6 +348,71 @@ test("custom SoundPiano folders are discovered after startup and work in existin
     const audio = renderToWavBuffer(song, file, { portableRoot: dir });
     assert.equal(audio.buffer.toString("ascii", 0, 4), "RIFF");
     assert.ok(audio.buffer.length > 44);
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("HQ renderer preserves Stereo PCM24, 192k/32-bit Uki masters and loop boundary", () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "notescript-hq-"));
+  const fence = String.fromCharCode(96).repeat(3);
+  try {
+    const source =
+      "# Uki HQ Test\n\n" + fence + "notescript\n" +
+      "tempo: 120\ntime: 4/4\nkey: C major\n\n" +
+      "track Uki Stereo\nsound: uki-guitar\nvolume: 0.7\npan: -0.1\n" +
+      "bar 1: E2 q | A2 q | G3 q | E4 q\n" + fence + "\n";
+    const song = parseSong(source);
+    const output = path.join(dir, "Uki HQ.wav");
+    const report = renderHighQualityToWav(song,
+      path.join(root, "examples", "longform-songs", "sample.md"), output,
+      { portableRoot: path.join(root, "examples"), sampleRate: 48000, tailSeconds: 0 });
+    assert.equal(report.durationSeconds, 2);
+    assert.equal(report.sampleRate, 48000);
+    assert.equal(report.channels, 2);
+    assert.equal(report.bitsPerSample, 24);
+    assert.ok(report.mastersUsed >= 1, "must load the original high-resolution WAV");
+    const b = fs.readFileSync(output);
+    assert.equal(b.toString("ascii", 0, 4), "RIFF");
+    assert.equal(b.readUInt16LE(20), 1);
+    assert.equal(b.readUInt16LE(22), 2);
+    assert.equal(b.readUInt32LE(24), 48000);
+    assert.equal(b.readUInt16LE(34), 24);
+    assert.equal(b.readUInt32LE(40), 48000 * 2 * 6);
+    assert.equal(b.length, 44 + 48000 * 2 * 6);
+    const stereoDifference = Array.from({ length: 500 }, (_, i) => {
+      const offset = 44 + (1000+i) * 6;
+      return b[offset] !== b[offset+3] || b[offset+1] !== b[offset+4] || b[offset+2] !== b[offset+5];
+    }).some(Boolean);
+    assert.equal(stereoDifference, true, "Stereo channels must not be identical");
+    assert.throws(() => renderHighQualityToWav(song,
+      path.join(root, "examples", "longform-songs", "sample.md"), output,
+      { portableRoot: path.join(root, "examples"), sampleRate: 48000 }), /EEXIST/);
+    assert.throws(() => renderHighQualityToWav(song,
+      path.join(root, "examples", "longform-songs", "sample.md"), path.join(dir, "bad.wav"),
+      { portableRoot: path.join(root, "examples"), sampleRate: 44100 }), /48000 or 96000/);
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("HQ renderer supports 96 kHz Stereo with ordinary future SoundPiano packs", () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "notescript-hq96-"));
+  const fence = String.fromCharCode(96).repeat(3);
+  try {
+    const score = parseSong("# Normal Piano HQ\n\n" + fence + "notescript\n" +
+      "tempo: 120\ntime: 4/4\ntrack Piano\nsound: piano\n" +
+      "bar 1: C4 q | E4 q | G4 q | C5 q\n" + fence + "\n");
+    const output = path.join(dir, "normal-96k.wav");
+    const report = renderHighQualityToWav(score,
+      path.join(root, "examples", "longform-songs", "sample.md"), output,
+      { portableRoot: path.join(root, "examples"), sampleRate: 96000 });
+    const b = fs.readFileSync(output);
+    assert.equal(b.readUInt32LE(24), 96000);
+    assert.equal(b.readUInt16LE(22), 2);
+    assert.equal(b.readUInt16LE(34), 24);
+    assert.equal(report.durationSeconds, 2);
+    assert.equal(report.mastersUsed, 0);
   } finally {
     fs.rmSync(dir, { recursive: true, force: true });
   }

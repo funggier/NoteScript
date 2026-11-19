@@ -28,6 +28,7 @@ jobs:
           out\NoteScript-portable\NoteScript.cmd validate "out\NoteScript-portable\projects\Test Fixture.md"
           out\NoteScript-portable\NoteScript.cmd validate "out\NoteScript-portable\projects\SFZ Basic.md"
           out\NoteScript-portable\NoteScript.cmd validate "out\NoteScript-portable\projects\Kazu Guitar Demo.md"
+          out\NoteScript-portable\NoteScript.cmd render-hq "out\NoteScript-portable\projects\Kazu Guitar Demo.md" -o "out\hq-kazu-ci.wav" --rate 48000
           out\NoteScript-portable\NoteScript.cmd validate "out\NoteScript-portable\projects\Peach Horizon - Kazu Guitar One Hour Journey.md"
           out\NoteScript-portable\NoteScript.cmd validate "out\NoteScript-portable\projects\Golden Canopy - Kazu Guitar Canon Journey.md"
           out\NoteScript-portable\NoteScript.cmd validate "out\NoteScript-portable\projects\Peach Horizon - Kazu & Uki Guitar One Hour Journey.md"

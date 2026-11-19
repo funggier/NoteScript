@@ -5,6 +5,7 @@ import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { parseSong } from "./parser.js";
 import { renderToWav } from "./renderer.js";
+import { renderHighQualityToWav } from "./audio/hq-renderer.js";
 import { exportMidi } from "./midi.js";
 import { loadSoundPack } from "./sound/pack.js";
 import { listSoundAddons } from "./sound/resolver.js";
@@ -28,6 +29,8 @@ function usage() {
     "  notescript list-sounds [song.md]",
     "  notescript list-instruments [song.md]",
     "  notescript render <song.md> [-o output.wav]",
+    "  notescript render-hq <song.md> [-o output.wav] [--rate 48000|96000]",
+    "    HQ: PCM24 Stereo, original masters when present; streamed to disk; loop-ready (no tail)",
     "  notescript preview <song.md>",
     "  notescript midi <song.md> [-o output.mid]",
     "",
@@ -131,6 +134,25 @@ async function main() {
       'VALID PACK: "' + pack.name + '" | type=' + pack.type +
       " | pitched=" + pack.samples.size + " | triggers=" + pack.triggers.size
     );
+    return;
+  }
+
+  if (command === "render-hq") {
+    if (!args[1]) throw new NoteScriptError("render-hq requires a song file.");
+    const { file, song } = loadSong(args[1]);
+    const output = option(args, "-o", "--output") ||
+      path.join(process.cwd(), path.basename(file, path.extname(file)) + " - HQ Stereo.wav");
+    if (path.extname(output).toLowerCase() !== ".wav") {
+      throw new NoteScriptError("HQ renderer requires an .wav output path.");
+    }
+    const sampleRate = Number(option(args, "--rate", "--sample-rate") || 48000);
+    const report = renderHighQualityToWav(song, file, output, {
+      portableRoot: programRoot,
+      sampleRate,
+      tailSeconds: 0,
+      onProgress: (percent) => console.log("HQ_PROGRESS " + percent.toFixed(1))
+    });
+    console.log("HQ_RENDERED " + JSON.stringify(report));
     return;
   }
 
