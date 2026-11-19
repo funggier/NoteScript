@@ -109,6 +109,16 @@ for (const [sourceName, projectName] of [
   );
 }
 
+for (const [sourceName, projectName] of [
+  ["peach-horizon-kazu-uki-one-hour.md", "Peach Horizon - Kazu & Uki Guitar One Hour Journey.md"],
+  ["golden-canopy-kazu-uki-canon-one-hour.md", "Golden Canopy - Kazu & Uki Guitar Canon Journey.md"]
+]) {
+  fs.copyFileSync(
+    path.join(root, "examples", "longform-songs", sourceName),
+    path.join(out, "projects", projectName)
+  );
+}
+
 const cmd = [
   "@echo off",
   "setlocal",

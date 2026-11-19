@@ -1,13 +1,15 @@
 # One-hour Kazu Guitar listening suites
 
-Two original **60-minute** NoteScript projects are bundled with the portable edition. Both use the owner-authorized `kazu-guitar` sampled guitar source, varied note density, and harmonic turnarounds suitable for musical looping.
+Four original **60-minute** NoteScript projects (two initial scores and two mixed-guitar arrangements) are bundled with the portable edition. Both use the owner-authorized `kazu-guitar` sampled guitar source, varied note density, and harmonic turnarounds suitable for musical looping.
 
 | Portable project | Score length | Tempo / key | Tracks | Structure |
 | --- | ---: | --- | ---: | --- |
 | `Peach Horizon - Kazu Guitar One Hour Journey.md` | 60:00 | 92 BPM / C major | 6 | 17 movements, quiet/active passages, G7-to-C return |
 | `Golden Canopy - Kazu Guitar Canon Journey.md` | 60:00 | 96 BPM / D major | 7 | 18 movements, canon-inspired staggered lines, A7-to-D return |
+| `Peach Horizon - Kazu & Uki Guitar One Hour Journey.md` | 60:00 | 92 BPM / C major | 6 | Original Kazu lead with Uki Guitar arpeggios |
+| `Golden Canopy - Kazu & Uki Guitar Canon Journey.md` | 60:00 | 96 BPM / D major | 7 | Original Kazu lead and echo with Uki Guitar arpeggios |
 
-The short project `Peach Horizon.md` remains a distinct existing example; the new 60-minute version is not a replacement.
+The short project `Peach Horizon.md` remains a distinct existing example; the long-form versions do not replace the Kazu-only originals. In Compose → Tracks or Form, the SoundPiano source of **any pitched-note track in any song** can be changed to any discovered SoundPiano pack, including `uki-guitar` or a compatible user-installed custom pack. To add one later, copy a complete folder with valid `pack.md` and referenced WAV files to `sounds/soundpiano/<folder>` and click **Sounds → Refresh Libraries** (no restart required). The choice is per track and persists in the saved `.md`.
 
 ## Listening and editing
 
@@ -38,6 +40,6 @@ For the portable folder, use `./app/src/parser.js`, `./app/src/renderer.js`, `./
 - `peach-horizon-kazu-one-hour.md`: new 6-track instrumental suite based on the atmosphere of the original short Peach Horizon example
 - `golden-canopy-kazu-canon-one-hour.md`: new 7-track instrumental suite drawing on the harmonic sequence and contrapuntal character associated with Pachelbel's *Canon in D*; no third-party performance recording is bundled
 
-The guitar recordings are distributed with permission from the recording owner; they are **not relicensed as MIT** with the application source. Refer to `docs/development/reports/KAZU-GUITAR-RECORDINGS.md`.
+The Kazu and Uki guitar recordings are distributed with permission from their respective recording owners; they are **not relicensed as MIT** with the application source. Refer to `docs/development/reports/KAZU-GUITAR-RECORDINGS.md` and `docs/development/reports/UKI-GUITAR-RECORDINGS.md`.
 
 **Release policy:** Ship the editable `.md` scores inside the portable ZIP; do not add hundreds of megabytes of pre-rendered WAV to that ZIP. Users can render locally.

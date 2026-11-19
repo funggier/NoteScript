@@ -59,6 +59,8 @@ const ui = {
   refreshOutputs: document.querySelector("#refreshOutputs"),
   transportStatus: document.querySelector("#transportStatus"),
   transportVoiceSelect: document.querySelector("#transportVoiceSelect"),
+  refreshLibraries: document.querySelector("#refreshLibraries"),
+  libraryRefreshStatus: document.querySelector("#libraryRefreshStatus"),
   soundSelect: document.querySelector("#soundSelect"),
   soundMeta: document.querySelector("#soundMeta"),
   instrumentSelect: document.querySelector("#instrumentSelect"),
@@ -2496,6 +2498,7 @@ function updateOctave() {
 }
 
 function populateInstruments() {
+  const previousInstrument = ui.instrumentSelect.value;
   ui.instrumentSelect.innerHTML = "";
   if (state.instruments.length === 0) {
     const option = document.createElement("option");
@@ -2512,6 +2515,9 @@ function populateInstruments() {
     option.value = instrument.id;
     option.textContent = instrument.id + (instrument.playable ? "" : " · adapter pending");
     ui.instrumentSelect.appendChild(option);
+  }
+  if (state.instruments.some((instrument) => instrument.id === previousInstrument)) {
+    ui.instrumentSelect.value = previousInstrument;
   }
   updateInstrumentMeta();
 }
@@ -4794,6 +4800,41 @@ function renderTrackTimeline() {
     (timeline.tracks.length === 1 ? "" : "s");
   renderTrackMuteStates();
 }
+async function refreshSoundLibraries() {
+  if (ui.refreshLibraries) ui.refreshLibraries.disabled = true;
+  if (ui.libraryRefreshStatus) ui.libraryRefreshStatus.textContent = "Scanning SoundPiano, SoundPad and Instrument folders...";
+  try {
+    const [soundLibrary, instrumentLibrary] = await Promise.all([
+      api("/v1/sounds?details=1"),
+      api("/v1/instruments")
+    ]);
+    state.sounds = soundLibrary.sounds || [];
+    state.instruments = instrumentLibrary.instruments || [];
+    renderLibraries();
+    populateInstruments();
+    populateTransportVoiceSelect();
+    const type = ui.playSourceType.value === "soundpad" ? "soundpad" : "soundpiano";
+    const previous = ui.soundSelect.value;
+    const next = populatePlaySoundSelect(type);
+    if (next && (next !== previous || !state.selected || state.selected.id !== next) && (type === "soundpad" || ui.pianoVoiceKind.value !== "instrument")) {
+      await selectSound(next);
+    }
+    const issues = soundLibrary.issues || [];
+    if (ui.libraryRefreshStatus) {
+      ui.libraryRefreshStatus.textContent =
+        "Found " + soundPianoPacks().length + " SoundPiano packs, " +
+        soundPadPacks().length + " SoundPad sets and " + state.instruments.length + " instruments." +
+        (issues.length ? " Skipped invalid folders: " + issues.map((item) => item.folder + " (" + item.error + ")").join("; ") : " Ready for any song Track.");
+    }
+    if (state.studio.composeMode === "form" && isMainTabActive("compose")) renderFormEditor();
+    if (state.studio.composeMode === "tracks" && isMainTabActive("compose")) renderTrackTimeline();
+  } catch (error) {
+    if (ui.libraryRefreshStatus) ui.libraryRefreshStatus.textContent = "Library refresh failed: " + error.message;
+  } finally {
+    if (ui.refreshLibraries) ui.refreshLibraries.disabled = false;
+  }
+}
+
 function renderLibraries() {
   ui.soundBrowser.innerHTML = "";
   for (const sound of state.sounds) {
@@ -5227,6 +5268,7 @@ async function exportCurrentProjectMidi() {
 }
 
 function wireStudioUi() {
+  ui.refreshLibraries?.addEventListener("click", refreshSoundLibraries);
   ui.mainTabs.forEach((button) => {
     button.addEventListener("click", () => activateMainTab(button.dataset.tab));
   });

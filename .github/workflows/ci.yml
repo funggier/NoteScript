@@ -30,6 +30,8 @@ jobs:
           out\NoteScript-portable\NoteScript.cmd validate "out\NoteScript-portable\projects\Kazu Guitar Demo.md"
           out\NoteScript-portable\NoteScript.cmd validate "out\NoteScript-portable\projects\Peach Horizon - Kazu Guitar One Hour Journey.md"
           out\NoteScript-portable\NoteScript.cmd validate "out\NoteScript-portable\projects\Golden Canopy - Kazu Guitar Canon Journey.md"
+          out\NoteScript-portable\NoteScript.cmd validate "out\NoteScript-portable\projects\Peach Horizon - Kazu & Uki Guitar One Hour Journey.md"
+          out\NoteScript-portable\NoteScript.cmd validate "out\NoteScript-portable\projects\Golden Canopy - Kazu & Uki Guitar Canon Journey.md"
           out\NoteScript-portable\NoteScript.cmd validate "out\NoteScript-portable\projects\BeatLane6 Starter.md"
           out\NoteScript-portable\NoteScript.cmd validate "out\NoteScript-portable\projects\Sunlit Detour.md"
           out\NoteScript-portable\NoteScript.cmd validate "out\NoteScript-portable\projects\Morning Window.md"
@@ -318,6 +320,7 @@ jobs:
               "choir",
               "soft-brass",
               "kazu-guitar",
+              "uki-guitar",
               "soundpad",
               "acoustic-drums",
               "brush-drums",
@@ -334,6 +337,7 @@ jobs:
             $piano = @($sounds.sounds | Where-Object { $_.id -eq "piano" })
             $acousticGuitar = @($sounds.sounds | Where-Object { $_.id -eq "acoustic-guitar" })
             $kazuGuitar = @($sounds.sounds | Where-Object { $_.id -eq "kazu-guitar" })
+            $ukiGuitar = @($sounds.sounds | Where-Object { $_.id -eq "uki-guitar" })
             if (
               $sounds.sounds.Count -ne $requiredSoundIds.Count -or
               $soundPad[0].type -ne "soundpad" -or
@@ -349,7 +353,9 @@ jobs:
               $acousticGuitar[0].category -ne "soundpiano" -or
               $kazuGuitar[0].category -ne "soundpiano" -or
               $kazuGuitar[0].samples.Count -ne 6 -or
-              $kazuGuitar[0].license -notmatch "permission"
+              $kazuGuitar[0].license -notmatch "permission" -or
+              $ukiGuitar[0].category -ne "soundpiano" -or
+              $ukiGuitar[0].samples.Count -ne 6
             ) {
               throw "Portable production sound category / SoundPad discovery smoke test failed."
             }

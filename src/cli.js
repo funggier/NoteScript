@@ -18,7 +18,7 @@ const programRoot = process.env.NOTESCRIPT_ROOT ? path.resolve(process.env.NOTES
 
 function usage() {
   console.log([
-    "NoteScript v0.4.0",
+    "NoteScript v" + JSON.parse(fs.readFileSync(path.join(sourceRoot, "package.json"), "utf8")).version,
     "",
     "Usage:",
     "  notescript capabilities",

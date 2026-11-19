@@ -128,8 +128,9 @@ test("loads pitched and SoundPad sound add-ons", () => {
   assert.equal(loadSoundPack(legacyDir).type, "soundpad");
 
   const discovered = listSoundAddons([path.join(root, "examples", "sounds")]);
-  assert.equal(discovered.length, pitchedIds.length + soundPadIds.length + 1);
+  assert.equal(discovered.length, pitchedIds.length + soundPadIds.length + 2);
   assert.equal(discovered.find((item) => item.name === "kazu-guitar")?.category, "soundpiano");
+  assert.equal(discovered.find((item) => item.name === "uki-guitar")?.category, "soundpiano");
   for (const id of pitchedIds) {
     assert.equal(discovered.find((item) => item.name === id)?.category, "soundpiano");
   }
@@ -275,6 +276,82 @@ test("Kazu Guitar real recordings are playable as SoundPiano and SFZ", () => {
   assert.ok(preview.buffer.length > 100000);
 });
 
+test("Control API health reports the installed package version", () => {
+  const version = JSON.parse(fs.readFileSync(path.join(root, "package.json"), "utf8")).version;
+  assert.equal(createControlService(root).health().coreVersion, version);
+});
+
+test("Uki Guitar uses standard E-A-D-G-B-E recorded roots in SoundPiano and SFZ", () => {
+  const packDir = path.join(root, "examples", "sounds", "soundpiano", "uki-guitar");
+  const instrumentDir = path.join(root, "examples", "instruments", "SFZ", "uki-guitar");
+  const pack = loadSoundPack(packDir);
+  const instrument = loadInstrumentAddon(instrumentDir);
+  const sfz = parseSfzFile(instrument.entryPath);
+  const roots = [40, 45, 50, 55, 59, 64];
+  assert.equal(pack.name, "Uki Guitar");
+  assert.equal(pack.type, "pitched");
+  assert.notEqual(pack.license, "MIT");
+  assert.equal(instrument.id, "SFZ/uki-guitar");
+  assert.equal(sfz.regionCount, 6);
+  assert.deepEqual([...pack.samples.keys()], roots);
+  for (const midi of roots) {
+    const filename = pack.samples.get(midi);
+    assert.ok(filename && fs.existsSync(filename));
+    const bytes = fs.readFileSync(filename);
+    assert.equal(bytes.toString("ascii", 0, 4), "RIFF");
+    assert.equal(bytes.readUInt16LE(20), 1);
+    assert.equal(bytes.readUInt16LE(22), 2);
+    assert.equal(bytes.readUInt32LE(24), 48000);
+    assert.equal(bytes.readUInt16LE(34), 16);
+    const regions = selectSfzRegions(sfz, midi, 96);
+    assert.equal(regions.length, 1);
+    assert.equal(regions[0].sampleFile, filename);
+    assert.equal(regions[0].rootNote, midi);
+    assert.equal(sfzPitchRatio(regions[0], midi), 1);
+  }
+  for (let midi = 0; midi <= 127; midi += 1) {
+    assert.equal(selectSfzRegions(sfz, midi, 96).length, 1);
+  }
+  const songFile = path.join(root, "examples", "longform-songs", "peach-horizon-kazu-uki-one-hour.md");
+  const song = parseSong(fs.readFileSync(songFile, "utf8"));
+  assert.equal(song.tracks[0].sound, "kazu-guitar");
+  assert.equal(song.tracks[1].sound, "uki-guitar");
+});
+
+test("custom SoundPiano folders are discovered after startup and work in existing songs", () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "notescript-dynamic-sounds-"));
+  try {
+    const service = createControlService(dir);
+    assert.equal(service.listPortableSoundsDetailed().length, 0);
+    const folder = path.join(dir, "sounds", "soundpiano", "future-user-guitar");
+    fs.mkdirSync(folder, { recursive: true });
+    const sample = loadSoundPack(path.join(root, "examples", "sounds", "soundpiano", "piano")).samples.get(60);
+    fs.copyFileSync(sample, path.join(folder, "sound.wav"));
+    const fence = String.fromCharCode(96).repeat(3);
+    fs.writeFileSync(path.join(folder, "pack.md"),
+      "# User Sound\n\n" + fence + "notescript-sound\nname: Future User Guitar\ntype: pitched\nfallback: nearest\nsample C4 = sound.wav\n" + fence + "\n");
+    const discovered = service.listPortableSoundsDetailed();
+    assert.equal(discovered.length, 1);
+    assert.equal(discovered[0].id, "future-user-guitar");
+    assert.equal(discovered[0].samples[0].note, "C4");
+    const invalid = path.join(dir, "sounds", "soundpiano", "invalid-user-pack");
+    fs.mkdirSync(invalid, { recursive: true });
+    fs.writeFileSync(path.join(invalid, "pack.md"), "This is not a valid NoteScript pack.");
+    assert.equal(service.listPortableSoundsDetailed().length, 1);
+    assert.equal(service.listPortableSoundIssues().length, 1);
+    const name = "Any Existing Song.md";
+    const file = path.join(dir, "projects", name);
+    fs.writeFileSync(file,
+      "# Any Existing Song\n\n" + fence + "notescript\ntempo: 90\ntime: 4/4\ntrack New Sound\nsound: future-user-guitar\nbar 1: C4 q | D4 q | E4 q | G4 q\n" + fence + "\n");
+    const song = parseSong(fs.readFileSync(file, "utf8"));
+    const audio = renderToWavBuffer(song, file, { portableRoot: dir });
+    assert.equal(audio.buffer.toString("ascii", 0, 4), "RIFF");
+    assert.ok(audio.buffer.length > 44);
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
+
 test("generates deterministic BeatLane6 charts from the canonical timeline", () => {
   const song = parseSong(fs.readFileSync(songFile, "utf8"));
   const timeline = compileTimeline(song);
@@ -405,7 +482,9 @@ test("bundled Kazu Guitar hour-long suites are complete, varied, and loop-ready"
   const dir = path.join(root, "examples", "longform-songs");
   const expected = [
     ["peach-horizon-kazu-one-hour.md", "Peach Horizon - Kazu Guitar One Hour Journey", 92, 1380, 6],
-    ["golden-canopy-kazu-canon-one-hour.md", "Golden Canopy - Kazu Guitar Canon Journey", 96, 1440, 7]
+    ["golden-canopy-kazu-canon-one-hour.md", "Golden Canopy - Kazu Guitar Canon Journey", 96, 1440, 7],
+    ["peach-horizon-kazu-uki-one-hour.md", "Peach Horizon - Kazu & Uki Guitar One Hour Journey", 92, 1380, 6],
+    ["golden-canopy-kazu-uki-canon-one-hour.md", "Golden Canopy - Kazu & Uki Guitar Canon Journey", 96, 1440, 7]
   ];
   const found = fs.readdirSync(dir).filter((name) => name.endsWith(".md") && name !== "README.md").sort();
   assert.deepEqual(found, expected.map(([filename]) => filename).sort());
@@ -419,7 +498,7 @@ test("bundled Kazu Guitar hour-long suites are complete, varied, and loop-ready"
     assert.equal(timeline.endQuarter, bars * 4);
     assert.equal(timeline.endQuarter * 60 / tempo, 3600);
     assert.equal(score.tracks[0].sound, "kazu-guitar");
-    assert.equal(score.tracks[1].sound, "kazu-guitar");
+    assert.equal(score.tracks[1].sound, filename.includes("-kazu-uki-") ? "uki-guitar" : "kazu-guitar");
     for (const track of score.tracks) {
       assert.equal(track.bars.length, bars);
       assert.equal(track.bars[0].number, 1);

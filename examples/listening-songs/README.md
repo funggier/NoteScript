@@ -24,7 +24,7 @@ This pack contains nineteen original long-form NoteScript songs intended for rel
 | Velvet Sidewalk | 78 BPM | 2:28 | Electric Piano |
 | Wildflower Postcard | 86 BPM | 2:14 | Nylon Guitar |
 
-For the separate full-hour original guitar suites (`Peach Horizon - Kazu Guitar One Hour Journey` and `Golden Canopy - Kazu Guitar Canon Journey`), see [`../longform-songs/README.md`](../longform-songs/README.md). Those are bundled alongside this nineteen-song collection.
+For the separate full-hour guitar suites (the Kazu-only originals and their Kazu + Uki Guitar arrangements), see [`../longform-songs/README.md`](../longform-songs/README.md). Those are bundled alongside this nineteen-song collection.
 
 Each song:
 

@@ -56,6 +56,9 @@ function soundSummary(pack, id) {
 
 export function createControlService(programRoot) {
   const root = path.resolve(programRoot);
+  const manifestFile = [path.join(root, "app", "package.json"), path.join(root, "package.json")]
+    .find((file) => fs.existsSync(file));
+  const coreVersion = manifestFile ? JSON.parse(fs.readFileSync(manifestFile, "utf8")).version : "unknown";
   const projectsRoot = path.join(root, "projects");
   const exportsRoot = path.join(root, "exports");
   const soundsRoot = path.join(root, "sounds");
@@ -68,6 +71,27 @@ export function createControlService(programRoot) {
 
   for (const dir of [projectsRoot, exportsRoot, soundsRoot, instrumentsRoot, configRoot]) {
     fs.mkdirSync(dir, { recursive: true });
+  }
+
+  // Scan on every request: packs copied into portable sounds/ become available without restart.
+  // A malformed third-party pack must not hide every working instrument in Studio.
+  function scanPortableSoundLibrary() {
+    const sounds = [];
+    const issues = [];
+    for (const entry of listSoundAddons([soundsRoot])) {
+      try {
+        const pack = loadSoundPack(entry.directory);
+        sounds.push({
+          ...soundSummary(pack, entry.name),
+          category: entry.category === "legacy"
+            ? (pack.type === "soundpad" ? "soundpad" : "soundpiano")
+            : entry.category
+        });
+      } catch (error) {
+        issues.push({ folder: entry.category + "/" + entry.name, error: error.message });
+      }
+    }
+    return { sounds, issues };
   }
 
   function resolveProject(fileOrName) {
@@ -269,7 +293,7 @@ export function createControlService(programRoot) {
         ok: true,
         service: "NoteScript Control API",
         apiVersion: "v1",
-        coreVersion: "0.4.0",
+        coreVersion,
         portableRoot: root
       };
     },
@@ -473,15 +497,11 @@ export function createControlService(programRoot) {
     },
 
     listPortableSoundsDetailed() {
-      return listSoundAddons([soundsRoot]).map((entry) => {
-        const pack = loadSoundPack(entry.directory);
-        return {
-          ...soundSummary(pack, entry.name),
-          category: entry.category === "legacy"
-            ? (pack.type === "soundpad" ? "soundpad" : "soundpiano")
-            : entry.category
-        };
-      });
+      return scanPortableSoundLibrary().sounds;
+    },
+
+    listPortableSoundIssues() {
+      return scanPortableSoundLibrary().issues;
     },
 
     getSoundDetails(id) {

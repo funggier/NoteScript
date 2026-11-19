@@ -96,7 +96,8 @@ const server = http.createServer(async (req, res) => {
       return json(res, 200, {
         sounds: details
           ? service.listPortableSoundsDetailed()
-          : service.listSounds(url.searchParams.get("project"))
+          : service.listSounds(url.searchParams.get("project")),
+        ...(details ? { issues: service.listPortableSoundIssues() } : {})
       });
     }
     if (req.method === "GET" && url.pathname === "/v1/sound") {
