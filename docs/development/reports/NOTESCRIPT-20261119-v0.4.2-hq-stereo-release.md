@@ -2,7 +2,7 @@
 
 Date: 2026-11-19 (Asia/Bangkok).
 
-Status: **Local qualified. Public CI / tagged release pending**.
+Status: **PUBLISHED / TAGGED / CI QUALIFIED / POST-DOWNLOAD VERIFIED / DESKTOP UPDATED**.
 
 ## Delivered
 
@@ -31,9 +31,28 @@ Status: **Local qualified. Public CI / tagged release pending**.
 - HQ command-line smoke test passed with a real SFZ Kazu guitar project.
 - HQ background service integration verified: launch, poll, WAV output and cancellation with partial-file cleanup.
 - HTTP Studio API: POST `/v1/render/hq`, GET `/v1/render/hq/status`, and front-end button were exercised on the extracted Portable. Resulting WAV verified with ffprobe as 48 kHz PCM24 Stereo.
-- The original local Desktop Portable was not overwritten during release preparation.
+- The existing Desktop Portable was backed up before the verified release code and original Uki masters were installed; its user settings and projects were preserved.
 
-## Release check to complete
+## Public release, tagged build and verification
 
-- Commit changes to `main`, verify exact-commit GitHub Actions success, tag `v0.4.2`, build a new ZIP from the tag and include a SHA-256 sidecar, download GitHub assets back, verify byte-for-byte identities.
-- Keep previous v0.4.1 release unchanged.
+- **Published:** [NoteScript v0.4.2](https://github.com/funggier/NoteScript/releases/tag/v0.4.2), 2026-11-19T11:03:55Z.
+- **Tag source:** `v0.4.2` -> `72412fe79132cd067f8e7a2e92519b3749caebd1` (exact local and public GitHub Actions-qualified commit).
+- **GitHub Actions:** [run 44510624595](https://github.com/funggier/NoteScript/actions/runs/44510624595) completed with **success**: syntax, 32 automated tests, Portable build, packaged CLI HQ test, Studio and Control API checks.
+- Built from a clean detached Git worktree at the tag using `npm ci && npm run portable`. The four hour-long Markdown scores were restored as exact Git tag blobs before packaging to avoid Windows CRLF conversion changes.
+- **Release ZIP:** `NoteScript-v0.4.2-portable.zip`, 110,816,733 bytes, 305 archive entries, 27 editable `.md` projects.
+- **ZIP SHA-256:** `4ff625ae1176a0d942114baef18df6ef0feb9f6d3099627a7d2ae63e71827ea3`.
+- **Checksum file:** `NoteScript-v0.4.2-portable.zip.sha256` (98 bytes), SHA-256: `bcc5de195475438fc05ac917bac7802502a086f6ece8a3ed3d7ee2c358fcb56f`.
+- Fresh ZIP extraction verified app version `0.4.2`, 27 projects, all four long-form scores, original masters at `192000 Hz / PCM32`, and exact SHA-256 matches for all six original owner-recorded Uki WAVs.
+- Packaged CLI smoke test successfully rendered Kazu Guitar Demo as 48 kHz / 24-bit PCM Stereo.
+- Downloaded both published Release assets back from GitHub; ZIP and SHA-256 sidecar are **byte-for-byte identical** to the locally qualified artifacts and match GitHub's reported digest and size.
+- Published ZIP contains the six untouched high-resolution Uki master recordings and compact live samples, not pre-rendered 1-hour HQ WAVs.
+
+## Existing Desktop installation
+
+- Updated `C:\Users\CDQ-P\Desktop\NoteScript-portable` from the verified released ZIP's code and masters, without changing user's `projects/`, `exports/`, or `config/network.json`.
+- Preserved all 29 local Markdown projects (including user-added preview tracks) and configured Port `19432`.
+- Backed up previous code and Uki pack manifest under `T:\Space\Projects\ProjectsProgram\NoteScript\out\desktop-v0.4.2-hq-backup-20261119-180554`.
+- Verified Desktop HQ CLI output is PCM24 Stereo and each copied original master still matches the user's original recording SHA-256.
+- Desktop service was idle, so it was safely restarted; `http://127.0.0.1:19432/` returned healthy version `0.4.2`, served the HQ Export UI and recognized the HQ job status API.
+
+Final status: **PUBLISHED / DOWNLOAD VERIFIED / DESKTOP UPDATED / SERVICE HEALTHY**. This documentation follow-up is on `main`; it does not move or overwrite the `v0.4.2` tag or prior releases.
