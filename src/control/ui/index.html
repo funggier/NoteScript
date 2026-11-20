@@ -90,6 +90,16 @@
                 <input id="sustain" type="checkbox">
                 <span>Sustain</span>
               </label>
+              <label class="toggle-row" title="Optional piano string-coupling approximation for buffered pitched samples. SoundFont live playback uses its own sound engine.">
+                <input id="pianoResonanceEnabled" type="checkbox">
+                <span>String resonance (sampled)</span>
+              </label>
+              <div class="control-row">
+                <label for="pianoResonanceLevel">Resonance amount</label>
+                <output id="pianoResonanceLevelValue">28%</output>
+              </div>
+              <input id="pianoResonanceLevel" type="range" min="0" max="100" step="1" value="28" aria-label="Sympathetic string resonance amount">
+              <p id="pianoResonanceHint" class="meta">For sampled piano sounds only; off by default.</p>
 
               <button id="panic" class="action-button danger" type="button">Panic · All Notes Off</button>
             </section>

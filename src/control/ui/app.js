@@ -4,6 +4,7 @@ import {
   canonicalBindingFromEvent
 } from "./keyboard.js";
 import { PianoVoiceRegistry, pianoVelocity, pianoDamperReleaseSeconds } from "./piano-voices.js";
+import { PianoSympatheticResonance, DEFAULT_PIANO_RESONANCE, normalizePianoResonance } from "./piano-resonance.js";
 
 const ui = {
   engineStatus: document.querySelector("#engineStatus"),
@@ -72,6 +73,10 @@ const ui = {
   octaveUp: document.querySelector("#octaveUp"),
   octaveValue: document.querySelector("#octaveValue"),
   sustain: document.querySelector("#sustain"),
+  pianoResonanceEnabled: document.querySelector("#pianoResonanceEnabled"),
+  pianoResonanceLevel: document.querySelector("#pianoResonanceLevel"),
+  pianoResonanceLevelValue: document.querySelector("#pianoResonanceLevelValue"),
+  pianoResonanceHint: document.querySelector("#pianoResonanceHint"),
   panic: document.querySelector("#panic"),
   enableMidi: document.querySelector("#enableMidi"),
   midiStatus: document.querySelector("#midiStatus"),
@@ -182,6 +187,8 @@ const state = {
   midiSustainValue: 0,
   pianoVoices: new PianoVoiceRegistry(),
   pianoOutput: null,
+  pianoResonance: null,
+  pianoResonanceSettings: { ...DEFAULT_PIANO_RESONANCE },
   liveVoices: new Map(),
   liveMidiRefs: new Map(),
   liveQueue: Promise.resolve(),
@@ -387,7 +394,8 @@ function setSoundPadMixLockLocal(pack, locked) {
 async function persistSoundPadMixLock(pack = state.selected) {
   if (!pack || pack.type !== "soundpad") return;
   const settings = await post("/v1/studio/settings", {
-    soundPadMixLocks: state.studio.settings?.soundPadMixLocks || {}
+    soundPadMixLocks: state.studio.settings?.soundPadMixLocks || {},
+    pianoResonance: state.pianoResonanceSettings
   });
   state.studio.settings = settings;
 }
@@ -659,7 +667,47 @@ function pianoOutput(context) {
   return node;
 }
 
+function updatePianoResonance() {
+  state.pianoResonance?.update(
+    state.pianoResonanceSettings,
+    currentPedalValue(),
+    state.sourceMode === "sound" && state.selected?.type === "pitched"
+  );
+}
 
+function pianoResonanceInput(context) {
+  if (state.pianoResonance?.context !== context) {
+    state.pianoResonance?.disconnect();
+    state.pianoResonance = new PianoSympatheticResonance(context, pianoOutput(context));
+  }
+  updatePianoResonance();
+  return state.pianoResonance.input;
+}
+
+function updatePianoResonanceUi() {
+  const settings = state.pianoResonanceSettings;
+  ui.pianoResonanceEnabled.checked = settings.enabled;
+  ui.pianoResonanceLevel.value = String(settings.level);
+  ui.pianoResonanceLevelValue.textContent = settings.level + "%";
+  const applicable = state.sourceMode === "sound" && state.selected?.type === "pitched";
+  ui.pianoResonanceEnabled.disabled = !applicable;
+  ui.pianoResonanceLevel.disabled = !applicable;
+  ui.pianoResonanceHint.textContent = applicable
+    ? "Optional sampled-string approximation; sounds only while Sustain is down."
+    : "For SoundPiano sample packs. SoundFont live uses its own sound engine.";
+  updatePianoResonance();
+}
+
+async function savePianoResonanceSettings() {
+  try {
+    const settings = await post("/v1/studio/settings", {
+      pianoResonance: state.pianoResonanceSettings
+    });
+    state.studio.settings = settings;
+  } catch (error) {
+    setMonitor("String resonance setting could not be saved: " + error.message);
+  }
+}
 
 const BEATLANE6_INPUT_KEYS = ["a", "s", "d", "j", "k", "l"];
 
@@ -1926,6 +1974,14 @@ async function noteOn(midi, id, velocity = state.velocity) {
 
     source.connect(gain);
     gain.connect(pianoOutput(context));
+    if (
+      state.sourceMode === "sound" &&
+      state.selected?.type === "pitched" &&
+      state.pianoResonanceSettings.enabled &&
+      state.pianoResonanceSettings.level > 0
+    ) {
+      gain.connect(pianoResonanceInput(context));
+    }
 
     const voice = { id, midi, source, gain, context, releasing: false };
     if (!state.pianoVoices.start(pending, voice)) {
@@ -1966,6 +2022,7 @@ function releaseSustained() {
 }
 
 function syncSustain() {
+  updatePianoResonance();
   if (isLiveSoundFont()) {
     queueLive("/v1/live/sustain", { value: currentPedalValue() })
       .catch((error) => setMonitor("Live sustain error: " + error.message));
@@ -2458,6 +2515,7 @@ async function selectSound(id) {
   state.selectedInstrument = null;
   state.selected = state.sounds.find((item) => item.id === id) || null;
   state.buffers.clear();
+  updatePianoResonanceUi();
 
   if (!state.selected) {
     ui.selectedName.textContent = "No sound selected";
@@ -2488,6 +2546,7 @@ async function selectSound(id) {
 
 function stopAllVoices(fast = false) {
   for (const voice of state.pianoVoices.stop()) releaseVoice(voice, fast);
+  state.pianoResonance?.mute();
 }
 
 function baseComputerMidi() {
@@ -2540,6 +2599,7 @@ async function selectInstrument(id) {
   state.sourceMode = "instrument";
   state.selected = null;
   state.selectedInstrument = state.instruments.find((x) => x.id === id) || null;
+  updatePianoResonanceUi();
   state.instrumentPlaybackMode = "buffered";
   state.buffers.clear();
 
@@ -5474,6 +5534,16 @@ async function initialize() {
   });
 
   ui.sustain.addEventListener("change", syncSustain);
+  ui.pianoResonanceEnabled.addEventListener("change", () => {
+    state.pianoResonanceSettings.enabled = ui.pianoResonanceEnabled.checked;
+    updatePianoResonanceUi();
+    savePianoResonanceSettings();
+  });
+  ui.pianoResonanceLevel.addEventListener("input", () => {
+    state.pianoResonanceSettings.level = Number(ui.pianoResonanceLevel.value);
+    updatePianoResonanceUi();
+  });
+  ui.pianoResonanceLevel.addEventListener("change", savePianoResonanceSettings);
   ui.panic?.addEventListener("click", panicAll);
   ui.enableMidi?.addEventListener("click", enableMidiInput);
   ui.soundSelect.addEventListener("change", () => {
@@ -5552,6 +5622,8 @@ async function initialize() {
     state.instruments = instrumentsData.instruments || [];
     state.studio.projects = projectsData.projects || [];
     state.studio.settings = studioSettings;
+    state.pianoResonanceSettings = normalizePianoResonance(studioSettings.pianoResonance);
+    updatePianoResonanceUi();
 
     syncProjectSelects();
     renderProjectList();

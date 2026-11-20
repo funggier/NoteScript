@@ -159,6 +159,14 @@ export function createControlService(programRoot) {
     return result;
   }
 
+  function normalizePianoResonance(value) {
+    const rawLevel = Number(value?.level);
+    return {
+      enabled: value?.enabled === true,
+      level: Number.isFinite(rawLevel) ? Math.max(0, Math.min(100, Math.round(rawLevel))) : 28
+    };
+  }
+
   function defaultStudioSettings() {
     return {
       version: 4,
@@ -166,6 +174,7 @@ export function createControlService(programRoot) {
       soundPadHotkeys: {},
       soundPadVolumes: {},
       soundPadMixLocks: {},
+      pianoResonance: normalizePianoResonance(null),
       hotkeys: {
         note0: "a",
         note1: "w",
@@ -231,7 +240,8 @@ export function createControlService(programRoot) {
       },
       soundPadHotkeys,
       soundPadVolumes,
-      soundPadMixLocks
+      soundPadMixLocks,
+      pianoResonance: normalizePianoResonance(parsed?.pianoResonance)
     };
   }
 
@@ -465,6 +475,12 @@ export function createControlService(programRoot) {
             : {}),
           ...(input.soundPadMixLocks && typeof input.soundPadMixLocks === "object"
             ? input.soundPadMixLocks
+            : {})
+        }),
+        pianoResonance: normalizePianoResonance({
+          ...current.pianoResonance,
+          ...(input.pianoResonance && typeof input.pianoResonance === "object"
+            ? input.pianoResonance
             : {})
         })
       };

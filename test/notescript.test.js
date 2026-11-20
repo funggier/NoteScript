@@ -1165,6 +1165,10 @@ test("Studio UI exposes unified Compose/Tracks workflow and remappable hotkeys",
 
   assert.match(html, /id="hotkeyEditor"/);
   assert.match(html, /id="pianoChordHold"/);
+  assert.match(html, /id="pianoResonanceEnabled"/);
+  assert.match(html, /id="pianoResonanceLevel"/);
+  assert.match(app, /new PianoSympatheticResonance\(context, pianoOutput\(context\)\)/);
+  assert.match(app, /gain\.connect\(pianoResonanceInput\(context\)\)/);
   assert.match(html, /id="pianoHotkeyEdit"/);
   assert.match(html, /id="soundPadHotkeyEdit"/);
   assert.match(app, /state\.spaceSustain \|\| state\.chordHold/);

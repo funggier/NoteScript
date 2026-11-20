@@ -1,0 +1,36 @@
+<!doctype html><html><head><meta charset="utf-8"></head><body><pre id="result">RUNNING</pre><script type="module">
+import { PianoSympatheticResonance } from "../../src/control/ui/piano-resonance.js";
+window.addEventListener("error", event => { document.querySelector("#result").textContent = "ERROR:" + event.message; });
+function rms(channel, start, end, rate) {
+  const from = Math.round(start * rate), to = Math.min(channel.length, Math.round(end * rate));
+  let sum = 0;
+  for(let i=from;i<to;i++) sum+=channel[i]*channel[i];
+  return Math.sqrt(sum / (to - from));
+}
+async function render(pedal) {
+  const rate = 44100, duration = 0.8;
+  const ctx = new OfflineAudioContext(1, rate*duration, rate);
+  const sample = ctx.createBuffer(1, Math.round(rate * 0.06), rate);
+  const signal = sample.getChannelData(0);
+  let seed = 4513;
+  for(let i=0;i<signal.length;i++) {
+    seed=(Math.imul(seed, 1664525)+1013904223)|0;
+    const noise = ((seed>>>0)/4294967296)*2-1;
+    const seconds=i/rate;
+    signal[i] = Math.exp(-seconds*85) * (0.48*noise+0.52*(Math.sin(2*Math.PI*261.6256*seconds)+0.4*Math.sin(2*Math.PI*523.251*seconds)));
+  }
+  const src=ctx.createBufferSource();src.buffer=sample;
+  const res=new PianoSympatheticResonance(ctx, ctx.destination);
+  src.connect(res.input);
+  res.update({ enabled: true, level: 100 }, pedal);
+  src.start();
+  const result=await ctx.startRendering();
+  const data=result.getChannelData(0);
+  return {early:rms(data,0.015,0.06,rate),tail:rms(data,0.13,0.30,rate),late:rms(data,0.3,0.60,rate),peak:Math.max(...data.slice(0,2000).map(Math.abs))};
+}
+try{
+  const off=await render(0);
+  const on=await render(127);
+  document.querySelector("#result").textContent="RESULT:"+JSON.stringify({off,on,works:on.early>0.00001&&on.tail>off.tail+0.00000001});
+}catch(error){document.querySelector("#result").textContent="ERROR:"+error.stack}
+</script></body></html>

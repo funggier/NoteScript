@@ -30,7 +30,8 @@ For pitched `sounds/<Pack>/` add-ons:
 - multiple BufferSource voices can play simultaneously;
 - velocity controls per-note gain, including the exact velocity of each incoming Web MIDI Note On; keyboard/mouse notes continue to use the Studio velocity slider;
 - sustain delays note release without locking the input key: each new strike creates its own voice, even when the previous strike is still ringing; only physical key-down auto-repeat is suppressed;
-- pedal-up damps only voices whose keys have been released, with a short register-sensitive gain envelope. Web MIDI CC64 values below 64 produce an approximate partial-pedal release tail; above that threshold released notes sustain until the pedal lifts. Sound pack recordings still have a finite duration; the system does not synthesize acoustic sympathetic string resonance;
+- pedal-up damps only voices whose keys have been released, with a short register-sensitive gain envelope. Web MIDI CC64 values below 64 produce an approximate partial-pedal release tail; above that threshold released notes sustain until the pedal lifts. Sound pack recordings still have a finite duration;
+- optional **String resonance (sampled)** effect: a shared, pedal-gated, 61-mode narrow-band resonator bank spanning C2-C7, driven by the sample audio itself. Its output is quiet, gain-bounded and separately adjustable 0-100%. This models a small part of the harmonic energy from undamped neighboring strings, **not** true acoustic string coupling or a measured grand-piano soundboard. Disabled by default to preserve guitar and custom-pack timbres; applied to buffered pitched SoundPiano packs, not direct FluidSynth SF2/SF3 output. A Panic immediately mutes the resonator. Preferences are stored in `config/studio.json`;
 - mouse and computer keyboard input share the same note-on/note-off path.
 
 For SoundPad add-ons the UI displays named trigger pads. New manifests use `type: soundpad`; legacy `type: kit` remains accepted.

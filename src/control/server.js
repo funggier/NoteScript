@@ -73,6 +73,9 @@ const server = http.createServer(async (req, res) => {
     if (req.method === "GET" && url.pathname === "/ui/piano-voices.js") {
       return staticFile(res, path.join(uiRoot, "piano-voices.js"), "text/javascript; charset=utf-8");
     }
+    if (req.method === "GET" && url.pathname === "/ui/piano-resonance.js") {
+      return staticFile(res, path.join(uiRoot, "piano-resonance.js"), "text/javascript; charset=utf-8");
+    }
     if (req.method === "GET" && url.pathname === "/ui/style.css") {
       return staticFile(res, path.join(uiRoot, "style.css"), "text/css; charset=utf-8");
     }

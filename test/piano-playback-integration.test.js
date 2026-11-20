@@ -5,6 +5,7 @@ import path from "node:path";
 import vm from "node:vm";
 import { fileURLToPath } from "node:url";
 import { PianoVoiceRegistry, pianoVelocity, pianoDamperReleaseSeconds } from "../src/control/ui/piano-voices.js";
+import { PianoSympatheticResonance, DEFAULT_PIANO_RESONANCE } from "../src/control/ui/piano-resonance.js";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const app = fs.readFileSync(path.join(here, "..", "src", "control", "ui", "app.js"), "utf8");
@@ -42,6 +43,7 @@ function harness() {
           value: 1,
           cancelScheduledValues() {},
           setValueAtTime(value) { this.value = value; },
+          setTargetAtTime(value) { this.value = value; },
           exponentialRampToValueAtTime(value) { this.value = value; }
         },
         connect() {},
@@ -49,6 +51,15 @@ function harness() {
       };
       allGains.push(node);
       return node;
+    },
+    createBiquadFilter() {
+      return {
+        type: "bandpass",
+        frequency: { value: 0 },
+        Q: { value: 0 },
+        connect() {},
+        disconnect() {}
+      };
     },
     createDynamicsCompressor() {
       return {
@@ -64,6 +75,8 @@ function harness() {
   const state = {
     pianoVoices: new PianoVoiceRegistry(),
     pianoOutput: null,
+    pianoResonance: null,
+    pianoResonanceSettings: { ...DEFAULT_PIANO_RESONANCE },
     selected: { id: "sound/test", type: "pitched", samples: [{ midi: 60 }] },
     sourceMode: "sound",
     velocity: 96,
@@ -85,7 +98,8 @@ function harness() {
     currentSustain: () => state.sustainedPedal,
     currentPedalValue: () => state.pedalValue,
     pianoVelocity,
-    pianoDamperReleaseSeconds
+    pianoDamperReleaseSeconds,
+    PianoSympatheticResonance
   };
   vm.createContext(sandbox);
   vm.runInContext(
@@ -130,13 +144,15 @@ test("Studio WebAudio retriggers an independent instance while sustain keeps the
 });
 
 test("Studio WebAudio preserves individual MIDI strike velocity", async () => {
-  const { playback, allGains, started } = harness();
+  const { playback, state, started } = harness();
   await playback.noteOn(60, "midi:input:0:60", 20);
   await playback.noteOn(62, "midi:input:0:62", 120);
   assert.equal(started.length, 2);
-  assert.ok(allGains[0].gain.value < allGains[1].gain.value);
-  assert.ok(allGains[0].gain.value < 0.2);
-  assert.ok(allGains[1].gain.value > 0.7);
+  const softGain = state.pianoVoices.held.get("midi:input:0:60").gain.gain.value;
+  const hardGain = state.pianoVoices.held.get("midi:input:0:62").gain.gain.value;
+  assert.ok(softGain < hardGain);
+  assert.ok(softGain < 0.2);
+  assert.ok(hardGain > 0.7);
 });
 
 test("Studio WebAudio damper release varies with pitch and half-pedal depth", async () => {
@@ -184,6 +200,23 @@ test("Studio MIDI dispatch passes note velocity and continuous CC64 depth", () =
   assert.equal(noteEvents[1].off, noteEvents[0].id);
   assert.deepEqual(ccValues, [49, 108, 0]);
   assert.equal(midiState.midiSustain, false);
+});
+
+test("Studio WebAudio resonance is silent by default, pedal-controlled and shared", async () => {
+  const { playback, state } = harness();
+  await playback.noteOn(60, "keyboard:a");
+  assert.equal(state.pianoResonance, null, "the disabled effect must not allocate filters");
+
+  state.pianoResonanceSettings = { enabled: true, level: 28 };
+  await playback.noteOn(64, "keyboard:d");
+  const bank = state.pianoResonance;
+  assert.ok(bank);
+  assert.equal(bank.filters.length, 61);
+  assert.equal(bank.input.gain.value, 1);
+  assert.ok(bank.wet.gain.value > 0 && bank.wet.gain.value < 0.04);
+  await playback.noteOn(67, "keyboard:g");
+  assert.strictEqual(state.pianoResonance, bank, "the bank is reused for every strike");
+  assert.equal(bank.filters.length, 61);
 });
 
 test("Studio WebAudio naturally tails off repeated key strikes without sustain", async () => {

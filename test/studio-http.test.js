@@ -65,7 +65,15 @@ test("Studio serves the sustain voice-registry module to the browser", async (t)
   assert.equal(app.status, 200);
   assert.match(await app.text(), /from "\.\/piano-voices\.js"/);
 
+  const resonance = await fetch(base + "/ui/piano-resonance.js");
+  assert.equal(resonance.status, 200);
+  assert.match(resonance.headers.get("content-type"), /text\/javascript/);
+  assert.match(await resonance.text(), /export class PianoSympatheticResonance/);
+
+  const page = await fetch(base + "/");
+  assert.equal(page.status, 200);
+  assert.match(await page.text(), /id="pianoResonanceEnabled"/);
+
   const keyboard = await fetch(base + "/ui/keyboard.js");
-  assert.equal(keyboard.status, 200);
   assert.match(await keyboard.text(), /physicalBindingFromCode/);
 });
