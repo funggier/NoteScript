@@ -29,7 +29,8 @@ For pitched `sounds/<Pack>/` add-ons:
 - Web Audio performs pitch shifting with playback rate;
 - multiple BufferSource voices can play simultaneously;
 - velocity controls per-note gain;
-- sustain delays note release;
+- sustain delays note release without locking the input key: each new strike creates its own voice, even when the previous strike is still ringing; only physical key-down auto-repeat is suppressed;
+- pedal-up damps only voices whose keys have been released, with a short gain envelope. Sound pack recordings still have a finite duration; the system does not synthesize acoustic sympathetic string resonance;
 - mouse and computer keyboard input share the same note-on/note-off path.
 
 For SoundPad add-ons the UI displays named trigger pads. New manifests use `type: soundpad`; legacy `type: kit` remains accepted.

@@ -3,6 +3,7 @@ import {
   bindingMatchesEvent,
   canonicalBindingFromEvent
 } from "./keyboard.js";
+import { PianoVoiceRegistry } from "./piano-voices.js";
 
 const ui = {
   engineStatus: document.querySelector("#engineStatus"),
@@ -178,14 +179,13 @@ const state = {
   velocity: 96,
   spaceSustain: false,
   midiSustain: false,
-  voices: new Map(),
-  sustained: new Set(),
+  pianoVoices: new PianoVoiceRegistry(),
+  pianoOutput: null,
   liveVoices: new Map(),
   liveMidiRefs: new Map(),
   liveQueue: Promise.resolve(),
   liveReady: false,
   buffers: new Map(),
-  pendingVoices: new Map(),
   keyHeld: new Set(),
   chordHold: false,
   midiAccess: null,
@@ -583,7 +583,7 @@ function setMonitor(text) {
 function setVoiceCount() {
   const count = state.instrumentPlaybackMode === "live"
     ? state.liveVoices.size
-    : state.voices.size;
+    : state.pianoVoices.sounding.size;
   ui.voiceCount.textContent = String(count);
 }
 
@@ -633,6 +633,22 @@ function ensureAudio() {
   }
   if (state.audioContext.state === "suspended") state.audioContext.resume();
   return state.audioContext;
+}
+
+function pianoOutput(context) {
+  if (state.pianoOutput?.context === context) return state.pianoOutput.node;
+  // Light bus compression controls peaks when many sustained strikes overlap.
+  // It does not fake pedal resonance or cut short the individual voices.
+  const node = context.createDynamicsCompressor();
+  // Keep normal single-note dynamics intact; intervene mainly on loud overlaps.
+  node.threshold.value = -4;
+  node.knee.value = 4;
+  node.ratio.value = 4;
+  node.attack.value = 0.003;
+  node.release.value = 0.18;
+  node.connect(context.destination);
+  state.pianoOutput = { context, node };
+  return node;
 }
 
 
@@ -1773,7 +1789,8 @@ function releaseVoice(voice, fast = false) {
   if (!voice || voice.releasing) return;
   voice.releasing = true;
   const now = voice.context.currentTime;
-  const release = fast ? 0.025 : 0.09;
+  // A raised damper settles the note rather than cutting it off abruptly.
+  const release = fast ? 0.025 : 0.16;
   try {
     voice.gain.gain.cancelScheduledValues(now);
     voice.gain.gain.setValueAtTime(Math.max(0.0001, voice.gain.gain.value), now);
@@ -1783,8 +1800,9 @@ function releaseVoice(voice, fast = false) {
 }
 
 function cleanupVoice(id, voice) {
-  if (state.voices.get(id) === voice) state.voices.delete(id);
-  state.sustained.delete(voice);
+  state.pianoVoices.cleanup(voice);
+  voice.source.disconnect();
+  voice.gain.disconnect();
   setVoiceCount();
   if (!hasActiveMidi(voice.midi)) setKeyActive(voice.midi, false);
 }
@@ -1795,7 +1813,7 @@ function setKeyActive(midi, active) {
 }
 
 function hasActiveMidi(midi) {
-  if ([...state.voices.values()].some((voice) => voice.midi === midi && !voice.releasing)) return true;
+  if ([...state.pianoVoices.sounding].some((voice) => voice.midi === midi && !voice.releasing)) return true;
   return (state.liveMidiRefs.get(midi) || 0) > 0;
 }
 
@@ -1833,17 +1851,15 @@ function unregisterLiveVoice(id) {
 async function liveNoteOn(midi, id) {
   if (state.liveVoices.has(id)) return;
 
-  const alreadyActive = (state.liveMidiRefs.get(midi) || 0) > 0;
+  // Every fresh strike retriggers the pitch, even with earlier sustained voices.
   registerLiveVoice(id, midi);
 
-  if (!alreadyActive) {
-    try {
-      await queueLive("/v1/live/note-on", { note: midi, velocity: state.velocity });
-      setMonitor("Live " + noteName(midi) + " · " + state.selectedInstrument.name + ".");
-    } catch (error) {
-      unregisterLiveVoice(id);
-      setMonitor("Live engine error: " + error.message);
-    }
+  try {
+    await queueLive("/v1/live/note-on", { note: midi, velocity: state.velocity });
+    setMonitor("Live " + noteName(midi) + " · " + state.selectedInstrument.name + ".");
+  } catch (error) {
+    unregisterLiveVoice(id);
+    setMonitor("Live engine error: " + error.message);
   }
 }
 
@@ -1860,17 +1876,8 @@ async function noteOn(midi, id) {
     return liveNoteOn(midi, id);
   }
 
-  if (state.voices.has(id)) return;
-
-  const existingPending = state.pendingVoices.get(id);
-  if (existingPending) {
-    existingPending.released = false;
-    existingPending.sustain = false;
-    return;
-  }
-
-  const pending = { released: false, sustain: false, cancelled: false };
-  state.pendingVoices.set(id, pending);
+  const pending = state.pianoVoices.begin(id);
+  if (!pending) return;
 
   try {
     const context = ensureAudio();
@@ -1899,8 +1906,7 @@ async function noteOn(midi, id) {
       description = "Playing " + noteName(midi) + " from root " + noteName(root.midi) + ".";
     }
 
-    if (pending.cancelled || state.pendingVoices.get(id) !== pending) return;
-    if (state.voices.has(id)) return;
+    if (pending.cancelled) return;
 
     const source = context.createBufferSource();
     const gain = context.createGain();
@@ -1909,10 +1915,14 @@ async function noteOn(midi, id) {
     gain.gain.value = gainValue;
 
     source.connect(gain);
-    gain.connect(context.destination);
+    gain.connect(pianoOutput(context));
 
     const voice = { id, midi, source, gain, context, releasing: false };
-    state.voices.set(id, voice);
+    if (!state.pianoVoices.start(pending, voice)) {
+      source.disconnect();
+      gain.disconnect();
+      return;
+    }
     source.onended = () => cleanupVoice(id, voice);
     source.start();
 
@@ -1921,13 +1931,12 @@ async function noteOn(midi, id) {
     setMonitor(description);
 
     if (pending.released) {
-      if (pending.sustain) state.sustained.add(voice);
-      else releaseVoice(voice);
+      if (!pending.sustain) releaseVoice(voice);
     }
   } catch (error) {
     setMonitor("Audio error: " + error.message);
   } finally {
-    if (state.pendingVoices.get(id) === pending) state.pendingVoices.delete(id);
+    state.pianoVoices.finish(pending);
   }
 }
 
@@ -1937,26 +1946,13 @@ function noteOff(id) {
     return;
   }
 
-  const voice = state.voices.get(id);
-  if (!voice) {
-    const pending = state.pendingVoices.get(id);
-    if (pending) {
-      pending.released = true;
-      pending.sustain = currentSustain();
-    }
-    return;
-  }
-  if (currentSustain()) {
-    state.sustained.add(voice);
-    return;
-  }
-  releaseVoice(voice);
+  const result = state.pianoVoices.noteOff(id, currentSustain());
+  if (result?.voice && !result.sustain) releaseVoice(result.voice);
 }
 
 function releaseSustained() {
   if (currentSustain()) return;
-  for (const voice of [...state.sustained]) releaseVoice(voice);
-  state.sustained.clear();
+  for (const voice of state.pianoVoices.releaseSustained()) releaseVoice(voice);
 }
 
 function syncSustain() {
@@ -2477,15 +2473,8 @@ async function selectSound(id) {
   }
 }
 
-function cancelPendingVoices() {
-  for (const pending of state.pendingVoices.values()) pending.cancelled = true;
-  state.pendingVoices.clear();
-}
-
 function stopAllVoices(fast = false) {
-  cancelPendingVoices();
-  for (const voice of state.voices.values()) releaseVoice(voice, fast);
-  state.sustained.clear();
+  for (const voice of state.pianoVoices.stop()) releaseVoice(voice, fast);
 }
 
 function baseComputerMidi() {

@@ -372,6 +372,7 @@ Implemented:
 - SoundPad MIX LOCK is enabled by default for every SoundPad. It persists per sound-pack ID and protects all pad-volume sliders plus RESET MIX while keeping pad playback and hotkeys active.
 - Piano note/hotkey labels are centered inside the actual white/black key bounds rather than relying on browser static-position behavior.
 - Optional Web MIDI input for note on/off, velocity, sustain and all-notes-off.
+- Piano sustain (Space, MIDI CC64, or `CHORD HOLD`) lets released notes continue ringing while every fresh press of the same key starts another independent voice. Holding a key down still suppresses OS auto-repeat. Pedal-up damps only released notes with a short, natural release; held notes keep sounding. Buffered playback uses a gentle dynamics bus to control peaks during overlapping chords, while live SF2/SF3 uses its own sustain pedal controller. One-shot samples cannot ring beyond their recorded duration.
 - Piano `CHORD HOLD` mode keeps released notes latched so large chords can be built even on low-rollover computer keyboards; normal simultaneous keyboard/MIDI polyphony remains unchanged when it is off.
 - Project create/open/save/rename/delete flow inside the portable workspace.
 - Compose Text / Form / Node / Tracks modes edit the same authoritative Markdown project.
