@@ -404,6 +404,16 @@ Planned:
 - BeatLane6 slide/drag notes, manual chart editing, persistent high scores and timing-calibration polish.
 - ChatGPT Plugin/MCP adapter over the Control API.
 
+## Piano Sustain and Expression (v0.4.3)
+
+The Play > SoundPiano keyboard now separates a physical key press from the lifetime of the sound it starts. Repeating a note while the Sustain pedal (Space / MIDI CC64 / CHORD HOLD) is held starts an independent overlapping voice instead of waiting for the previous sample to stop. Key release and pedal-up preserve natural, short damper-release envelopes; Panic silences pending and sustaining notes.
+
+- Incoming Web MIDI Note On uses each note's velocity (1-127), rather than overriding it with the on-screen slider.
+- Continuous CC64 supports a conservative partial-pedal release approximation for buffered samples. Live SF2/SF3 forwards the full CC64 value to FluidSynth; the SoundFont determines how it responds.
+- **String resonance (sampled)** is an optional, shared 61-mode harmonic filter bank (C2-C7) for pitched SoundPiano sample packs. It is off by default and has an adjustable 0-100% amount. The extra resonance is gated by the pedal, kept low in the mix, and muted on Panic. Preferences persist inside the portable `config/studio.json`.
+- The resonance filter approximates sympathetic energy and is **not** a full physical model of piano strings or soundboard. It does not change live SF2/SF3 output, track rendering or pre-rendered WAV exports.
+- The original WAV/SoundFont licenses are unchanged. The six original Uki Guitar master recordings are authorized for inclusion but are **not** MIT-licensed; the MIT license applies to the NoteScript code.
+
 ## High Quality Render — PCM24 Stereo (v0.4.2)
 
 NoteScript includes a **separate, offline HQ export engine**. It does **not** change the default Piano, live playback, or quick mono WAV exporter.
