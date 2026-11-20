@@ -79,9 +79,9 @@ export class LivePlaybackManager {
     return this.status();
   }
 
-  sustain(enabled) {
+  sustain(value) {
     this.requireReady();
-    this.session.sustain(enabled);
+    this.session.sustain(value);
     return this.status();
   }
 

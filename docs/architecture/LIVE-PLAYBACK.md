@@ -12,7 +12,7 @@ The persistent playback layer exposes one logical interface:
 selectInstrument(instrument)
 noteOn(note, velocity)
 noteOff(note)
-sustain(enabled)
+sustain(value_or_enabled)
 allNotesOff()
 stop()
 status()
@@ -72,7 +72,7 @@ Web MIDI mapping:
 
 - Note On: MIDI 0x90 with velocity > 0;
 - Note Off: MIDI 0x80 or Note On with velocity 0;
-- Sustain: CC64;
+- Sustain: CC64 (0–127; boolean compatibility accepted by API);
 - Panic / all notes off: CC120 or CC123.
 
 The MIDI permission is requested only after the user presses **Enable MIDI Input**.
@@ -81,7 +81,7 @@ The MIDI permission is requested only after the user presses **Enable MIDI Input
 
 Multiple UI input sources can target the same MIDI note. The browser keeps a per-note reference count for the persistent server-side synth.
 
-The first source pressing a pitch sends `note-on`. Additional sources on the same pitch increase the local reference count. `note-off` is sent only after the final source releases that pitch.
+Every new strike (after releasing its input key) sends a fresh `note-on`, even if the same pitch is already sustained; held-key auto-repeat is still blocked. Input-source reference counts are retained so `note-off` is sent only after the last source holding the pitch releases it. Concurrent sources holding exactly the same pitch therefore share a final release on the single FluidSynth MIDI channel; this is not fully independent per-source voice release.
 
 This avoids prematurely releasing a note if, for example, the computer keyboard and MIDI controller hold the same pitch at the same time.
 
@@ -96,7 +96,7 @@ Commands:
 - `POST /v1/live/select`
 - `POST /v1/live/note-on`
 - `POST /v1/live/note-off`
-- `POST /v1/live/sustain`
+- `POST /v1/live/sustain` (`{ "value": 0..127 }`; legacy `{ "enabled": true|false }` remains accepted)
 - `POST /v1/live/all-notes-off`
 - `POST /v1/live/stop`
 
@@ -111,6 +111,8 @@ Example note body:
 ```json
 { "note": 60, "velocity": 96 }
 ```
+
+On MIDI keyboards, NoteScript forwards each Note On velocity separately and sends the continuous CC64 pedal depth to FluidSynth. A SoundFont only produces a realistic half-pedal response if its instrument supports that expression. In buffered sample mode, values below 64 modify the damper-release envelope, not the actual string resonance.
 
 ## Failure and fallback behavior
 

@@ -1,7 +1,26 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { PianoVoiceRegistry } from "../src/control/ui/piano-voices.js";
+import { PianoVoiceRegistry, pianoVelocity, pianoDamperReleaseSeconds } from "../src/control/ui/piano-voices.js";
 import { FluidSynthLiveSession } from "../src/playback/fluidsynth-live.js";
+
+test("per-note velocity is clamped and a soft MIDI strike stays softer than a hard strike", () => {
+  assert.equal(pianoVelocity(20), 20);
+  assert.equal(pianoVelocity(127), 127);
+  assert.equal(pianoVelocity(255), 127);
+  assert.equal(pianoVelocity(0), 96);
+  assert.equal(pianoVelocity(Number.NaN), 96);
+});
+
+test("half pedal extends damper release without locking keys; lower notes ring longer", () => {
+  const noPedalLow = pianoDamperReleaseSeconds(36, 0);
+  const noPedalHigh = pianoDamperReleaseSeconds(96, 0);
+  const halfLow = pianoDamperReleaseSeconds(36, 48);
+  assert.ok(noPedalLow > noPedalHigh);
+  assert.ok(halfLow > noPedalLow);
+  assert.ok(halfLow < 1);
+  assert.equal(pianoDamperReleaseSeconds(60, -100), pianoDamperReleaseSeconds(60, 0));
+  assert.equal(pianoDamperReleaseSeconds(60, 64), pianoDamperReleaseSeconds(60, 63));
+});
 
 test("buffered notes can retrigger under sustain without cutting the earlier strike", () => {
   const voices = new PianoVoiceRegistry();
@@ -94,6 +113,26 @@ test("panic cancels late samples and detaches keys without leaking old voices", 
   assert.ok(voices.begin("keyboard:a"));
   voices.cleanup(sound);
   assert.equal(voices.sounding.size, 0);
+});
+
+test("FluidSynth accepts analog pedal depth and preserves the boolean API", () => {
+  const session = new FluidSynthLiveSession({ id: "SF2/Test", name: "Test", format: "SF2" });
+  const commands = [];
+  session.ready = true;
+  session.process = { stdin: { destroyed: false, write(data) { commands.push(data.trim()); } } };
+  session.sustain(42);
+  assert.equal(session.status().sustain, false);
+  assert.equal(session.status().sustainValue, 42);
+  session.sustain(96);
+  assert.equal(session.status().sustain, true);
+  assert.equal(session.status().sustainValue, 96);
+  session.sustain(true);
+  session.sustain(false);
+  assert.deepEqual(commands, [
+    "cc 0 64 42", "cc 0 64 96", "cc 0 64 127", "cc 0 64 0"
+  ]);
+  assert.throws(() => session.sustain(128), /sustain value must be between 0 and 127/);
+  assert.throws(() => session.sustain(-1), /sustain value must be between 0 and 127/);
 });
 
 test("FluidSynth issues a fresh note-on for repeated pitches with CC64 held", () => {

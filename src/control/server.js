@@ -199,7 +199,7 @@ const server = http.createServer(async (req, res) => {
     }
     if (req.method === "POST" && url.pathname === "/v1/live/sustain") {
       const input = await body(req);
-      return json(res, 200, service.liveSustain(input.enabled));
+      return json(res, 200, service.liveSustain(input.value ?? input.enabled));
     }
     if (req.method === "POST" && url.pathname === "/v1/live/all-notes-off") {
       return json(res, 200, service.liveAllNotesOff());

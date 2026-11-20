@@ -1,3 +1,22 @@
+// MIDI velocity must stay attached to the individual strike, not to the slider's
+// value when an asynchronous sample finishes loading.
+export function pianoVelocity(value, fallback = 96) {
+  const number = Number(value);
+  return Number.isFinite(number) && number >= 1
+    ? Math.max(1, Math.min(127, Math.round(number)))
+    : fallback;
+}
+
+// An acoustic damper acts sooner on treble strings; a partially raised pedal
+// delays the damping. This is a modest sampled-instrument approximation, not
+// a simulation of individual piano strings or their sympathetic resonance.
+export function pianoDamperReleaseSeconds(midi, pedalValue = 0) {
+  const note = Math.max(21, Math.min(108, Number(midi) || 60));
+  const depth = Math.max(0, Math.min(63, Number(pedalValue) || 0)) / 63;
+  const register = (108 - note) / (108 - 21);
+  return 0.10 + register * 0.12 + Math.pow(depth, 1.7) * 0.43;
+}
+
 // A physical key binding is a held-note identity, not a lifetime identifier for audio.
 // Released notes can continue to ring (sustain or release tail) while the same key is struck again.
 export class PianoVoiceRegistry {

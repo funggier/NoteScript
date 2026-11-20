@@ -793,8 +793,8 @@ export function createControlService(programRoot) {
       return livePlayback.noteOff(note);
     },
 
-    liveSustain(enabled) {
-      return livePlayback.sustain(enabled);
+    liveSustain(value) {
+      return livePlayback.sustain(value);
     },
 
     liveAllNotesOff() {

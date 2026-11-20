@@ -371,8 +371,9 @@ Implemented:
 - SoundPad has per-pad volume mixing from 0–100%, persisted per sound-pack ID, plus RESET MIX to return the current SoundPad to 100%.
 - SoundPad MIX LOCK is enabled by default for every SoundPad. It persists per sound-pack ID and protects all pad-volume sliders plus RESET MIX while keeping pad playback and hotkeys active.
 - Piano note/hotkey labels are centered inside the actual white/black key bounds rather than relying on browser static-position behavior.
-- Optional Web MIDI input for note on/off, velocity, sustain and all-notes-off.
+- Optional Web MIDI input for note on/off, **per-strike velocity** (not the keyboard slider value), continuous sustain pedal depth (CC64 0–127), and all-notes-off.
 - Piano sustain (Space, MIDI CC64, or `CHORD HOLD`) lets released notes continue ringing while every fresh press of the same key starts another independent voice. Holding a key down still suppresses OS auto-repeat. Pedal-up damps only released notes with a short, natural release; held notes keep sounding. Buffered playback uses a gentle dynamics bus to control peaks during overlapping chords, while live SF2/SF3 uses its own sustain pedal controller. One-shot samples cannot ring beyond their recorded duration.
+- Buffered piano damper release varies modestly with pitch: lower notes decay longer after a key-up, while treble notes settle sooner. On MIDI controllers sending continuous CC64, values 1–63 extend the release as a half-pedal approximation; 64–127 sustain fully until the pedal lifts below 64. Space/checkbox/`CHORD HOLD` remain full-pedal controls. SF2/SF3 forward the raw CC64 depth to FluidSynth; actual half-pedal expressiveness depends on the loaded SoundFont. No acoustic string-resonance or sample looping is fabricated.
 - Piano `CHORD HOLD` mode keeps released notes latched so large chords can be built even on low-rollover computer keyboards; normal simultaneous keyboard/MIDI polyphony remains unchanged when it is off.
 - Project create/open/save/rename/delete flow inside the portable workspace.
 - Compose Text / Form / Node / Tracks modes edit the same authoritative Markdown project.

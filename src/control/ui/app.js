@@ -3,7 +3,7 @@ import {
   bindingMatchesEvent,
   canonicalBindingFromEvent
 } from "./keyboard.js";
-import { PianoVoiceRegistry } from "./piano-voices.js";
+import { PianoVoiceRegistry, pianoVelocity, pianoDamperReleaseSeconds } from "./piano-voices.js";
 
 const ui = {
   engineStatus: document.querySelector("#engineStatus"),
@@ -179,6 +179,7 @@ const state = {
   velocity: 96,
   spaceSustain: false,
   midiSustain: false,
+  midiSustainValue: 0,
   pianoVoices: new PianoVoiceRegistry(),
   pianoOutput: null,
   liveVoices: new Map(),
@@ -555,8 +556,15 @@ function noteName(midi) {
   return NOTE_NAMES[midi % 12] + (Math.floor(midi / 12) - 1);
 }
 
+function currentPedalValue() {
+  // Keyboard/checkbox/Chord Hold behave as a fully pressed pedal.
+  return ui.sustain.checked || state.spaceSustain || state.chordHold
+    ? 127
+    : state.midiSustainValue;
+}
+
 function currentSustain() {
-  return ui.sustain.checked || state.spaceSustain || state.midiSustain || state.chordHold;
+  return currentPedalValue() >= 64;
 }
 
 function updateChordHoldUi() {
@@ -1789,8 +1797,9 @@ function releaseVoice(voice, fast = false) {
   if (!voice || voice.releasing) return;
   voice.releasing = true;
   const now = voice.context.currentTime;
-  // A raised damper settles the note rather than cutting it off abruptly.
-  const release = fast ? 0.025 : 0.16;
+  // Pedal-up damps only released notes. Treble notes settle sooner, while
+  // a partially lifted MIDI pedal allows a longer (but finite) release tail.
+  const release = fast ? 0.025 : pianoDamperReleaseSeconds(voice.midi, currentPedalValue());
   try {
     voice.gain.gain.cancelScheduledValues(now);
     voice.gain.gain.setValueAtTime(Math.max(0.0001, voice.gain.gain.value), now);
@@ -1848,14 +1857,14 @@ function unregisterLiveVoice(id) {
   return { midi, remaining: next };
 }
 
-async function liveNoteOn(midi, id) {
+async function liveNoteOn(midi, id, velocity = state.velocity) {
   if (state.liveVoices.has(id)) return;
 
   // Every fresh strike retriggers the pitch, even with earlier sustained voices.
   registerLiveVoice(id, midi);
 
   try {
-    await queueLive("/v1/live/note-on", { note: midi, velocity: state.velocity });
+    await queueLive("/v1/live/note-on", { note: midi, velocity: pianoVelocity(velocity) });
     setMonitor("Live " + noteName(midi) + " · " + state.selectedInstrument.name + ".");
   } catch (error) {
     unregisterLiveVoice(id);
@@ -1871,9 +1880,10 @@ function liveNoteOff(id) {
     .catch((error) => setMonitor("Live engine error: " + error.message));
 }
 
-async function noteOn(midi, id) {
+async function noteOn(midi, id, velocity = state.velocity) {
+  const strikeVelocity = pianoVelocity(velocity);
   if (isLiveSoundFont()) {
-    return liveNoteOn(midi, id);
+    return liveNoteOn(midi, id, strikeVelocity);
   }
 
   const pending = state.pianoVoices.begin(id);
@@ -1892,7 +1902,7 @@ async function noteOn(midi, id) {
         setMonitor(state.selectedInstrument.format + " playback adapter is not enabled yet.");
         return;
       }
-      buffer = await loadInstrumentBuffer(state.selectedInstrument.id, midi, state.velocity);
+      buffer = await loadInstrumentBuffer(state.selectedInstrument.id, midi, strikeVelocity);
       gainValue = 0.92;
       description = "Playing " + noteName(midi) + " with " + state.selectedInstrument.name + ".";
     } else {
@@ -1901,8 +1911,8 @@ async function noteOn(midi, id) {
       if (!root) return;
       buffer = await loadRootBuffer(state.selected.id, root.midi);
       playbackRate = Math.pow(2, (midi - root.midi) / 12);
-      const velocity = state.velocity / 127;
-      gainValue = Math.max(0.0001, Math.pow(velocity, 1.35) * 0.9);
+      const velocityGain = strikeVelocity / 127;
+      gainValue = Math.max(0.0001, Math.pow(velocityGain, 1.35) * 0.9);
       description = "Playing " + noteName(midi) + " from root " + noteName(root.midi) + ".";
     }
 
@@ -1957,7 +1967,7 @@ function releaseSustained() {
 
 function syncSustain() {
   if (isLiveSoundFont()) {
-    queueLive("/v1/live/sustain", { enabled: currentSustain() })
+    queueLive("/v1/live/sustain", { value: currentPedalValue() })
       .catch((error) => setMonitor("Live sustain error: " + error.message));
   } else {
     releaseSustained();
@@ -1966,6 +1976,9 @@ function syncSustain() {
 
 async function panicAll() {
   state.keyHeld.clear();
+  // A lost MIDI key-up/pedal-up must not leave a latent pedal state after Panic.
+  state.midiSustain = false;
+  state.midiSustainValue = 0;
   stopAllVoices(true);
 
   if (state.liveReady) {
@@ -2617,7 +2630,7 @@ function handleMidiMessage(input, event) {
   const id = "midi:" + input.id + ":" + channel + ":" + data1;
 
   if (command === 0x90 && data2 > 0) {
-    noteOn(data1, id);
+    noteOn(data1, id, data2);
     return;
   }
 
@@ -2627,7 +2640,8 @@ function handleMidiMessage(input, event) {
   }
 
   if (command === 0xb0 && data1 === 64) {
-    state.midiSustain = data2 >= 64;
+    state.midiSustainValue = Math.max(0, Math.min(127, data2));
+    state.midiSustain = state.midiSustainValue >= 64;
     syncSustain();
     return;
   }

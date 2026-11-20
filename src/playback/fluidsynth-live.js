@@ -51,6 +51,7 @@ export class FluidSynthLiveSession {
     this.stderrTail = "";
     this.activeNotes = new Set();
     this.sustainEnabled = false;
+    this.sustainValue = 0;
     this.backend = null;
     this.startedAt = null;
     this.lastError = null;
@@ -140,6 +141,7 @@ export class FluidSynthLiveSession {
         this.process = null;
         this.activeNotes.clear();
         this.sustainEnabled = false;
+        this.sustainValue = 0;
 
         if (!this.stopping && !wasReady) {
           fail(
@@ -177,10 +179,16 @@ export class FluidSynthLiveSession {
     return this.status();
   }
 
-  sustain(enabled) {
+  sustain(value) {
     this.assertReady();
-    this.sustainEnabled = Boolean(enabled);
-    this.send("cc 0 64 " + (this.sustainEnabled ? "127" : "0"));
+    // Keep the boolean Control API compatible while forwarding MIDI CC64
+    // depth (0-127) unchanged for half-pedal-capable SoundFonts.
+    const next = typeof value === "boolean"
+      ? (value ? 127 : 0)
+      : clampInteger(value ?? 0, 0, 127, "sustain value");
+    this.sustainValue = next;
+    this.sustainEnabled = next >= 64;
+    this.send("cc 0 64 " + next);
     return this.status();
   }
 
@@ -189,6 +197,7 @@ export class FluidSynthLiveSession {
     this.send("cc 0 64 0");
     this.send("cc 0 123 0");
     this.sustainEnabled = false;
+    this.sustainValue = 0;
     this.activeNotes.clear();
     return this.status();
   }
@@ -204,6 +213,7 @@ export class FluidSynthLiveSession {
       this.ready = false;
       this.activeNotes.clear();
       this.sustainEnabled = false;
+      this.sustainValue = 0;
       return this.status();
     }
 
@@ -238,6 +248,7 @@ export class FluidSynthLiveSession {
       this.stopping = false;
       this.activeNotes.clear();
       this.sustainEnabled = false;
+      this.sustainValue = 0;
     }
 
     return this.status();
@@ -257,6 +268,7 @@ export class FluidSynthLiveSession {
       activeNotes: [...this.activeNotes].sort((a, b) => a - b),
       activeNoteCount: this.activeNotes.size,
       sustain: this.sustainEnabled,
+      sustainValue: this.sustainValue,
       startedAt: this.startedAt,
       backendVersion: this.backend?.version ?? null,
       lastError: this.lastError
